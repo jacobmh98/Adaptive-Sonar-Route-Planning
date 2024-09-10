@@ -57,12 +57,17 @@ for i in range(ncc):
         for j2 in range(n):
             if j == j2:
                 continue
+
             x3, y3 = vertices[:, j2]
             x4, y4 = vertices[:, (j2 + 1) % n]
 
-            t = (m1 * x3 + c1 - y3) / ((y4 - y3) - m1 * (x4 - x3))
+            t = np.round((m1 * x3 + c1 - y3) / ((y4 - y3) - m1 * (x4 - x3)),2)
 
-            print(f'\t\tmaking line from {j2} to {(j2 + 1) % n}, t={np.round(t, 2)}')
+            # If there is an intersection split the polygon into two polygons P1 and P2
+            if 0 < t < 1:
+                print(f'\t\tmaking line that intersects from vertex {j2} to {(j2 + 1) % n}, t={t}')
+
+                # TODO compute the actual intersection
 
     # TMP break
     break
