@@ -1,62 +1,62 @@
-import pygame
-import json
-from functions import *
-import math
 import numpy as np
+import json
+import matplotlib.pyplot as plt
 
 # Reading the test data
-f = open('test_data.json')
+f1 = open('test_data/complex_polygon.json')
+f2 = open('test_data/simple_rectangle.json')
 
-data = json.load(f)
-area_pts = data['area']['coordinates']
-area_pts = np.array(area_pts).T
+data = json.load(f1)
 
-# TODO set these values dynamically based on the input
-scale = 50
-screen_x = 500
-screen_y = 500
+# Defining the vertices in counter-clock wise order
+vertices = data['area']['coordinates']
+vertices = np.array(vertices).T
 
-# Figuring out screen width and height
-area_pts *= scale
+# Number of vertices
+n = vertices.shape[1]
 
-min_x = np.min(area_pts[0, :])
-max_x = np.max(area_pts[0, :])
-min_y = np.min(area_pts[1, :])
-max_y = np.max(area_pts[1, :])
+# Determine the concave vertices
+for i in range(n):
+    # Find the adjacent vertices
+    v_minus = vertices[:, (i - 1) % n]
+    v = vertices[:, i % n]
+    v_plus = vertices[:, (i + 1) % n]
 
-# Centering the area in the middle of the screen
-area_center = np.mean(area_pts, axis = 1)
-print(area_center)
+    # Computing the concave judgement matrix
+    S_vi = np.linalg.det(np.array([[v_minus[0], v_minus[1], 1],
+                                   [v[0], v[1], 1],
+                                   [v_plus[0], v_plus[1], 1]]))
 
-dx = screen_x / 2 - area_center[0]
-dy = screen_y / 2 - area_center[1]
-t = np.array([dx, dy]).reshape(-1, 1)
+    print(f'{i=}')
+    print(S_vi)
 
-area_pts_transformed = area_pts + t
 
-# Creating the Pygame screen
-pygame.init()
-screen = pygame.display.set_mode((screen_x, screen_y))
-clock = pygame.time.Clock()
-running = True
+# Creating a plot
+fig = plt.figure()
 
-while running:
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+# Plotting the points
+x_coords = vertices[0, :]
+y_coords = vertices[1, :]
 
-    # fill the screen with a color to wipe away anything from last frame
-    screen.fill("black")
+plt.plot(x_coords, y_coords, 'b-', marker='o')  # Connect back to the first point to close the polygon
+plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
 
-    # RENDER YOUR GAME HERE
-    area_polygon = list(map(tuple, area_pts_transformed.T))
-    pygame.draw.polygon(screen, (0, 0, 255), area_polygon)
+for i in range(n):
+    x = vertices[0][i]
+    y = vertices[1][i]
+    plt.text(x, y, f'{i}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
-    # flip() the display to put your work on screen
-    pygame.display.flip()
 
-    clock.tick(60)  # limits FPS to 60
 
-pygame.quit()
+plt.show()
+
+quit()
+ax.plot(x, y, 'b-', linewidth=1)
+ax.plot([x[-1], x[0]], [y[-1], y[0]], 'b-', linewidth=1)
+
+ax.set_title('Polygon from points')
+ax.set_xlabel('x (km)')
+ax.set_ylabel('y (km)')
+
+ax.set_aspect('equal')
+plt.show()
