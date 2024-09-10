@@ -15,6 +15,10 @@ vertices = np.array(vertices).T
 # Number of vertices
 n = vertices.shape[1]
 
+# Number of concave vertices
+ncc = 0
+concave_vertices = []
+
 # Determine the concave vertices
 for i in range(n):
     # Find the adjacent vertices
@@ -27,9 +31,41 @@ for i in range(n):
                                    [v[0], v[1], 1],
                                    [v_plus[0], v_plus[1], 1]]))
 
-    print(f'{i=}')
-    print(S_vi)
+    # Test if v_i is concave
+    if S_vi < 0:
+        ncc += 1
+        concave_vertices.append(i)
 
+print(f'{concave_vertices=}')
+
+for i in range(ncc):
+    concave_v = concave_vertices[i]
+    print(f"checking for {concave_v=}")
+
+    # Check lines which passes vertex i and parallels edge j
+    for j in range(n):
+        # Slope-Intercept form for line from vertex j to vertex j+1
+        x1, y1 = vertices[:, j]
+        x2, y2 = vertices[:, (j + 1) % n]
+
+        m1 = y2 - y1 / x2 - x1
+        c1 = y1 - m1 * x1
+
+        print(f'\tSlope-Intercept form from vertex {j} to {(j + 1) % n} m1 = {np.round(m1, 2)}, c1 = {np.round(c1, 2)}')
+
+        # Check each line in the polygon for intersection
+        for j2 in range(n):
+            if j == j2:
+                continue
+            x3, y3 = vertices[:, j2]
+            x4, y4 = vertices[:, (j2 + 1) % n]
+
+            t = (m1 * x3 + c1 - y3) / ((y4 - y3) - m1 * (x4 - x3))
+
+            print(f'\t\tmaking line from {j2} to {(j2 + 1) % n}, t={np.round(t, 2)}')
+
+    # TMP break
+    break
 
 # Creating a plot
 fig = plt.figure()
