@@ -69,3 +69,13 @@ def plot_results(split_polygons, D_i, cv_index):
         axs[r, c % cols].set_title(f'D({cv_index},{c}) = {np.round(D_i[c], 1)}')
 
     plt.tight_layout()
+
+def distance(v1, v2):
+        """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
+        return np.linalg.norm(v1 - v2)
+
+
+def points_are_equal(P1, P2, epsilon=1e-3):
+    """ Checks if two points P1 and P2 are approximately equal within a tolerance epsilon. """
+    # Check if the distance between the points is smaller than epsilon
+    return np.all(np.abs(P1 - P2) < epsilon)

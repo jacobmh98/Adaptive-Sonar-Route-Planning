@@ -8,6 +8,7 @@ class Vertex:
         self.index = i
         self.x = x
         self.y = y
+        self.v = np.array([x, y])
         self.prev = None
         self.next = None
 
@@ -18,10 +19,9 @@ class Edge:
     def __init__(self, v1, v2):
         self.v_from = v1
         self.v_to = v2
-        self.slope = (v2.y - v1.y) / (v2.x - v1.x)
 
     def __repr__(self):
-        return f"Edge({self.v_from.index}, {self.v_to.index}, m={self.slope:.1f})"
+        return f"Edge({self.v_from.index}, {self.v_to.index})"
 
 class Polygon:
     def __init__(self, v):

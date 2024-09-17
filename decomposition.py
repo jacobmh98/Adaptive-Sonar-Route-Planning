@@ -1,3 +1,5 @@
+from json.encoder import INFINITY
+
 import numpy as np
 import json
 import matplotlib.pyplot as plt
@@ -5,14 +7,31 @@ from Polygon import Vertex, Polygon
 from functions import *
 
 # Reading the test data
-f1 = open('test_data/complex_polygon.json')
-data = json.load(f1)
+f = open('test_data/complex_polygon.json')
+#f = open('test_data/intersection_in_vertex.json')
+data = json.load(f)
 vertices_data = data['area']['coordinates']
 
-# Defining the initial polygon
+# Defining the initial polygon and the boúnding box
 vertices = []
+min_x = INFINITY
+max_x = -INFINITY
+min_y = INFINITY
+max_y = -INFINITY
 
 for i, v in enumerate(vertices_data):
+    if v[0] < min_x:
+        min_x = v[0]
+
+    if v[0] > max_x:
+        max_x = v[0]
+
+    if v[1] < min_y:
+        min_y= v[1]
+
+    if v[1] > max_y:
+        max_y = v[1]
+
     vertices.append(Vertex(i, v[0], v[1]))
 
 polygon = Polygon(vertices)
@@ -21,10 +40,12 @@ polygon = Polygon(vertices)
 polygon.concave_vertices = compute_concave_vertices(polygon)
 print(f'concave vertices = {polygon.concave_vertices}')
 
-# Creating the width-sum matrix
-ncc = len(polygon.concave_vertices)
-n_edges = len(polygon.edges)
-D = np.empty((ncc, n_edges))
+splitting_vectors = []
+
+fig, ax = plt.subplots(3, 5)
+plot_r = 0
+plot_c = 0
+max_c = 5
 
 # Go through each concave vertex
 for i, cv in enumerate(polygon.concave_vertices):
@@ -34,91 +55,102 @@ for i, cv in enumerate(polygon.concave_vertices):
 
     # Check lines which passes the concave vertex i and parallels edge e
     for j, e in enumerate(polygon.edges):
-        m = e.slope
+        print(f'\tedge from {e.v_from} to {e.v_to}')
+        # Define a vector from the vertices in edge e end its negation
+        v_dir1 = e.v_to.v - e.v_from.v
+        v_dir2 = -v_dir1
 
-        # Translate the line to lie on the concave vertex (slope stays the same)
-        c = cv.y - m * cv.x
+        # TODO fix for floats later
+        # TODO test the cases below and fix errors if any
 
-        # Check each edge in the polygon for intersection with line e
-        intersection_points = []
-        intersection_edges = []
+        # Extend the vector and its negation to the boundary box of the polygon
 
-        for e2 in polygon.edges:
-            # Don't need to do anything if the line intersects itself
-            if e == e2:
-                continue
+        if v_dir1[0] > 0 and v_dir1[1] < 0: # positive x, negative y
+            t1_limx = (max_x - cv.x) / v_dir1[0]
+            t1_limy = (min_y - cv.y) / v_dir1[1]
+            t1 = np.min(np.array([t1_limx, t1_limy]))
 
-            # TODO handle well-formedness of intersection points
+            t2_limx = (min_x - cv.x) / v_dir2[0]
+            t2_limy = (max_y - cv.y) / v_dir2[1]
+            t2 = np.min(np.array([t2_limx, t2_limy]))
+            
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
+        elif v_dir1[0] > 0 and v_dir1[1] == 0: # positive x, neutral y
+            t1 = (max_x - cv.x) / v_dir1[0]
+            t2 = (min_x - cv.x) / v_dir2[0]
 
-            # Check if the line intersects the polygon
-            t = np.round((m * e2.v_from.x + c - e2.v_from.y) / ((e2.v_to.y - e2.v_from.y) - m * (e2.v_to.x - e2.v_from.x)),2)
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
+        elif v_dir1[0] > 0 and v_dir1[1] > 0: # positive x, positive y
+            t1_limx = (max_x - cv.x) / v_dir1[0]
+            t1_limy = (max_y - cv.y) / v_dir1[1]
+            t1 = np.min(np.array([t1_limx, t1_limy]))
 
-            if 0 < t < 1:
-                # Compute the intersection point between the line and the polygon
-                x_intersect = e2.v_from.x + t * (e2.v_to.x - e2.v_from.x)
-                y_intersect = e2.v_from.y + t * (e2.v_to.y - e2.v_from.y)
+            t2_limx = (min_x - cv.x) / v_dir2[0]
+            t2_limy = (min_y - cv.y) / v_dir2[1]
+            t2 = np.min(np.array([t2_limx, t2_limy]))
 
-                intersection_points.append((x_intersect, y_intersect))
-                intersection_edges.append(e2)
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
+        elif v_dir1[0] == 0 and v_dir1[1] > 0: # neutral x, positive y
+            t1 = (max_y - cv.x) / v_dir1[0]
+            t2 = (min_y - cv.x) / v_dir2[0]
 
-        # Split the polygon into sub-polygons P1 and P2 (case with 2 intersection points)
-        if len(intersection_points) == 2:
-            # Computing the vertices for P1
-            vertices_P1 = [Vertex(0, intersection_points[0][0], intersection_points[0][1])]
-            v_next = intersection_edges[0].v_to
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
+        elif v_dir1[0] < 0 and v_dir1[1] > 0:  # negative x, positive y
+            t1_limx = (min_x - cv.x) / v_dir1[0]
+            t1_limy = (max_y - cv.y) / v_dir1[1]
+            t1 = np.min(np.array([t1_limx, t1_limy]))
 
-            while v_next != intersection_edges[1].v_to:
-                vertices_P1.append(Vertex(len(vertices_P1), v_next.x, v_next.y))
-                v_next = v_next.next
+            t2_limx = (max_x - cv.x) / v_dir2[0]
+            t2_limy = (min_y - cv.y) / v_dir2[1]
+            t2 = np.min(np.array([t2_limx, t2_limy]))
 
-            vertices_P1.append(Vertex(len(vertices_P1), intersection_points[1][0], intersection_points[1][1]))
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
+        elif v_dir1[0] < 0 and v_dir1[1] == 0: # negative x, neutral y
+            t1 = (min_x - cv.x) / v_dir1[0]
+            t2 = (max_x - cv.x) / v_dir2[0]
 
-            # Computing the vertices for P2
-            vertices_P2 = [Vertex(0, intersection_points[1][0], intersection_points[1][1])]
-            v_next = intersection_edges[1].v_to
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
+        elif v_dir1[0] < 0 and v_dir1[0] < 0: # negative x, negative y
+            t1_limx = (min_x - cv.x) / v_dir1[0]
+            t1_limy = (min_y - cv.y) / v_dir1[1]
+            t1 = np.min(np.array([t1_limx, t1_limy]))
 
-            while v_next != intersection_edges[0].v_to:
-                vertices_P2.append(Vertex(len(vertices_P2), v_next.x, v_next.y))
-                v_next = v_next.next
+            t2_limx = (max_x - cv.x) / v_dir2[0]
+            t2_limy = (max_y - cv.y) / v_dir2[1]
+            t2 = np.min(np.array([t2_limx, t2_limy]))
 
-            vertices_P2.append(Vertex(len(vertices_P2), intersection_points[0][0], intersection_points[0][1]))
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
+        elif v_dir1[0] == 0 and v_dir1[1] < 0: # neutral x, negative y
+            t1 = (min_y - cv.x) / v_dir1[0]
+            t2 = (max_y - cv.x) / v_dir2[0]
 
-            P1 = Polygon(vertices_P1)
-            P2 = Polygon(vertices_P2)
+            v_dir1 = v_dir1 * t1
+            v_dir2 = v_dir2 * t2
 
-            split_polygons.append((P1, P2))
+        coords = polygon.vertices_matrix()
 
-            D[i, j] = compute_width_sum(P1) + compute_width_sum(P2)
-        else:
-            # Computing the vertices for P1
-            vertices_P1 = [Vertex(0, intersection_points[0][0], intersection_points[0][1])]
-            v_next = intersection_edges[0].v_to
 
-            while v_next != cv:
-                vertices_P1.append(Vertex(len(vertices_P1), v_next.x, v_next.y))
-                v_next = v_next.next
 
-            vertices_P1.append(Vertex(len(vertices_P1), cv.x, cv.y))
-            #print(f'\t{vertices_P1=}')
+       # for v in polygon.vertices:
+        #    ax[plot_r, plot_c].text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
-            # Computing the vertices for P2
-            vertices_P2 = [Vertex(0, cv.x, cv.y)]
-            v_next = cv.next
+        ax[plot_r, plot_c].plot(coords[0, :], coords[1, :], 'b-', marker='o')
+        ax[plot_r, plot_c].plot([coords[0, :][-1], coords[0, :][0]], [coords[1, :][-1], coords[1, :][0]], 'b-')
+        ax[plot_r, plot_c].quiver(cv.x, cv.y, v_dir1[0], v_dir1[1], angles='xy', scale_units='xy', scale=1, color='r')
+        ax[plot_r, plot_c].quiver(cv.x, cv.y, v_dir2[0], v_dir2[1], angles='xy', scale_units='xy', scale=1, color='g')
+        plot_c += 1
 
-            while v_next != intersection_edges[0].v_to:
-                vertices_P2.append(Vertex(len(vertices_P2), v_next.x, v_next.y))
-                v_next = v_next.next
+        if plot_c != 0 and plot_c % max_c == 0:
+            plot_r += 1
+            plot_c = 0
+    plt.show()
+    quit()
 
-            vertices_P2.append(Vertex(len(vertices_P2), intersection_points[0][0], intersection_points[0][1]))
-            #print(f'\t{vertices_P2=}')
-
-            P1 = Polygon(vertices_P1)
-            P2 = Polygon(vertices_P2)#
-
-            split_polygons.append((P1, P2))
-            # Compute the width sum of P1 and P2
-            D[i, j] = compute_width_sum(P1) + compute_width_sum(P2)
-        print(f'D{i},{j} = {D[i, j]}')
-    plot_results(split_polygons, D[i, :], cv.index)
-plt.show()
 
