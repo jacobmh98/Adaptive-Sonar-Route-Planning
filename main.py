@@ -1,12 +1,31 @@
 import numpy as np
 import json
+import functions
+import CPP_2D_convex_functions
 import matplotlib.pyplot as plt
 
 # Reading the test data
 f1 = open('test_data/complex_polygon.json')
 f2 = open('test_data/simple_rectangle.json')
+f3 = open('test_data/simple_polygon1.json')
+f4 = open('test_data/simple_pentagon.json')
+f5 = open('test_data/skewed_simple_rectangle.json')
+f6 = open('test_data/complex_convex_polygon.json')
 
-data = json.load(f1)
+data = json.load(f4)
+#print(data["area"]["coordinates"])
+
+# Find antipodal vertex testing
+P = np.array(data["area"]["coordinates"])
+antipodal_vertices = CPP_2D_convex_functions.antipodal_vertice_pairs(P)
+antipodal_vertices = CPP_2D_convex_functions.remove_parallel_antipodal_vertices(P, antipodal_vertices)  # Removing parallel vertices
+diametral_point = CPP_2D_convex_functions.get_diametral_antipodal_point(P, antipodal_vertices, 2)
+print(diametral_point)
+#for pq in antipodal_vertices:
+#    print(P[pq[0]])
+#    print(P[pq[1]])
+#    print()
+#print(antipodal_vertices)
 
 # Defining the vertices in counter-clock wise order
 vertices = data['area']['coordinates']
@@ -15,22 +34,6 @@ vertices = np.array(vertices).T
 # Number of vertices
 n = vertices.shape[1]
 
-# Determine the concave vertices
-for i in range(n):
-    # Find the adjacent vertices
-    v_minus = vertices[:, (i - 1) % n]
-    v = vertices[:, i % n]
-    v_plus = vertices[:, (i + 1) % n]
-
-    # Computing the concave judgement matrix
-    S_vi = np.linalg.det(np.array([[v_minus[0], v_minus[1], 1],
-                                   [v[0], v[1], 1],
-                                   [v_plus[0], v_plus[1], 1]]))
-
-    print(f'{i=}')
-    print(S_vi)
-
-
 # Creating a plot
 fig = plt.figure()
 
@@ -38,25 +41,27 @@ fig = plt.figure()
 x_coords = vertices[0, :]
 y_coords = vertices[1, :]
 
+# Plotting path
+#path = np.array(path).T
+#path_x = path[0, :]
+#path_y = path[1, :]
+
 plt.plot(x_coords, y_coords, 'b-', marker='o')  # Connect back to the first point to close the polygon
 plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+
+#plt.plot(path_x, path_y, 'r-', marker='o')
+plt.grid()
 
 for i in range(n):
     x = vertices[0][i]
     y = vertices[1][i]
     plt.text(x, y, f'{i}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
-
+    for k in range(antipodal_vertices.shape[0]):
+        xk = [P[antipodal_vertices[k, 0], 0], P[antipodal_vertices[k, 1], 0]]
+        yk = [P[antipodal_vertices[k, 0], 1], P[antipodal_vertices[k, 1], 1]]
+        plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
 
 plt.show()
 
 quit()
-ax.plot(x, y, 'b-', linewidth=1)
-ax.plot([x[-1], x[0]], [y[-1], y[0]], 'b-', linewidth=1)
-
-ax.set_title('Polygon from points')
-ax.set_xlabel('x (km)')
-ax.set_ylabel('y (km)')
-
-ax.set_aspect('equal')
-plt.show()
