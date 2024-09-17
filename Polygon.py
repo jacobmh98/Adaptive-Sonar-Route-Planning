@@ -1,3 +1,5 @@
+from gc import get_count
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,24 +38,6 @@ class Polygon:
             v1.prev = self.vertices[(i - 1) % self.number_vertices]
             v1.next = self.vertices[(i + 1) % self.number_vertices]
 
-    def compute_concave_vertices(self):
-        """ Compute the concave vertices in the polygon """
-
-        for i in range(self.number_vertices):
-            # Find the adjacent vertices (ccw order)
-            v_left = self.vertices[(i - 1) % self.number_vertices]
-            v = self.vertices[i]
-            v_right = self.vertices[(i + 1) % self.number_vertices]
-
-            # Computing the concave judgement matrix
-            S_vi = np.linalg.det(np.array([[v_left.x, v_left.y, 1],
-                                           [v.x, v.y, 1],
-                                           [v_right.x, v_right.y, 1]]))
-
-            # Test if the vertex is concave and add it to the list if true
-            if S_vi < 0:
-                self.concave_vertices.append(v)
-
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""
         x_coords = []
@@ -64,3 +48,23 @@ class Polygon:
             y_coords.append(v.y)
 
         return x_coords, y_coords
+
+    def vertices_matrix(self):
+        """ Function to get the vertices in the polygon in a 2xn list """
+        x_coords, y_coords = self.get_coords()
+
+        return np.array([x_coords, y_coords])
+
+    def plot(self):
+        x_coords = []
+        y_coords = []
+        fig = plt.figure()
+
+        for v in self.vertices:
+            x_coords.append(v.x)
+            y_coords.append(v.y)
+            plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+
+        plt.plot(x_coords, y_coords, 'b-', marker='o')
+        plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+        plt.show()

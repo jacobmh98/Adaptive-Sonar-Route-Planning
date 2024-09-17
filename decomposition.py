@@ -2,13 +2,11 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 from Polygon import Vertex, Polygon
+from functions import *
 
 # Reading the test data
 f1 = open('test_data/complex_polygon.json')
-f2 = open('test_data/simple_rectangle.json')
-f3 = open('test_data/single_concave_vertex.json')
-
-data = json.load(f3)
+data = json.load(f1)
 vertices_data = data['area']['coordinates']
 
 # Defining the initial polygon
@@ -18,79 +16,109 @@ for i, v in enumerate(vertices_data):
     vertices.append(Vertex(i, v[0], v[1]))
 
 polygon = Polygon(vertices)
-split_polygons = []
 
 # Compute the concave vertices
-polygon.compute_concave_vertices()
+polygon.concave_vertices = compute_concave_vertices(polygon)
 print(f'concave vertices = {polygon.concave_vertices}')
 
+# Creating the width-sum matrix
+ncc = len(polygon.concave_vertices)
+n_edges = len(polygon.edges)
+D = np.empty((ncc, n_edges))
+
 # Go through each concave vertex
-for cv in polygon.concave_vertices:
+for i, cv in enumerate(polygon.concave_vertices):
+    split_polygons = []
+
     print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
 
-    # Check lines which passes vertex cv and parallels edge j
-    for j in polygon.edges:
-        m = j.slope
+    # Check lines which passes the concave vertex i and parallels edge e
+    for j, e in enumerate(polygon.edges):
+        m = e.slope
 
         # Translate the line to lie on the concave vertex (slope stays the same)
         c = cv.y - m * cv.x
 
-        # Check each edge in the polygon for intersection with line j
-        for j2 in polygon.edges:
-            if j == j2:
+        # Check each edge in the polygon for intersection with line e
+        intersection_points = []
+        intersection_edges = []
+
+        for e2 in polygon.edges:
+            # Don't need to do anything if the line intersects itself
+            if e == e2:
                 continue
 
-            # TODO extend to be able to handle multiple intersection points
-            # Computing the intersection point the line has with the polygon
-            t = np.round((m * j2.v_from.x + c - j2.v_from.y) / ((j2.v_to.y - j2.v_from.y) - m * (j2.v_to.x - j2.v_from.x)),2)
+            # TODO handle well-formedness of intersection points
+
+            # Check if the line intersects the polygon
+            t = np.round((m * e2.v_from.x + c - e2.v_from.y) / ((e2.v_to.y - e2.v_from.y) - m * (e2.v_to.x - e2.v_from.x)),2)
 
             if 0 < t < 1:
-                x_intersect = j2.v_from.x + t * (j2.v_to.x - j2.v_from.x)
-                y_intersect = j2.v_from.y + t * (j2.v_to.y - j2.v_from.y)
-                print(f'\t{j} intersects {j2} at ({x_intersect}, {y_intersect})')
+                # Compute the intersection point between the line and the polygon
+                x_intersect = e2.v_from.x + t * (e2.v_to.x - e2.v_from.x)
+                y_intersect = e2.v_from.y + t * (e2.v_to.y - e2.v_from.y)
 
-                # Splitting the polygon into two sub-polygons P1 and P2 by the intersection point
-                vertices_P1 = [Vertex(0, cv.x, cv.y)]
-                v = cv.next
-                while v.index != j2.v_to.index:
-                    vertices_P1.append(Vertex(len(vertices_P1), v.x, v.y))
-                    v = v.next
-                vertices_P1.append(Vertex(len(vertices_P1), x_intersect, y_intersect))
-                print(f'\t\t{vertices_P1=}')
+                intersection_points.append((x_intersect, y_intersect))
+                intersection_edges.append(e2)
 
-                vertices_P2 = [Vertex(0, x_intersect, y_intersect)]
-                v = j2.v_to
-                while v != cv.next:
-                    vertices_P2.append(Vertex(len(vertices_P2), v.x, v.y))
-                    v = v.next
-                print(f'\t\t{vertices_P2=}')
+        # Split the polygon into sub-polygons P1 and P2 (case with 2 intersection points)
+        if len(intersection_points) == 2:
+            # Computing the vertices for P1
+            vertices_P1 = [Vertex(0, intersection_points[0][0], intersection_points[0][1])]
+            v_next = intersection_edges[0].v_to
 
-                P1 = Polygon(vertices_P1)
-                P2 = Polygon(vertices_P2)
+            while v_next != intersection_edges[1].v_to:
+                vertices_P1.append(Vertex(len(vertices_P1), v_next.x, v_next.y))
+                v_next = v_next.next
 
-                split_polygons.append((P1, P2))
+            vertices_P1.append(Vertex(len(vertices_P1), intersection_points[1][0], intersection_points[1][1]))
 
-# Create a figure with a grid of subplots (2 rows, 4 columns)
-fig, axs = plt.subplots(2, 4, figsize=(12, 8))
+            # Computing the vertices for P2
+            vertices_P2 = [Vertex(0, intersection_points[1][0], intersection_points[1][1])]
+            v_next = intersection_edges[1].v_to
 
-# Initial Polygon
-x_coords, y_coords = polygon.get_coords()
-axs[0, 0].plot(x_coords, y_coords, 'b-', marker='o')
-axs[0, 0].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
-axs[0, 0].set_title('Initial Polygon (1 concave vertex)')
+            while v_next != intersection_edges[0].v_to:
+                vertices_P2.append(Vertex(len(vertices_P2), v_next.x, v_next.y))
+                v_next = v_next.next
 
-# Hide the remaining three axes in the first row
-for i in range(1, 4):
-    fig.delaxes(axs[0, i])
+            vertices_P2.append(Vertex(len(vertices_P2), intersection_points[0][0], intersection_points[0][1]))
 
-for i, (P1, P2) in enumerate(split_polygons):
-    P1_xcoords, P1_ycoords = P1.get_coords()
-    P2_xcoords, P2_ycoords = P2.get_coords()
+            P1 = Polygon(vertices_P1)
+            P2 = Polygon(vertices_P2)
 
-    axs[1, i].plot(P1_xcoords, P1_ycoords, 'b-', marker='o')
-    axs[1, i].plot([P1_xcoords[-1], P1_xcoords[0]], [P1_ycoords[-1], P1_ycoords[0]], 'b-')
-    axs[1, i].plot(P2_xcoords, P2_ycoords, 'r-', marker='o')
-    axs[1, i].plot([P2_xcoords[-1], P2_xcoords[0]], [P2_ycoords[-1], P2_ycoords[0]], 'r-')
+            split_polygons.append((P1, P2))
 
-    axs[1, i].set_title(f'Split Polygons {i + 1}')
+            D[i, j] = compute_width_sum(P1) + compute_width_sum(P2)
+        else:
+            # Computing the vertices for P1
+            vertices_P1 = [Vertex(0, intersection_points[0][0], intersection_points[0][1])]
+            v_next = intersection_edges[0].v_to
+
+            while v_next != cv:
+                vertices_P1.append(Vertex(len(vertices_P1), v_next.x, v_next.y))
+                v_next = v_next.next
+
+            vertices_P1.append(Vertex(len(vertices_P1), cv.x, cv.y))
+            #print(f'\t{vertices_P1=}')
+
+            # Computing the vertices for P2
+            vertices_P2 = [Vertex(0, cv.x, cv.y)]
+            v_next = cv.next
+
+            while v_next != intersection_edges[0].v_to:
+                vertices_P2.append(Vertex(len(vertices_P2), v_next.x, v_next.y))
+                v_next = v_next.next
+
+            vertices_P2.append(Vertex(len(vertices_P2), intersection_points[0][0], intersection_points[0][1]))
+            #print(f'\t{vertices_P2=}')
+
+            P1 = Polygon(vertices_P1)
+            P2 = Polygon(vertices_P2)#
+
+            split_polygons.append((P1, P2))
+            # Compute the width sum of P1 and P2
+            D[i, j] = compute_width_sum(P1) + compute_width_sum(P2)
+        print(f'D{i},{j} = {D[i, j]}')
+    plot_results(split_polygons, D[i, :], cv.index)
 plt.show()
+
