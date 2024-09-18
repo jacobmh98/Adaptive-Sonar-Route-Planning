@@ -74,8 +74,80 @@ def distance(v1, v2):
         """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
         return np.linalg.norm(v1 - v2)
 
+def extend_vectors_to_boundary_box(v_dir1, v_dir2, cv, min_x, max_x, min_y, max_y):
+    """ Extend a vector and its negation to the boundary box of a polygon """
+    if v_dir1[0] > 0 and v_dir1[1] < 0:  # positive x, negative y
+        t1_limx = (max_x - cv.x) / v_dir1[0]
+        t1_limy = (min_y - cv.y) / v_dir1[1]
+        t1 = np.min(np.array([t1_limx, t1_limy]))
 
-def points_are_equal(P1, P2, epsilon=1e-3):
+        t2_limx = (min_x - cv.x) / v_dir2[0]
+        t2_limy = (max_y - cv.y) / v_dir2[1]
+        t2 = np.min(np.array([t2_limx, t2_limy]))
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+    elif v_dir1[0] > 0 and v_dir1[1] == 0:  # positive x, neutral y
+        t1 = (max_x - cv.x) / v_dir1[0]
+        t2 = (min_x - cv.x) / v_dir2[0]
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+    elif v_dir1[0] > 0 and v_dir1[1] > 0:  # positive x, positive y
+        t1_limx = (max_x - cv.x) / v_dir1[0]
+        t1_limy = (max_y - cv.y) / v_dir1[1]
+        t1 = np.min(np.array([t1_limx, t1_limy]))
+
+        t2_limx = (min_x - cv.x) / v_dir2[0]
+        t2_limy = (min_y - cv.y) / v_dir2[1]
+        t2 = np.min(np.array([t2_limx, t2_limy]))
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+    elif v_dir1[0] == 0 and v_dir1[1] > 0:  # neutral x, positive y
+        t1 = (max_y - cv.x) / v_dir1[0]
+        t2 = (min_y - cv.x) / v_dir2[0]
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+    elif v_dir1[0] < 0 and v_dir1[1] > 0:  # negative x, positive y
+        t1_limx = (min_x - cv.x) / v_dir1[0]
+        t1_limy = (max_y - cv.y) / v_dir1[1]
+        t1 = np.min(np.array([t1_limx, t1_limy]))
+
+        t2_limx = (max_x - cv.x) / v_dir2[0]
+        t2_limy = (min_y - cv.y) / v_dir2[1]
+        t2 = np.min(np.array([t2_limx, t2_limy]))
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+    elif v_dir1[0] < 0 and v_dir1[1] == 0:  # negative x, neutral y
+        t1 = (min_x - cv.x) / v_dir1[0]
+        t2 = (max_x - cv.x) / v_dir2[0]
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+    elif v_dir1[0] < 0 and v_dir1[0] < 0:  # negative x, negative y
+        t1_limx = (min_x - cv.x) / v_dir1[0]
+        t1_limy = (min_y - cv.y) / v_dir1[1]
+        t1 = np.min(np.array([t1_limx, t1_limy]))
+
+        t2_limx = (max_x - cv.x) / v_dir2[0]
+        t2_limy = (max_y - cv.y) / v_dir2[1]
+        t2 = np.min(np.array([t2_limx, t2_limy]))
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+    elif v_dir1[0] == 0 and v_dir1[1] < 0:  # neutral x, negative y
+        t1 = (min_y - cv.x) / v_dir1[0]
+        t2 = (max_y - cv.x) / v_dir2[0]
+
+        v_dir1 = v_dir1 * t1
+        v_dir2 = v_dir2 * t2
+
+    return v_dir1.reshape(-1, 1), v_dir2.reshape(-1, 1)
+
+def points_are_equal(P1, P2, epsilon=1e-2):
     """ Checks if two points P1 and P2 are approximately equal within a tolerance epsilon. """
     # Check if the distance between the points is smaller than epsilon
     return np.all(np.abs(P1 - P2) < epsilon)

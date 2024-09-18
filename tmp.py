@@ -1,4 +1,4 @@
-import numpy as np
+"""import numpy as np
 import json
 import matplotlib.pyplot as plt
 from Polygon import Vertex, Polygon
@@ -70,6 +70,7 @@ for i, cv in enumerate(polygon.concave_vertices):
                 intersection_points.append((x_intersect, y_intersect))
                 intersection_edges.append(e2)
         """
+"""
         # Handling simple case of a single intersection point
         if len(intersection_points) < 2:
             # Computing the vertices for P1
@@ -192,5 +193,5 @@ for i, cv in enumerate(polygon.concave_vertices):
 
         """
     # plot_results(split_polygons, D[i, :], cv.index)
-plt.show()
+
 

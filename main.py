@@ -1,7 +1,7 @@
 import numpy as np
 import json
 import matplotlib.pyplot as plt
-
+"""
 # Reading the test data
 f1 = open('test_data/complex_polygon.json')
 f2 = open('test_data/simple_rectangle.json')
@@ -57,4 +57,4 @@ ax.set_xlabel('x (km)')
 ax.set_ylabel('y (km)')
 
 ax.set_aspect('equal')
-plt.show()
+plt.show()"""
