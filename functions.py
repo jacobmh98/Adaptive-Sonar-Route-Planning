@@ -48,7 +48,7 @@ def compute_width_sum(P):
 
     return width_sum
 
-def plot_results(split_polygons, cv):
+def plot_results(split_polygons, cv, Di):
     """ Create a figure with a grid of sub-plots """
 
     cols = 5
@@ -59,6 +59,7 @@ def plot_results(split_polygons, cv):
 
     r = 0
     c = 0
+    count = 0
 
     for (P1, P2) in split_polygons:
         P1_coords = P1.vertices_matrix()
@@ -67,8 +68,9 @@ def plot_results(split_polygons, cv):
         ax[r, c].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-')
         ax[r, c].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
         ax[r, c].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-')
-        ax[r, c].set_title(f'{cv=}')
+        ax[r, c].set_title(f'D{cv},{count} = {np.round(Di[count], 1)}')
         ax[r, c].axis('equal')
+        count += 1
 
         # ax[r, c].quiver(cv.x, cv.y, vec[0], vec[1], angles='xy', scale_units='xy', scale=1, color='r', width=0.015)
         # ax[plot_r, c].quiver(cv.x, cv.y, v_dir2[0], v_dir2[1], angles='xy', scale_units='xy', scale=1, color='g')
@@ -79,29 +81,10 @@ def plot_results(split_polygons, cv):
             c = 0
     fig.tight_layout()
     plt.show()
-    """
-    r = -1
-    fig, axs = plt.subplots(3, 5, figsize=(12, 8))
-
-    for c, (P1, P2) in enumerate(split_polygons):
-        if c % cols == 0:
-            r += 1
-
-        P1_xcoords, P1_ycoords = P1.get_coords()
-        P2_xcoords, P2_ycoords = P2.get_coords()
-
-        axs[r, c % cols].plot(P1_xcoords, P1_ycoords, 'b-', marker='o')
-        axs[r, c % cols].plot([P1_xcoords[-1], P1_xcoords[0]], [P1_ycoords[-1], P1_ycoords[0]], 'b-')
-        axs[r, c % cols].plot(P2_xcoords, P2_ycoords, 'r-', marker='o')
-        axs[r, c % cols].plot([P2_xcoords[-1], P2_xcoords[0]], [P2_ycoords[-1], P2_ycoords[0]], 'r-')
-        axs[r, c % cols].set_title(f'D({cv_index},{c}) = {np.round(D_i[c], 1)}')
-
-    plt.tight_layout()
-    """
 
 def distance(v1, v2):
-        """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
-        return np.linalg.norm(v1 - v2)
+    """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
+    return np.linalg.norm(v1 - v2)
 
 def points_are_equal(P1, P2, epsilon=1e-2):
     """ Checks if two points P1 and P2 are approximately equal within a tolerance epsilon. """
@@ -139,57 +122,38 @@ def split_polygon_single(e2, intersection_p, cv):
     P2 = Polygon(P2_vertices)
     return P1, P2
 
-def split_polygon_mult_dirs(e2_1, e2_2, intersection_p1, intersection_p2):
-    v0 = Vertex(0, intersection_p1[0, 0], intersection_p1[1, 0])
-    P1_vertices = [v0]
-    v_next = e2_1.v_to
-    v_index = 1
-    while v_next != e2_2.v_to:
-        P1_vertices.append(Vertex(v_index, v_next.x, v_next.y))
-        v_index += 1
-        v_next = v_next.next
+def compute_intersection(vec, cv, e2):
+    """ Computes the points of intersection (if any) between a vector from a point cv and an edge e2 """
+    vx = vec[0, 0]
+    vy = vec[1, 0]
 
-    vn = Vertex(v_index, intersection_p2[0, 0], intersection_p2[1, 0])
-    P1_vertices.append(vn)
+    x0 = cv.x
+    y0 = cv.y
 
-    v0 = Vertex(0, intersection_p2[0, 0], intersection_p2[1, 0])
-    P2_vertices = [v0]
-    v_next = e2_2.v_to
-    v_index = 1
+    x1 = e2.v_from.x
+    y1 = e2.v_from.y
 
-    while v_next != e2_1.v_to:
-        P2_vertices.append(Vertex(v_index, v_next.x, v_next.y))
-        v_index += 1
-        v_next = v_next.next
+    x2 = e2.v_to.x
+    y2 = e2.v_to.y
 
-    vn = Vertex(v_index, intersection_p1[0, 0], intersection_p1[1, 0])
-    P2_vertices.append(vn)
+    s_denominator = (y1 * vx - y2 * vx - vy * x1 + vy * x2)
 
-    P1 = Polygon(P1_vertices)
-    P2 = Polygon(P2_vertices)
-    return P1, P2
-
-def compute_best_t_value(intersection_directions, dir):
-    """ Compute the t-value that gives the shortest distance to the intersection point """
-    # Positive direction
-    best_t = None
-    index = -1
-
-    if dir:
-        for i, t in enumerate(intersection_directions):
-            if best_t is None and t >= 0:
-                best_t = t
-                index = i
-            elif t >= 0 and t < best_t:
-                best_t = t
-                index = i
-    # Negative direction
+    if s_denominator == 0:
+        s = 0
     else:
-        for i, t in enumerate(intersection_directions):
-            if best_t is None and t < 0:
-                best_t = t
-                index = i
-            elif t < 0 and t > best_t:
-                best_t = t
-                index = i
-    return index
+        s = - ((y0 * vx - y1 * vx - vy * x0 + vy * x1) / s_denominator)
+    t = - ((s * x1 - s * x2 + x0 - x1) / vx)
+
+    # Test if the line e intersects the edge e2
+    if 0 <= s <= 1:
+        # Compute the coordinates of the intersection point
+        intersection_point =  cv.get_array() + t * vec
+
+        # Ignore the intersection that happens in the adjacent vertices
+        if points_are_equal(intersection_point, cv.get_array()) or \
+                points_are_equal(intersection_point, cv.prev.get_array()) or \
+                points_are_equal(intersection_point, cv.next.get_array()):
+            return None, None
+        return intersection_point, t
+    return None, None
+
