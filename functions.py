@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from Polygon import *
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -47,11 +48,38 @@ def compute_width_sum(P):
 
     return width_sum
 
-def plot_results(split_polygons, D_i, cv_index):
+def plot_results(split_polygons, cv):
     """ Create a figure with a grid of sub-plots """
-    rows = 3
-    cols = 5
 
+    cols = 5
+    rows = int(np.ceil(len(split_polygons) / cols))
+
+
+    fig, ax = plt.subplots(rows, cols)
+
+    r = 0
+    c = 0
+
+    for (P1, P2) in split_polygons:
+        P1_coords = P1.vertices_matrix()
+        P2_coords = P2.vertices_matrix()
+        ax[r, c].plot(P1_coords[0, :], P1_coords[1, :], 'b-')
+        ax[r, c].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-')
+        ax[r, c].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
+        ax[r, c].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-')
+        ax[r, c].set_title(f'{cv=}')
+        ax[r, c].axis('equal')
+
+        # ax[r, c].quiver(cv.x, cv.y, vec[0], vec[1], angles='xy', scale_units='xy', scale=1, color='r', width=0.015)
+        # ax[plot_r, c].quiver(cv.x, cv.y, v_dir2[0], v_dir2[1], angles='xy', scale_units='xy', scale=1, color='g')
+        c += 1
+
+        if c != 0 and c % cols == 0:
+            r += 1
+            c = 0
+    fig.tight_layout()
+    plt.show()
+    """
     r = -1
     fig, axs = plt.subplots(3, 5, figsize=(12, 8))
 
@@ -69,85 +97,99 @@ def plot_results(split_polygons, D_i, cv_index):
         axs[r, c % cols].set_title(f'D({cv_index},{c}) = {np.round(D_i[c], 1)}')
 
     plt.tight_layout()
+    """
 
 def distance(v1, v2):
         """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
         return np.linalg.norm(v1 - v2)
 
-def extend_vectors_to_boundary_box(v_dir1, v_dir2, cv, min_x, max_x, min_y, max_y):
-    """ Extend a vector and its negation to the boundary box of a polygon """
-    if v_dir1[0] > 0 and v_dir1[1] < 0:  # positive x, negative y
-        t1_limx = (max_x - cv.x) / v_dir1[0]
-        t1_limy = (min_y - cv.y) / v_dir1[1]
-        t1 = np.min(np.array([t1_limx, t1_limy]))
-
-        t2_limx = (min_x - cv.x) / v_dir2[0]
-        t2_limy = (max_y - cv.y) / v_dir2[1]
-        t2 = np.min(np.array([t2_limx, t2_limy]))
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-    elif v_dir1[0] > 0 and v_dir1[1] == 0:  # positive x, neutral y
-        t1 = (max_x - cv.x) / v_dir1[0]
-        t2 = (min_x - cv.x) / v_dir2[0]
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-    elif v_dir1[0] > 0 and v_dir1[1] > 0:  # positive x, positive y
-        t1_limx = (max_x - cv.x) / v_dir1[0]
-        t1_limy = (max_y - cv.y) / v_dir1[1]
-        t1 = np.min(np.array([t1_limx, t1_limy]))
-
-        t2_limx = (min_x - cv.x) / v_dir2[0]
-        t2_limy = (min_y - cv.y) / v_dir2[1]
-        t2 = np.min(np.array([t2_limx, t2_limy]))
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-    elif v_dir1[0] == 0 and v_dir1[1] > 0:  # neutral x, positive y
-        t1 = (max_y - cv.x) / v_dir1[0]
-        t2 = (min_y - cv.x) / v_dir2[0]
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-    elif v_dir1[0] < 0 and v_dir1[1] > 0:  # negative x, positive y
-        t1_limx = (min_x - cv.x) / v_dir1[0]
-        t1_limy = (max_y - cv.y) / v_dir1[1]
-        t1 = np.min(np.array([t1_limx, t1_limy]))
-
-        t2_limx = (max_x - cv.x) / v_dir2[0]
-        t2_limy = (min_y - cv.y) / v_dir2[1]
-        t2 = np.min(np.array([t2_limx, t2_limy]))
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-    elif v_dir1[0] < 0 and v_dir1[1] == 0:  # negative x, neutral y
-        t1 = (min_x - cv.x) / v_dir1[0]
-        t2 = (max_x - cv.x) / v_dir2[0]
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-    elif v_dir1[0] < 0 and v_dir1[0] < 0:  # negative x, negative y
-        t1_limx = (min_x - cv.x) / v_dir1[0]
-        t1_limy = (min_y - cv.y) / v_dir1[1]
-        t1 = np.min(np.array([t1_limx, t1_limy]))
-
-        t2_limx = (max_x - cv.x) / v_dir2[0]
-        t2_limy = (max_y - cv.y) / v_dir2[1]
-        t2 = np.min(np.array([t2_limx, t2_limy]))
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-    elif v_dir1[0] == 0 and v_dir1[1] < 0:  # neutral x, negative y
-        t1 = (min_y - cv.x) / v_dir1[0]
-        t2 = (max_y - cv.x) / v_dir2[0]
-
-        v_dir1 = v_dir1 * t1
-        v_dir2 = v_dir2 * t2
-
-    return v_dir1.reshape(-1, 1), v_dir2.reshape(-1, 1)
-
 def points_are_equal(P1, P2, epsilon=1e-2):
     """ Checks if two points P1 and P2 are approximately equal within a tolerance epsilon. """
     # Check if the distance between the points is smaller than epsilon
     return np.all(np.abs(P1 - P2) < epsilon)
+
+def split_polygon_single(e2, intersection_p, cv):
+    """ Split a polygon based on a single intersection point """
+    v0 = Vertex(0, intersection_p[0, 0], intersection_p[1, 0])
+    P1_vertices = [v0]
+    v_next = e2.v_to
+    v_index = 1
+    while v_next != cv:
+        P1_vertices.append(Vertex(v_index, v_next.x, v_next.y))
+        v_index += 1
+        v_next = v_next.next
+
+    vn = Vertex(v_index, v_next.x, v_next.y)
+    P1_vertices.append(vn)
+
+    v0 = Vertex(0, cv.x, cv.y)
+    P2_vertices = [v0]
+    v_next = cv.next
+    v_index = 1
+
+    while v_next != e2.v_to:
+        P2_vertices.append(Vertex(v_index, v_next.x, v_next.y))
+        v_index += 1
+        v_next = v_next.next
+
+    vn = Vertex(v_index, intersection_p[0, 0], intersection_p[1, 0])
+    P2_vertices.append(vn)
+
+    P1 = Polygon(P1_vertices)
+    P2 = Polygon(P2_vertices)
+    return P1, P2
+
+def split_polygon_mult_dirs(e2_1, e2_2, intersection_p1, intersection_p2):
+    v0 = Vertex(0, intersection_p1[0, 0], intersection_p1[1, 0])
+    P1_vertices = [v0]
+    v_next = e2_1.v_to
+    v_index = 1
+    while v_next != e2_2.v_to:
+        P1_vertices.append(Vertex(v_index, v_next.x, v_next.y))
+        v_index += 1
+        v_next = v_next.next
+
+    vn = Vertex(v_index, intersection_p2[0, 0], intersection_p2[1, 0])
+    P1_vertices.append(vn)
+
+    v0 = Vertex(0, intersection_p2[0, 0], intersection_p2[1, 0])
+    P2_vertices = [v0]
+    v_next = e2_2.v_to
+    v_index = 1
+
+    while v_next != e2_1.v_to:
+        P2_vertices.append(Vertex(v_index, v_next.x, v_next.y))
+        v_index += 1
+        v_next = v_next.next
+
+    vn = Vertex(v_index, intersection_p1[0, 0], intersection_p1[1, 0])
+    P2_vertices.append(vn)
+
+    P1 = Polygon(P1_vertices)
+    P2 = Polygon(P2_vertices)
+    return P1, P2
+
+def compute_best_t_value(intersection_directions, dir):
+    """ Compute the t-value that gives the shortest distance to the intersection point """
+    # Positive direction
+    best_t = None
+    index = -1
+
+    if dir:
+        for i, t in enumerate(intersection_directions):
+            if best_t is None and t >= 0:
+                best_t = t
+                index = i
+            elif t >= 0 and t < best_t:
+                best_t = t
+                index = i
+    # Negative direction
+    else:
+        for i, t in enumerate(intersection_directions):
+            if best_t is None and t < 0:
+                best_t = t
+                index = i
+            elif t < 0 and t > best_t:
+                best_t = t
+                index = i
+    return index
