@@ -19,11 +19,6 @@ f6 = open('test_data/complex_convex_polygon.json')
 data = json.load(f4)
 P = np.array(data["area"]["coordinates"])
 
-# Find antipodal vertex testing (Not using new Polygon class)
-antipodal_vertices = antipodal_points.antipodal_vertice_pairs(P)
-antipodal_vertices = antipodal_points.remove_parallel_antipodal_vertices(P, antipodal_vertices)  # Removing parallel vertices
-diametral_point_0 = antipodal_points.get_diametral_antipodal_point(P, antipodal_vertices, 0)
-
 # Using new Polygon class for path finding in convex polygon
 vertices_data = data['area']['coordinates']
 vertices = []
@@ -50,7 +45,14 @@ boundaries = np.array([min_x, max_x, min_y, max_y])
 poly = Polygon(vertices)
 #poly.plot()
 
-dx = 1
+dx = 0.5
+# Find antipodal vertex testing (Not yet using new Polygon class)
+antipodal_vertices = antipodal_points.antipodal_vertice_pairs(P)
+antipodal_vertices = antipodal_points.remove_parallel_antipodal_vertices(P, antipodal_vertices)  # Removing parallel vertices
+diametral_point_0 = antipodal_points.get_diametral_antipodal_point(P, antipodal_vertices, 0)
+diametral_point_2 = antipodal_points.get_diametral_antipodal_point(P, antipodal_vertices, 4)
+
+
 path = polygon_coverage_path.get_path(poly, dx, 0, 1, diametral_point_0, boundaries)
 
 #path = CPP_2D_convex_functions.get_path(P, 0.20,0, 1, diametral_point_0, boundaries)
