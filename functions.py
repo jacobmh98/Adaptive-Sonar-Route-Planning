@@ -65,6 +65,7 @@ def plot_results(split_polygons, cv, Di):
     for (P1, P2) in split_polygons:
         P1_coords = P1.vertices_matrix()
         P2_coords = P2.vertices_matrix()
+
         ax[r, c].plot(P1_coords[0, :], P1_coords[1, :], 'b-')
         ax[r, c].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-')
         ax[r, c].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
@@ -205,8 +206,15 @@ def compute_intersection(vec, cv, e2):
         # Ignore the intersection that happens in the adjacent vertices
         if points_are_equal(intersection_point, cv.get_array()) or \
                 points_are_equal(intersection_point, cv.prev.get_array()) or \
-                points_are_equal(intersection_point, cv.next.get_array()):
+                points_are_equal(intersection_point, cv.next.get_array()) or \
+                points_are_equal(vec / np.linalg.norm(vec), (e2.v_to.get_array() - e2.v_from.get_array()) / np.linalg.norm(e2.v_to.get_array() - e2.v_from.get_array())):
             return None, None
+
+        """if cv.index == e2.v_to.index or \
+                cv.index == e2.v_from.index or \
+            cv.prev.index == e2.v_to.index or \
+                cv.next.index == e2.v_from.index:
+            return None, None"""
         return intersection_point, t
     return None, None
 
@@ -239,7 +247,7 @@ def split_polygon(P, depth=0):
     if ncc == 0:
         return [P]
 
-    if depth == 10:
+    if depth == 1:
         return []
 
     #print(f'concave vertices = {P.concave_vertices}')
@@ -250,7 +258,7 @@ def split_polygon(P, depth=0):
 
     # Go through each concave vertex
     for i, cv in enumerate(P.concave_vertices):
-        # print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
+        print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
         split_polygons = []
 
         # Check lines which passes the concave vertex i and parallels edge e
@@ -259,7 +267,7 @@ def split_polygon(P, depth=0):
             intersection_edges = []
             intersection_directions = []
 
-            # print(f'\tchecking edge {e}')
+            print(f'\tchecking edge {e}')
 
             # Define a vector from the vertices in edge e
             vec = e.v_to.get_array() - e.v_from.get_array()
@@ -273,7 +281,7 @@ def split_polygon(P, depth=0):
                 # Compute intersection with edge e2 (if any)
                 ip, t = compute_intersection(vec, cv, e2)
                 if ip is not None:
-                    # print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}')
+                    print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}')
                     intersection_points.append(ip)
                     intersection_edges.append(e2)
                     intersection_directions.append(t)
@@ -286,17 +294,20 @@ def split_polygon(P, depth=0):
             D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
 
             split_polygons.append((P1, P2))
-            # plot_results2(P1, P2)
 
-        #plot_results(split_polygons, cv.index, D[i, :])
+        plot_results(split_polygons, cv.index, D[i, :])
         D_polygons.append(split_polygons)
 
     # Select the best split of the polygon (lowest width sum)
     D_ij, (cv, edge) = find_min_value_matrix(D)
     P1, P2 = D_polygons[cv][edge]
 
-    plot_results2(P, P1, P2, depth, cv, edge, D_ij)
+    print(f'{D_ij=}')
+    print(f'i = {cv}')
+    print(f'j = {edge}')
 
+    #plot_results2(P, P1, P2, depth, cv, edge, D_ij)
+    """
     # Recursively split both sub-polygons if the polygons are valid
     result1 = []
     result2 = []
@@ -309,3 +320,5 @@ def split_polygon(P, depth=0):
 
     # Combine both lists into one and return it
     return result1 + result2
+    """
+    return None
