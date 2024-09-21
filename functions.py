@@ -28,7 +28,8 @@ def project_onto_direction(vertices, direction):
     projections = np.dot(vertices.T, direction)
     return np.max(projections) - np.min(projections)
 
-def compute_width_sum(P):
+#TODO this is incorrect and needs to be fixed
+def compute_polygon_width(P):
     """ Function to compute width sum of a polygon """
     # Convert vertices to a numpy array for easier manipulation
     vertices = P.vertices_matrix()
@@ -80,6 +81,58 @@ def plot_results(split_polygons, cv, Di):
             r += 1
             c = 0
     fig.tight_layout()
+    plt.show()
+
+def plot_results2(P, P1, P2, depth, cv, edge, Dij):
+    fig, ax = plt.subplots(1, 4)
+
+    P1_coords = P1.vertices_matrix()
+    P2_coords = P2.vertices_matrix()
+    P_coords = P.vertices_matrix()
+
+    for v in P.vertices:
+        ax[0].text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+
+    ax[0].plot(P_coords[0, :], P_coords[1, :], color='black', marker='o')
+    ax[0].plot(P_coords[0, :], P_coords[1, :], 'k-')
+    ax[0].plot(P_coords[0, :], P_coords[1, :], 'k-')
+    ax[0].plot([P_coords[0, :][-1], P_coords[0, :][0]], [P_coords[1, :][-1], P_coords[1, :][0]], 'k-')
+    #ax[0].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
+    #ax[0].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-')
+    ax[0].set_title(f'P')
+    ax[0].axis('equal')
+
+    #ax[1].plot(P1_coords[0, :], P1_coords[1, :], color='blue', marker='o')
+    ax[1].plot(P1_coords[0, :], P1_coords[1, :], 'b-o')
+    ax[1].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-o')
+    ax[1].plot(P2_coords[0, :], P2_coords[1, :], 'r-o')
+    ax[1].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-o')
+    ax[1].set_title(f'P1 & P2')
+    ax[1].axis('equal')
+
+#    ax[2].plot(P1_coords[0, :], P1_coords[1, :], color='black', marker='o')
+    ax[2].plot(P1_coords[0, :], P1_coords[1, :], 'b-o')
+    ax[2].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-o')
+    ax[2].set_title(f'P1')
+    ax[2].axis('equal')
+
+    #ax[3].plot(P2_coords[0, :], P2_coords[1, :], color='black', marker='o')
+    ax[3].plot(P2_coords[0, :], P2_coords[1, :], 'r-o')
+    ax[3].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-o')
+    ax[3].set_title(f'P2')
+    ax[3].axis('equal')
+
+    print(f'{depth=}')
+    print(f'\t{cv=}')
+    print(f'\t{edge=}')
+    print(f'\tD_ij={np.round(Dij, 1)}')
+    #print(f'\tP1 = {P1.vertices}')
+    #print(f'\tP2 = {P2.vertices}')
+
+    fig.tight_layout()
+    #mng = plt.get_current_fig_manager()
+    #mng.full_screen_toggle()
+
     plt.show()
 
 def distance(v1, v2):
@@ -157,3 +210,102 @@ def compute_intersection(vec, cv, e2):
         return intersection_point, t
     return None, None
 
+def find_min_value_matrix(D):
+    """ Find the minimum value as well as its indices (i,j) in a matrix """
+    min_v = np.inf
+    min_indices = (-1, -1)
+
+    for i in range(D.shape[0]):
+        for j in range(D.shape[1]):
+            if D[i, j] < min_v:
+                min_v = D[i, j]
+                min_indices = (i, j)
+    return min_v, min_indices
+
+def is_valid_polygon(P):
+    """ Test if a polygon is a valid """
+    # TODO think of more criteria of a valid polygon
+    if len(P.vertices) < 3:
+        return False
+    return True
+
+def split_polygon(P, depth=0):
+    # Compute the concave vertices
+    P.concave_vertices = compute_concave_vertices(P)
+    ncc = len(P.concave_vertices)
+    n = len(P.vertices)
+
+    # Base case: if the polygon is convex, return it
+    if ncc == 0:
+        return [P]
+
+    if depth == 10:
+        return []
+
+    #print(f'concave vertices = {P.concave_vertices}')
+
+    # Initialize the width sum matrix
+    D = np.empty((ncc, n))
+    D_polygons = []
+
+    # Go through each concave vertex
+    for i, cv in enumerate(P.concave_vertices):
+        # print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
+        split_polygons = []
+
+        # Check lines which passes the concave vertex i and parallels edge e
+        for j, e in enumerate(P.edges):
+            intersection_points = []
+            intersection_edges = []
+            intersection_directions = []
+
+            # print(f'\tchecking edge {e}')
+
+            # Define a vector from the vertices in edge e
+            vec = e.v_to.get_array() - e.v_from.get_array()
+            # vec = -vec
+
+            # Go through each edge in the P
+            for e2 in P.edges:
+                if e == e2:
+                    continue
+
+                # Compute intersection with edge e2 (if any)
+                ip, t = compute_intersection(vec, cv, e2)
+                if ip is not None:
+                    # print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}')
+                    intersection_points.append(ip)
+                    intersection_edges.append(e2)
+                    intersection_directions.append(t)
+
+            min_index = np.argmin(np.abs(intersection_directions))
+
+            P1, P2 = split_polygon_single(intersection_edges[min_index], intersection_points[min_index], cv)
+
+            # Compute the width sum of P1 and P2
+            D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
+
+            split_polygons.append((P1, P2))
+            # plot_results2(P1, P2)
+
+        #plot_results(split_polygons, cv.index, D[i, :])
+        D_polygons.append(split_polygons)
+
+    # Select the best split of the polygon (lowest width sum)
+    D_ij, (cv, edge) = find_min_value_matrix(D)
+    P1, P2 = D_polygons[cv][edge]
+
+    plot_results2(P, P1, P2, depth, cv, edge, D_ij)
+
+    # Recursively split both sub-polygons if the polygons are valid
+    result1 = []
+    result2 = []
+    if is_valid_polygon(P1):
+        result1 = split_polygon(P1, depth + 1)
+
+    if is_valid_polygon(P2):
+        result2 = split_polygon(P2, depth + 1)
+
+
+    # Combine both lists into one and return it
+    return result1 + result2
