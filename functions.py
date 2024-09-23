@@ -1,5 +1,3 @@
-import numpy as np
-import matplotlib.pyplot as plt
 from Polygon import *
 
 def compute_concave_vertices(P):
@@ -127,12 +125,25 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     print(f'\t{cv=}')
     print(f'\t{edge=}')
     print(f'\tD_ij={np.round(Dij, 1)}')
+    x,y = P.get_coords()
+    print(f'{x}')
+    print(y)
     #print(f'\tP1 = {P1.vertices}')
     #print(f'\tP2 = {P2.vertices}')
 
     fig.tight_layout()
     #mng = plt.get_current_fig_manager()
     #mng.full_screen_toggle()
+
+    plt.show()
+
+def plot_polygons(polygons):
+    fig = plt.figure()
+
+    for p in polygons:
+        x_coords, y_coords = p.get_coords()
+        plt.plot(x_coords, y_coords, 'k-')
+        plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
 
     plt.show()
 
@@ -206,8 +217,12 @@ def compute_intersection(vec, cv, e2):
         # Ignore the intersection that happens in the adjacent vertices
         if points_are_equal(intersection_point, cv.get_array()) or \
                 points_are_equal(intersection_point, cv.prev.get_array()) or \
-                points_are_equal(intersection_point, cv.next.get_array()) or \
-                points_are_equal(vec / np.linalg.norm(vec), (e2.v_to.get_array() - e2.v_from.get_array()) / np.linalg.norm(e2.v_to.get_array() - e2.v_from.get_array())):
+                points_are_equal(intersection_point, cv.next.get_array()):
+            return None, None
+
+        # Ignore perpendicular lines (intersection not possible)
+        if points_are_equal(vec / np.linalg.norm(vec), (e2.v_to.get_array() - e2.v_from.get_array()) / np.linalg.norm(e2.v_to.get_array() - e2.v_from.get_array())) or \
+                points_are_equal(-vec / np.linalg.norm(-vec), (e2.v_to.get_array() - e2.v_from.get_array()) / np.linalg.norm(e2.v_to.get_array() - e2.v_from.get_array())):
             return None, None
 
         """if cv.index == e2.v_to.index or \
@@ -247,8 +262,8 @@ def split_polygon(P, depth=0):
     if ncc == 0:
         return [P]
 
-    if depth == 1:
-        return []
+    #if depth == 2:
+#        return []
 
     #print(f'concave vertices = {P.concave_vertices}')
 
@@ -295,19 +310,15 @@ def split_polygon(P, depth=0):
 
             split_polygons.append((P1, P2))
 
-        plot_results(split_polygons, cv.index, D[i, :])
+        #plot_results(split_polygons, cv.index, D[i, :])
         D_polygons.append(split_polygons)
 
     # Select the best split of the polygon (lowest width sum)
     D_ij, (cv, edge) = find_min_value_matrix(D)
     P1, P2 = D_polygons[cv][edge]
 
-    print(f'{D_ij=}')
-    print(f'i = {cv}')
-    print(f'j = {edge}')
-
     #plot_results2(P, P1, P2, depth, cv, edge, D_ij)
-    """
+
     # Recursively split both sub-polygons if the polygons are valid
     result1 = []
     result2 = []
@@ -317,8 +328,7 @@ def split_polygon(P, depth=0):
     if is_valid_polygon(P2):
         result2 = split_polygon(P2, depth + 1)
 
-
     # Combine both lists into one and return it
     return result1 + result2
-    """
-    return None
+
+    #return None, None

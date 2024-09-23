@@ -1,25 +1,21 @@
 from json.encoder import INFINITY
-from os.path import split
 
-import numpy as np
 import json
-
-from Polygon import Vertex, Polygon
 from functions import *
-from functions import compute_polygon_width
+import numpy as np
 
 # Reading the test data
-#f = open('test_data/complex_polygon.json')
-f = open('test_data/buggy_file.json')
+f = open('test_data/complex_polygon.json')
+#f = open('test_data/buggy_file2.json')
 data = json.load(f)
 vertices_data = data['area']['coordinates']
 
 # Defining the initial polygon and the boúnding box
 vertices = []
-min_x = INFINITY
-max_x = -INFINITY
-min_y = INFINITY
-max_y = -INFINITY
+min_x = np.inf
+max_x = -np.inf
+min_y = np.inf
+max_y = -np.inf
 
 for i, v in enumerate(vertices_data):
     if v[0] < min_x:
@@ -38,6 +34,24 @@ for i, v in enumerate(vertices_data):
 
 P = Polygon(vertices)
 
-results = split_polygon(P)
+# Compute the split that gives the initial sub-polygons
+sub_polygons = split_polygon(P)
+plot_polygons(sub_polygons)
+quit()
+# Creating adjacent matrix for the sub-polygons
+A = np.empty((len(sub_polygons), len(sub_polygons)))
 
-print(results)
+for i, p_i in  enumerate(sub_polygons):
+    for j, p_j in enumerate(sub_polygons):
+        # Ignore if p_i equals p_j
+        if i == j:
+            continue
+
+        # Go through each edge in p_i and compare with each edge in p_j
+
+
+
+plot_polygons(sub_polygons)
+
+
+#print(results)
