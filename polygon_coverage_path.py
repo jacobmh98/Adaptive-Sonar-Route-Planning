@@ -1,12 +1,11 @@
-from venv import create
-
 import numpy as np
-from Polygon import Polygon, Vertex
 import matplotlib.pyplot as plt
+import math
+from Polygon import Polygon, Vertex
+from matplotlib.patches import Patch
 
 def create_vector(v1, v2):
     """ Computing a vector from vertex v1 to vertex v2
-
     :param v1: NumPy array, start point
     :param v2: NumPy array, end point
     :return vector:
@@ -42,8 +41,9 @@ def compute_offset_vector(v1,v2, sweep_direction, d):
 
 def compute_sweep_direction(v1, v2, a):
     """
-    :param v1: NumPy array, the start point of the vector
-    :param v2: NumPy array, the end point of the vector
+    :param poly: Polygon
+    :param v1: NumPy array, the start point of the vector (b)
+    :param v2: NumPy array, the end point of the vector (b_mate)
     :param a: NumPy array with 2D point coordinates
     :return: int, -1 or +1 to indicate sweep direction from original vector
     """
@@ -61,6 +61,7 @@ def compute_sweep_direction(v1, v2, a):
     sweep_direction = np.sign(np.dot(perp_vector_normalized, vector_v1_a))  # -1 or +1 depending on which side a is
 
     return sweep_direction
+
 
 def extend_vector_to_boundary(v1, v2, boundaries):
     """ Extend the vector from v1 to v2 to intersect with the boundary box
@@ -111,6 +112,15 @@ def extend_vector_to_boundary(v1, v2, boundaries):
 
     return extended_v1, extended_v2
 
+def distance_between_points(v1, v2):
+    """ Calculate the Euclidean distance between two 2D points.
+
+    :param v1: NumPy array (2D point)
+    :param v2: NumPy array (2D point)
+    :return distance: float, the distance between the two points.
+    """
+    return math.sqrt((v2[0] - v1[0]) ** 2 + (v2[1] - v1[1]) ** 2)
+
 def get_path(poly, dx, b_index, b_mate_index, a_index, boundaries):
     """ GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
 
@@ -128,10 +138,19 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundaries):
     b_mate = poly.vertices[b_mate_index].v
     a = poly.vertices[a_index].v
 
+    # Polygon diameter is distance from b to a
+    diameter = distance_between_points(b, a)
+
     sweep_direction = compute_sweep_direction(b, b_mate, a)
 
+    #TODO: Case where path width puts start vector outside polygon
+
     # First pass is offset from polygon edge with half path width
-    delta_init = dx / 2
+    if dx > diameter:
+        # In case of path width being too large to fit inside polygon, changed to fit using polygon diameter
+        delta_init = diameter / 2
+    else:
+        delta_init = dx / 2
 
     FORWARD = True  # Direction of path (true is from b to b_mate)
     # L_flight = create_vector(b, b_mate)
@@ -140,6 +159,7 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundaries):
 
     # Initialize the empty path
     path = []
+    found_path = True
 
     # Fail-safe parameters for the while loop
     max_iterations = 10000
@@ -164,82 +184,110 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundaries):
         L_flight = compute_offset_vector(L_flight[0], L_flight[1], sweep_direction, dx)
         L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundaries)
 
-        if counter > max_iterations:
+        if counter >= max_iterations:
             print(f"Max iterations of {max_iterations} reached")
+            found_path = False
             break
         counter += 1
 
-    print(f"Computed path after {counter} iterations.")
+    if found_path:
+        print(f"Computed path after {counter} iterations.")
     path = np.array(path)
-
-    plot_path(b, b_mate, a, sweep_direction, dx, boundaries, poly, path)
 
     return path
 
-def plot_path(b, b_mate, a, sweep_direction, dx, boundaries, polygon, path):
+
+def plot_path(b, b_mate, a, dx, boundaries, polygon, path):
     """ Plot the original vector from b to b_mate, the offset vector, the boundary box, the polygon,
     including the intersection points between the offset vector and the polygon, and the path points.
+    Also, plot the coverage area around the path.
 
     :param b: Start point of the original vector
     :param b_mate: End point of the original vector
     :param a: Diametric point of b, the direction towards which the vector should be offset
-    :param sweep_direction: int, direction for the offset vectors
-    :param dx: float, the distance by which the vector should be offset
+    :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
     :param boundaries: array, representing the boundary box [min_x, max_x, min_y, max_y]
     :param polygon: Polygon, the polygon object to be plotted
     :param path: NumPy array, the array of points representing the path [[x1, y1], [x2, y2], ...]
     """
-    # Compute the new extended offset vector
-    #L_flight = create_vector(b, b_mate)
-    new_b, new_b_mate = compute_offset_vector(b, b_mate, sweep_direction, dx/2)
-    new_b, new_b_mate = extend_vector_to_boundary(new_b, new_b_mate, boundaries)
 
-    # Find intersections with the polygon
-    L_flight_offset_intersections = polygon.find_intersections(new_b, new_b_mate)
+    # Plot options
+    show_points = True
+    show_polygon = True
+    show_start_vectors = True
+    show_boundary_box = True
+    show_path = True
+    show_start_end_path_points = True
+    show_coverage_area = True
 
     fig, ax = plt.subplots()
-
-    plot_vectors = False
-    if plot_vectors:
-        # Plot the original vector
-        ax.quiver(b[0], b[1], b_mate[0] - b[0], b_mate[1] - b[1], angles='xy', scale_units='xy', scale=1, color='blue',
-                  label='Original Vector b -> b_mate')
-
-        # Plot the new, offset vector
-        ax.quiver(new_b[0], new_b[1], new_b_mate[0] - new_b[0], new_b_mate[1] - new_b[1], angles='xy', scale_units='xy',
-                  scale=1, color='red', label='Offset Vector')
-
-        # Plot the offset vector intersection points
-        if L_flight_offset_intersections:
-            ix, iy = zip(*L_flight_offset_intersections)
-            ax.scatter(ix, iy, color='red', zorder=5, label='Intersections')
+    ax.set_aspect('equal')
 
     # Plot the boundary box
     min_x, max_x, min_y, max_y = boundaries
-    ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box')
+    if show_boundary_box:
+        ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box')
 
     # Plot the points b, b_mate, and a
-    ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', label='Points b, b_mate, a', markersize=10)
-
-    # Annotate the points
-    ax.text(b[0], b[1], f'b', fontsize=16, color='darkblue')
-    ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=16, color='darkblue')
-    ax.text(a[0], a[1], "a", fontsize=16, color='darkblue')
+    if show_points:
+        ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', label='Points b, b_mate, a', markersize=10)
+        ax.text(b[0], b[1], f'b', fontsize=16, color='darkblue')
+        ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=16, color='darkblue')
+        ax.text(a[0], a[1], "a", fontsize=16, color='darkblue')
 
     # Plot the polygon
     x_coords, y_coords = polygon.get_coords()
-    ax.plot(x_coords, y_coords, 'b-', marker='o', label='Polygon')
-    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+    if show_polygon:
+        ax.plot(x_coords, y_coords, 'b-', marker='o', label='Polygon')
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
 
     # Plot the path
-    path_x, path_y = path[:, 0], path[:, 1]
-    ax.plot(path_x, path_y, 'g-', marker='x', label='Path', linewidth=3)
+    if len(path) > 0:
+        path_x, path_y = path[:, 0], path[:, 1]
+        if show_path:
+            ax.plot(path_x, path_y, 'g-', marker='x', label='Path', linewidth=3)
 
-    # Highlight the start and end points of the path
-    ax.plot(path_x[0], path_y[0], 'go', markersize=10, label='Start Point')  # Start point
-    ax.plot(path_x[-1], path_y[-1], 'ro', markersize=10, label='End Point')  # End point
+        # Highlight the start and end points of the path
+        if show_start_end_path_points:
+            ax.plot(path_x[0], path_y[0], 'go', markersize=10, label='Start Point')  # Start point
+            ax.plot(path_x[-1], path_y[-1], 'ro', markersize=10, label='End Point')  # End point
 
-    plt.legend()
+        # Compute and plot coverage area along the path
+        for i in range(len(path) - 1):
+            p1 = path[i]
+            p2 = path[i + 1]
+            # Vector along the path segment
+            segment_vector = p2 - p1
+            # Normalize the vector to get the perpendicular direction
+            perp_vector = np.array([-segment_vector[1], segment_vector[0]])
+            perp_vector = perp_vector / np.linalg.norm(perp_vector) * dx / 2
+
+            # Create four corners of the coverage area for this segment
+            corner1 = p1 + perp_vector
+            corner2 = p1 - perp_vector
+            corner3 = p2 - perp_vector
+            corner4 = p2 + perp_vector
+
+            # Plot the coverage area for this segment as a filled polygon
+            if show_coverage_area:
+                ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
+                        [corner1[1], corner2[1], corner3[1], corner4[1]],
+                        'orange', alpha=0.3, label='_nolegend_')
+
+    else:
+        print("Empty path")
+
+    # Used to add coverage in legend as square
+    coverage_patch = Patch(color='orange', label='Coverage Area', alpha=0.3)
+
+    # Get handles and labels from the plot, and add the custom coverage patch
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(coverage_patch)
+    labels.append('Covered Area')
+
+    if show_start_vectors or show_points or show_path or show_polygon or show_start_end_path_points or show_boundary_box or show_coverage_area:
+        ax.legend(handles=handles, labels=labels, loc='best')
+
     plt.grid(True)
     plt.xlabel('X')
     plt.ylabel('Y')

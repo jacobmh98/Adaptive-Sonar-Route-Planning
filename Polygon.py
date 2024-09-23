@@ -87,7 +87,7 @@ class Polygon:
         t = np.cross(p1_q1, s) / r_cross_s
         u = np.cross(p1_q1, r) / r_cross_s
 
-        # Check if ntersection point is within both line segments
+        # Check if intersection point is within both line segments
         if 0 <= t <= 1 and 0 <= u <= 1:
             intersection_point = p1 + t * r
             return intersection_point

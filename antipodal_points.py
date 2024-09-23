@@ -103,6 +103,7 @@ def remove_parallel_antipodal_vertices(polygon, pq):
     remainder = []
     n = polygon.number_vertices
 
+
     for pair in pq:
         v0 = polygon.vertices[pair[0]]
         v1 = polygon.vertices[pair[1]]
