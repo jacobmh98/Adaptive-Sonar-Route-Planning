@@ -39,6 +39,10 @@ class Polygon:
             v1.prev = self.vertices[(i - 1) % self.number_vertices]
             v1.next = self.vertices[(i + 1) % self.number_vertices]
 
+    def remove_vertex(self, v):
+        self.vertices.remove(v)
+        self.__init__(self.vertices)
+
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""
         x_coords = []

@@ -1,4 +1,5 @@
 from Polygon import *
+from scipy.spatial import ConvexHull
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -26,6 +27,8 @@ def project_onto_direction(vertices, direction):
     projections = np.dot(vertices.T, direction)
     return np.max(projections) - np.min(projections)
 
+
+
 #TODO this is incorrect and needs to be fixed
 def compute_polygon_width(P):
     """ Function to compute width sum of a polygon """
@@ -52,7 +55,6 @@ def plot_results(split_polygons, cv, Di):
 
     cols = 5
     rows = int(np.ceil(len(split_polygons) / cols))
-
 
     fig, ax = plt.subplots(rows, cols)
 
@@ -125,9 +127,8 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     print(f'\t{cv=}')
     print(f'\t{edge=}')
     print(f'\tD_ij={np.round(Dij, 1)}')
-    x,y = P.get_coords()
-    print(f'{x}')
-    print(y)
+    print(f'P1 = {P1.vertices_matrix()}')
+    print(f'P2 = {P2.vertices_matrix()}')
     #print(f'\tP1 = {P1.vertices}')
     #print(f'\tP2 = {P2.vertices}')
 
@@ -252,7 +253,22 @@ def is_valid_polygon(P):
         return False
     return True
 
+def remove_collinear_vertices(P):
+    """ Remove all collinear vertices in P within some error """
+    epsilon = 0.01
+    for v in P.vertices:
+        x1, y1 = v.prev.get_array().flatten()
+        x2, y2 = v.get_array().flatten()
+        x3, y3 = v.next.get_array().flatten()
+
+        # Compute the cross product of vectors v1->v2 and v2->v3
+        cross_product = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
+        # If the cross product is 0, the points are collinear
+        if -epsilon <= cross_product <= epsilon:
+            P.remove_vertex(v)
+
 def split_polygon(P, depth=0):
+    print(f'{depth=}')
     # Compute the concave vertices
     P.concave_vertices = compute_concave_vertices(P)
     ncc = len(P.concave_vertices)
@@ -261,10 +277,10 @@ def split_polygon(P, depth=0):
     # Base case: if the polygon is convex, return it
     if ncc == 0:
         return [P]
+    #P.plot('g') #tmp
 
-    #if depth == 2:
+    #if depth == 1:
 #        return []
-
     #print(f'concave vertices = {P.concave_vertices}')
 
     # Initialize the width sum matrix
@@ -305,9 +321,13 @@ def split_polygon(P, depth=0):
 
             P1, P2 = split_polygon_single(intersection_edges[min_index], intersection_points[min_index], cv)
 
-            # Compute the width sum of P1 and P2
-            D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
+            # Remove collinear vertices form each sub-polygon
+            remove_collinear_vertices(P1)
+            remove_collinear_vertices(P2)
 
+            # Compute the width sum of P1 and P2
+            #D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
+            D[i, j] = min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
             split_polygons.append((P1, P2))
 
         #plot_results(split_polygons, cv.index, D[i, :])
@@ -330,5 +350,46 @@ def split_polygon(P, depth=0):
 
     # Combine both lists into one and return it
     return result1 + result2
-
     #return None, None
+
+# TODO tmp functions
+# Function to compute the perpendicular distance between a point and a line
+def point_line_distance(point, line_point1, line_point2):
+    numerator = np.abs((line_point2[1] - line_point1[1]) * point[0] -
+                       (line_point2[0] - line_point1[0]) * point[1] +
+                       line_point2[0] * line_point1[1] - line_point2[1] * line_point1[0])
+    denominator = distance(line_point1, line_point2)
+    return numerator / denominator
+
+
+# Function to compute the minimum width using Rotating Calipers algorithm
+def min_polygon_width(vertices):
+    # Compute the convex hull of the polygon
+    hull = ConvexHull(vertices.T)  # Use the transpose of the vertices for the ConvexHull
+
+    # Extract the vertices that make up the convex hull
+    hull_points = vertices[:, hull.vertices]
+
+    min_width = float('inf')
+
+    n = hull_points.shape[1]
+
+    # Apply rotating calipers to find the minimum distance between parallel lines
+    for i in range(n):
+        p1 = hull_points[:, i]
+        p2 = hull_points[:, (i + 1) % n]
+
+        # The edge we're rotating about is (p1, p2)
+        max_distance = 0
+
+        # For each other point, find its perpendicular distance to the line (p1, p2)
+        for j in range(n):
+            if j != i and j != (i + 1) % n:
+                p = hull_points[:, j]
+                d = point_line_distance(p, p1, p2)
+                max_distance = max(max_distance, d)
+
+        # The minimum width is the smallest of these maximum distances
+        min_width = min(min_width, max_distance)
+
+    return min_width

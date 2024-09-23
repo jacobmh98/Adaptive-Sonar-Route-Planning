@@ -1,4 +1,3 @@
-from json.encoder import INFINITY
 
 import json
 from functions import *
@@ -6,7 +5,7 @@ import numpy as np
 
 # Reading the test data
 f = open('test_data/complex_polygon.json')
-#f = open('test_data/buggy_file2.json')
+#f = open('test_data/buggy_file3.json')
 data = json.load(f)
 vertices_data = data['area']['coordinates']
 
@@ -33,6 +32,13 @@ for i, v in enumerate(vertices_data):
     vertices.append(Vertex(i, v[0], v[1]))
 
 P = Polygon(vertices)
+
+
+
+# Example Usage: Input as a 2xN NumPy array
+#vertices = np.array([[0, 4, 4, 0], [0, 0, 3, 3]])  # Rectangle with vertices
+#width = min_polygon_width(P.vertices_matrix())
+#print(f"The minimum width of the polygon is: {width}")
 
 # Compute the split that gives the initial sub-polygons
 sub_polygons = split_polygon(P)
