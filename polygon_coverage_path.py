@@ -223,7 +223,7 @@ def get_path(poly, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
     L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundaries)
 
     # Initializing the path with the starting point
-    path = [ps]
+    path = []
     found_path = True
 
     # Fail-safe parameters for the while loop
@@ -253,8 +253,6 @@ def get_path(poly, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
     #if found_path:
         #print(f"Computed path after {counter} iterations.")
 
-    # Adding the end point
-    path.append(pe)
     return np.array(path)
 
 def best_path(polygon, i, j, ps, pe, dx, boundaries):

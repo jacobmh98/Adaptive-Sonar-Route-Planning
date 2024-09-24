@@ -5,6 +5,7 @@ import json
 import antipodal_points
 import polygon_coverage_path
 import Rotating_Calipers_antipodal_pairs
+import multi_poly_planning
 from Polygon import Polygon, Vertex
 from json.encoder import INFINITY
 
@@ -71,6 +72,38 @@ def rotating_calipers_path_planner(p, d_pq, ps, pe, pw, bounds):
 
     return optimal_path
 
+# Manually creating polygons
+t1_0 = open('test_data/connected_poly_1_0.json')
+t1_1 = open('test_data/connected_poly_1_1.json')
+data1_0 = json.load(t1_0)
+data1_1 = json.load(t1_1)
+coord1_0 = data1_0['area']['coordinates']
+coord1_1 = data1_1['area']['coordinates']
+poly1_0, boundaries1_0 = create_polygon(coord1_0)
+poly1_1, boundaries1_1 = create_polygon(coord1_1)
+polygons = []
+all_boundaries = []
+polygons.append(poly1_0)
+polygons.append(poly1_1)
+all_boundaries.append(boundaries1_0)
+all_boundaries.append(boundaries1_1)
+
+
+# Start parameters
+p_start = [-0.5, -0.5]
+p_end = [2.75, 1.75]
+dx = 0.1 # Path width (Must be >0)
+#b_index = 0 # Index of start vertex
+#b_mate_index = polygon_coverage_path.get_b_mate(polygons[0], b_index)  # Automatically computes counterclockwise neighbour vertex to b
+
+total_path = multi_poly_planning.multi_path_planning(polygons, p_start, p_end, dx, all_boundaries)
+print(np.array(total_path))
+multi_poly_planning.multi_poly_plot(np.array(total_path), polygons, p_start, p_end, dx)
+
+quit()
+
+
+
 # Reading the test data
 f1 = open('test_data/simple_triangle.json')
 f1_1 = open('test_data/simple_triangle_opposite.json')
@@ -112,33 +145,52 @@ if np.allclose(b_mate_index, diametric_antipode_index):
 #polygon_coverage_path.plot_path(poly.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[diametric_antipode_index].v, dx, boundaries, poly, curr_path)
 
 # Using rotating calipers method to find the shortest path in the polygon, using b as starting point
-#shortest_path = rotating_calipers_path_planner(poly, diametric_antipodal_pairs, p_start, p_end, dx, boundaries)
-#polygon_coverage_path.plot_path(poly.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[diametric_antipode_index].v, dx, boundaries, poly, shortest_path)
+shortest_path = rotating_calipers_path_planner(poly, diametric_antipodal_pairs, p_start, p_end, dx, boundaries)
+polygon_coverage_path.plot_path(poly.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[diametric_antipode_index].v, dx, boundaries, poly, shortest_path)
 
-
+quit()
 
 # Computing path for multiple convex polygons
 total_path = []
 polygons = []
+
 
 # Manually creating polygons
 t1_0 = open('test_data/connected_poly_1_0.json')
 t1_1 = open('test_data/connected_poly_1_1.json')
 data1_0 = json.load(t1_0)
 data1_1 = json.load(t1_1)
-coord1_0= data['area']['coordinates']
-coord1_1= data['area']['coordinates']
+coord1_0 = data['area']['coordinates']
+coord1_1 = data['area']['coordinates']
 poly1_0, boundaries1_0 = create_polygon(coord1_0)
 poly1_1, boundaries1_1 = create_polygon(coord1_1)
 polygons.append(poly1_0)
 polygons.append(poly1_1)
 
-for polyg in polygons:
-    new_path = rotating_calipers_path_planner(polyg, diametric_antipodal_pairs, p_start, poly1_1.vertices[0].v, dx, boundaries)
+# Start parameters
+p_start = [-0.5, -0.5]
+p_end = [2.75, 1.75]
+dx = 0.1 # Path width (Must be >0)
+b_index = 0 # Index of start vertex
+b_mate_index = polygon_coverage_path.get_b_mate(poly1_0, b_index)  # Automatically computes counterclockwise neighbour vertex to b
 
-    total_path.append(new_path)
-#print(total_path)
-#polygon_coverage_path.plot_path(poly1_0.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[diametric_antipode_index].v, dx, boundaries, poly, total_path)
+
+
+for polyg in polygons:
+    #print("1")
+    print(polyg.vertices)
+    new_path = rotating_calipers_path_planner(polyg, diametric_antipodal_pairs, p_start, poly1_1.vertices[0].index, dx, boundaries)
+    #print(np.array(new_path))
+
+    for p in new_path:
+        total_path.append(p)
+
+    # Start next path at last path point
+
+total_path = np.array(total_path)
+
+
+polygon_coverage_path.plot_path(poly1_0.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[diametric_antipode_index].v, dx, boundaries, poly1_0, total_path)
 
 
 
