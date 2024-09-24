@@ -1,3 +1,5 @@
+from enum import unique
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -68,16 +70,14 @@ class Polygon:
         plt.show()
 
     def line_intersection(self, p1, p2, q1, q2):
-        """ Find intersection between two line segments (p1, p2) and (q1, q2) """
+        """ Find intersection between two line segments (p1, p2) and (q1, q2) with floating-point tolerance """
         # Convert points to vectors
         r = np.array(p2) - np.array(p1)
         s = np.array(q2) - np.array(q1)
 
         # Cross product r x s
         r_cross_s = np.cross(r, s)
-
         if r_cross_s == 0:
-            # Lines are parallel
             return None
 
         # Vector from p1 to q1
@@ -107,7 +107,19 @@ class Polygon:
             if intersection is not None:
                 intersections.append(intersection)
 
-        # Edge case where vector just intersects 1 point
+        # Edge case where vector just intersects 1 point, add the same point as intersection point
         if len(intersections) == 1:
             intersections.append(intersections[0])
+        elif len(intersections) > 2:
+            unique_points = []
+            seen = set()
+            for point in intersections:
+                point_tuple = tuple(point)  # Convert the numpy array to a tuple
+                if point_tuple not in seen:
+                    unique_points.append(point)
+                    seen.add(point_tuple)  # Track the unique points as tuples
+            intersections = unique_points
+            print(f"intersections: {intersections}")
+
+
         return intersections

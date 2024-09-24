@@ -10,14 +10,11 @@ def dist(p1, p2):
     return np.linalg.norm(np.array(p1) - np.array(p2))
 
 def compute_antipodal_pairs(polygon):
-    """
-    Computes antipodal pairs for a given polygon.
+    """ Computes antipodal pairs for a given polygon.
 
-    Args:
-        polygon: Polygon object with a list of vertices.
+    :param polygon: Polygon object with a list of vertices.
 
-    Returns:
-        A list of tuples representing antipodal vertex pairs.
+    :return: List of tuples representing antipodal vertex pairs.
     """
     vertices = polygon.vertices
     n = len(vertices)
@@ -30,7 +27,7 @@ def compute_antipodal_pairs(polygon):
     while dist(vertices[0].v, vertices[(j + 1) % n].v) > dist(vertices[0].v, vertices[j].v):
         j += 1
 
-    # Now loop over each vertex i
+    # Loop over each vertex i
     for i in range(n):
         antipodal_pairs.append((i, j))
 
@@ -46,12 +43,9 @@ def compute_antipodal_pairs(polygon):
 def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
     """ Filter out neighboring antipodal pairs and remove redundant pairs (i, j) and (j, i).
 
-    Args:
-        antipodal_pairs: List of tuples representing antipodal pairs.
-        polygon: Polygon object to check neighboring vertices.
-
-    Returns:
-        A filtered list of unique and non-neighboring antipodal pairs.
+    :param antipodal_pairs: List of tuples representing antipodal pairs.
+    :param polygon: Polygon object to check neighboring vertices.
+    :return: Filtered list of unique and non-neighboring antipodal pairs.
     """
     n = polygon.number_vertices
     unique_pairs = set()
@@ -69,13 +63,10 @@ def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
 def get_diametric_antipodal_pair_index(polygon, antipodal_pairs, b):
     """ Find the diametric antipodal pair for vertex b, considering only its antipodal pairs.
 
-    Args:
-        antipodal_pairs: List of tuples representing antipodal pairs.
-        b: Vertex index for which to find the furthest antipodal pair.
-        polygon: Polygon object with vertices.
-
-    Returns:
-        The index of the furthest antipodal vertex for vertex b.
+    :param antipodal_pairs: List of tuples representing antipodal pairs.
+    :param b: Vertex index for which to find the furthest antipodal pair.
+    :param polygon: Polygon object with vertices.
+    :return: Index of the furthest antipodal vertex for vertex b.
     """
     max_distance = -1
     diametric_antipode = None
@@ -95,13 +86,59 @@ def get_diametric_antipodal_pair_index(polygon, antipodal_pairs, b):
 
     return diametric_antipode
 
-def plot_antipodal_points(polygon, antipodal_vertices):
+
+def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
     """
-    Plot the polygon and highlight the antipodal points.
+    Filter the antipodal pairs to keep only the diametric antipodal pairs for each vertex.
 
     Args:
         polygon: Polygon object with vertices.
-        antipodal_vertices: List of tuples representing antipodal vertex pairs.
+        antipodal_pairs: List of tuples representing antipodal pairs.
+
+    Returns:
+        List of tuples representing only the diametric antipodal pairs.
+    """
+    diametric_pairs = set()  # Using a set to avoid duplicates
+
+    # Loop through all vertices of the polygon
+    for b in range(polygon.number_vertices):
+        # Find the diametric antipodal pair for vertex b
+        diametric_pair = get_diametric_antipodal_pair_index(polygon, antipodal_pairs, b)
+
+        if diametric_pair is not None:
+            # Add the pair (b, diametric_pair) in sorted order to avoid (b, a) and (a, b) duplicates
+            sorted_pair = tuple(sorted([b, diametric_pair]))
+            diametric_pairs.add(sorted_pair)
+
+    # Convert the set to a list for the final output
+    return list(diametric_pairs)
+
+
+def get_diametric_antipodal_point_index(diametric_antipodal_pairs, b):
+    """
+    Given a point index b, find and return its diametric antipodal point a from the diametric antipodal pairs.
+
+    Args:
+        diametric_antipodal_pairs: List of tuples representing diametric antipodal pairs.
+        b: The index of the point for which to find the diametric antipodal pair.
+
+    Returns:
+        The index of the diametric antipodal point for b, or None if not found.
+    """
+    for (i, j) in diametric_antipodal_pairs:
+        if i == b:
+            return j  # Return the corresponding antipodal point
+        elif j == b:
+            return i  # Return the corresponding antipodal point
+
+    # If no pair is found for the given point
+    return None
+
+def plot_antipodal_points(polygon, antipodal_vertices):
+    """ Plot the polygon and highlight the antipodal points.
+
+    :param polygon: Polygon object with vertices.
+    :param antipodal_vertices: List of tuples representing antipodal vertex pairs.
     """
     # Get the x and y coordinates of the vertices
     x_coords, y_coords = polygon.get_coords()
