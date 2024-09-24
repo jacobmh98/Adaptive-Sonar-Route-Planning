@@ -33,31 +33,40 @@ for i, v in enumerate(vertices_data):
 
 P = Polygon(vertices)
 
-
-
-# Example Usage: Input as a 2xN NumPy array
-#vertices = np.array([[0, 4, 4, 0], [0, 0, 3, 3]])  # Rectangle with vertices
-#width = min_polygon_width(P.vertices_matrix())
-#print(f"The minimum width of the polygon is: {width}")
-
-# Compute the split that gives the initial sub-polygons
+# Compute the split that gives the sub-polygons
 sub_polygons = split_polygon(P)
-plot_polygons(sub_polygons)
-quit()
-# Creating adjacent matrix for the sub-polygons
-A = np.empty((len(sub_polygons), len(sub_polygons)))
 
+print(sub_polygons)
+
+# Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
+"""
+P = Polygon([Vertex(0, 3, 10), Vertex(1, 3, 6), Vertex(2, 5, 4), Vertex(3, 9, 3),
+             Vertex(4, 7, 6), Vertex(5, 9, 8), Vertex(6, 6, 8)])
+
+P1 = Polygon([Vertex(0, 3, 10), Vertex(1, 3, 6), Vertex(2, 6, 8)])
+P2 = Polygon([Vertex(0, 3, 6), Vertex(1, 5, 4), Vertex(2, 9, 8), Vertex(3, 6, 8)])
+P3 = Polygon([Vertex(0, 7, 6), Vertex(1, 5, 4), Vertex(2, 9, 3)])
+
+sub_polygons = [P1, P2, P3]
+"""
+
+# Define the adjacent matrix of the undirected graph
+m = len(sub_polygons)
+A = np.zeros((m, m))
+G = nx.Graph()
+
+# Go through each edge in p_i and compare with each edge in p_j
 for i, p_i in  enumerate(sub_polygons):
     for j, p_j in enumerate(sub_polygons):
-        # Ignore if p_i equals p_j
+        # Ignore if the two polygons are equal
         if i == j:
             continue
 
-        # Go through each edge in p_i and compare with each edge in p_j
+        # Test if the two polygons p_i and p_j are adjacent (either complete or partial)
+        if polygons_are_adjacent(p_i, p_j, i, j):
+            # Update the adjacent matrix
+            A[i, j] = 1
+            A[j, i] = 1
+            G.add_edge(f'P{i}', f'P{j}')
 
-
-
-plot_polygons(sub_polygons)
-
-
-#print(results)
+plot_polygons(P, sub_polygons, G)

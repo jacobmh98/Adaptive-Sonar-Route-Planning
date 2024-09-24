@@ -1,5 +1,6 @@
 from Polygon import *
 from scipy.spatial import ConvexHull
+import networkx as nx
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -21,34 +22,6 @@ def compute_concave_vertices(P):
             concave_vertices.append(v)
 
     return concave_vertices
-
-def project_onto_direction(vertices, direction):
-    """ Function to project points onto a direction vector """
-    projections = np.dot(vertices.T, direction)
-    return np.max(projections) - np.min(projections)
-
-
-
-#TODO this is incorrect and needs to be fixed
-def compute_polygon_width(P):
-    """ Function to compute width sum of a polygon """
-    # Convert vertices to a numpy array for easier manipulation
-    vertices = P.vertices_matrix()
-
-    #print(f'{vertices.shape=}')
-
-    # Define directions to project onto (e.g., x and y axes)
-    directions = [
-        np.array([1, 0]),  # X-axis
-        np.array([0, 1]),  # Y-axis
-    ]
-
-    # Compute width sum
-    width_sum = 0
-    for direction in directions:
-        width_sum += project_onto_direction(vertices, direction)
-
-    return width_sum
 
 def plot_results(split_polygons, cv, Di):
     """ Create a figure with a grid of sub-plots """
@@ -123,12 +96,12 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     ax[3].set_title(f'P2')
     ax[3].axis('equal')
 
-    print(f'{depth=}')
-    print(f'\t{cv=}')
-    print(f'\t{edge=}')
-    print(f'\tD_ij={np.round(Dij, 1)}')
-    print(f'P1 = {P1.vertices_matrix()}')
-    print(f'P2 = {P2.vertices_matrix()}')
+    #print(f'{depth=}')
+    #print(f'\t{cv=}')
+    #print(f'\t{edge=}')
+    #print(f'\tD_ij={np.round(Dij, 1)}')
+    #print(f'P1 = {P1.vertices_matrix()}')
+    #print(f'P2 = {P2.vertices_matrix()}')
     #print(f'\tP1 = {P1.vertices}')
     #print(f'\tP2 = {P2.vertices}')
 
@@ -138,14 +111,42 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
 
     plt.show()
 
-def plot_polygons(polygons):
-    fig = plt.figure()
+def get_center_of_polygon(P):
+    """ Compute the center of a polygon"""
+    x_coords, y_coords = P.get_coords()
 
-    for p in polygons:
+    return np.sum(x_coords) / len(x_coords), np.sum(y_coords) / len(y_coords)
+
+def plot_polygons(P, sub_polygons, G):
+    fig, ax = plt.subplots(1, 3)
+    x_coords, y_coords = P.get_coords()
+    ax[0].plot(x_coords, y_coords, 'k-')
+    ax[0].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+    ax[0].set_title('Initial Polygon')
+    ax[0].set_aspect('equal')
+
+    for i, p in enumerate(sub_polygons):
+        c_x, c_y = get_center_of_polygon(p)
         x_coords, y_coords = p.get_coords()
-        plt.plot(x_coords, y_coords, 'k-')
-        plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[1].plot(x_coords, y_coords, 'k-')
+        ax[1].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[1].text(c_x-0.1, c_y, f'P{i}', color='r', fontsize=7)
+    ax[1].set_title('Decomposition of Polygon')
+    ax[1].set_aspect('equal')
 
+    pos = nx.spring_layout(G)  # Layout for node positions
+    nx.draw(G, pos, ax=ax[2], with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
+    ax[2].set_title('Undirected Graph')
+    #ax[2].set_aspect('equal')
+    """fig, ax = plt.subplots(1, len(sub_polygons))
+    for i, p in enumerate(sub_polygons):
+        c_x, c_y = get_center_of_polygon(p)
+        x_coords, y_coords = p.get_coords()
+        ax[i].plot(x_coords, y_coords, 'k-')
+        ax[i].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[i].text(c_x, c_y, f'{i}')
+        ax[i].set_title(f'P{i}')
+        ax[i].set_aspect('equal')"""
     plt.show()
 
 def distance(v1, v2):
@@ -268,7 +269,6 @@ def remove_collinear_vertices(P):
             P.remove_vertex(v)
 
 def split_polygon(P, depth=0):
-    print(f'{depth=}')
     # Compute the concave vertices
     P.concave_vertices = compute_concave_vertices(P)
     ncc = len(P.concave_vertices)
@@ -277,10 +277,7 @@ def split_polygon(P, depth=0):
     # Base case: if the polygon is convex, return it
     if ncc == 0:
         return [P]
-    #P.plot('g') #tmp
 
-    #if depth == 1:
-#        return []
     #print(f'concave vertices = {P.concave_vertices}')
 
     # Initialize the width sum matrix
@@ -289,7 +286,7 @@ def split_polygon(P, depth=0):
 
     # Go through each concave vertex
     for i, cv in enumerate(P.concave_vertices):
-        print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
+        #print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
         split_polygons = []
 
         # Check lines which passes the concave vertex i and parallels edge e
@@ -298,7 +295,7 @@ def split_polygon(P, depth=0):
             intersection_edges = []
             intersection_directions = []
 
-            print(f'\tchecking edge {e}')
+            #print(f'\tchecking edge {e}')
 
             # Define a vector from the vertices in edge e
             vec = e.v_to.get_array() - e.v_from.get_array()
@@ -312,7 +309,7 @@ def split_polygon(P, depth=0):
                 # Compute intersection with edge e2 (if any)
                 ip, t = compute_intersection(vec, cv, e2)
                 if ip is not None:
-                    print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}')
+                    #print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}')
                     intersection_points.append(ip)
                     intersection_edges.append(e2)
                     intersection_directions.append(t)
@@ -352,18 +349,16 @@ def split_polygon(P, depth=0):
     return result1 + result2
     #return None, None
 
-# TODO tmp functions
-# Function to compute the perpendicular distance between a point and a line
 def point_line_distance(point, line_point1, line_point2):
+    # Function to compute the perpendicular distance between a point and a line
     numerator = np.abs((line_point2[1] - line_point1[1]) * point[0] -
                        (line_point2[0] - line_point1[0]) * point[1] +
                        line_point2[0] * line_point1[1] - line_point2[1] * line_point1[0])
     denominator = distance(line_point1, line_point2)
     return numerator / denominator
 
-
-# Function to compute the minimum width using Rotating Calipers algorithm
 def min_polygon_width(vertices):
+    """ Function to compute the minimum width using Rotating Calipers algorithm """
     # Compute the convex hull of the polygon
     hull = ConvexHull(vertices.T)  # Use the transpose of the vertices for the ConvexHull
 
@@ -393,3 +388,45 @@ def min_polygon_width(vertices):
         min_width = min(min_width, max_distance)
 
     return min_width
+
+def dot(v1, v2):
+    """ Dot product between two vertical vectors """
+    return v1.flatten() @ v2.flatten()
+
+def polygons_are_adjacent(P1, P2, i, j):
+    """ Determine if two polygons share an edge either by complete or partial adjacency"""
+    for e in P1.edges:
+        for e2 in P2.edges:
+            # Check for complete adjacency between the polygons
+            if (points_are_equal(e.v_from.get_array(), e2.v_from.get_array()) and points_are_equal(e.v_to.get_array(), e2.v_to.get_array())) or \
+                    (points_are_equal(e.v_from.get_array(), e2.v_to.get_array()) and points_are_equal(e.v_to.get_array(), e2.v_from.get_array())):
+                #print(f'complete overlap between {i} and {j}')
+                return True
+
+            # Define the vector for each edge
+            vec1 = e.v_to.get_array() - e.v_from.get_array()
+            vec2 = e2.v_to.get_array() - e2.v_from.get_array()
+
+            # Vectors are collinear if the determinant is zero
+            if np.linalg.det(np.hstack([vec1, vec2])) == 0:
+                # Parametrize the line from vec1: l(t) = P + t v
+
+                # Compute the intersection with the y-axis for each line
+                t1 = - e.v_from.x / vec1[0]
+                e_intersects_y = e.v_from.y + t1 * vec1[1]
+
+                t2 = - e2.v_from.x / vec2[0]
+                e2_intersects_y = e2.v_from.y + t2 * vec2[1]
+
+                # Check if the two lines intersects y in the same point
+                if points_are_equal(e_intersects_y, e2_intersects_y):
+                    # Check for partial adjacency between the polygons (if the projected intervals overlap)
+                    t1 = 0
+                    t2 = dot(e.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+                    s1 = dot(e2.v_from.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+                    s2 = dot(e2.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+
+                    if max(t1, t2) > min(s1, s2) and max(s1, s2) > min(t1, t2):
+                        #print(f'partial overlap between {i} and {j}')
+                        return True
+    return False
