@@ -1,11 +1,11 @@
-
 import json
 from functions import *
 import numpy as np
+from python_tsp.exact import solve_tsp_dynamic_programming
 
 # Reading the test data
 f = open('test_data/complex_polygon.json')
-#f = open('test_data/buggy_file3.json')
+#f = open('test_data/complex_polygon3.json')
 data = json.load(f)
 vertices_data = data['area']['coordinates']
 
@@ -33,23 +33,11 @@ for i, v in enumerate(vertices_data):
 
 P = Polygon(vertices)
 
-P.plot('b')
 # Compute the split that gives the sub-polygons
 sub_polygons = split_polygon(P)
 
+
 # Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
-"""
-P = Polygon([Vertex(0, 3, 10), Vertex(1, 3, 6), Vertex(2, 5, 4), Vertex(3, 9, 3),
-             Vertex(4, 7, 6), Vertex(5, 9, 8), Vertex(6, 6, 8)])
-
-P1 = Polygon([Vertex(0, 3, 10), Vertex(1, 3, 6), Vertex(2, 6, 8)])
-P2 = Polygon([Vertex(0, 3, 6), Vertex(1, 5, 4), Vertex(2, 9, 8), Vertex(3, 6, 8)])
-P3 = Polygon([Vertex(0, 7, 6), Vertex(1, 5, 4), Vertex(2, 9, 3)])
-
-sub_polygons = [P1, P2, P3]
-"""
-
-# Define the adjacent matrix of the undirected graph
 m = len(sub_polygons)
 A = np.zeros((m, m))
 G = nx.Graph()
@@ -59,6 +47,7 @@ for i, p_i in  enumerate(sub_polygons):
     for j, p_j in enumerate(sub_polygons):
         # Ignore if the two polygons are equal
         if i == j:
+            A[i, j] = 0
             continue
 
         # Test if the two polygons p_i and p_j are adjacent (either complete or partial)
@@ -67,7 +56,20 @@ for i, p_i in  enumerate(sub_polygons):
             A[i, j] = 1
             A[j, i] = 1
             G.add_edge(f'P{i}', f'P{j}')
+        else:
+            A[i, j] = np.inf
+            #print(f'{i} and {j} are adjacent')
 
-            print(f'{i} and {j} are adjacent')
 
 plot_polygons(P, sub_polygons, G)
+"""
+#print(adj_matrix)
+#print(A)
+# Replace 0s (disconnected) with large value, except diagonal (self-loops)
+#adj_matrix = np.where(adj_matrix == 0, 999999, adj_matrix)
+
+# Solve TSP
+#permutation, distance = solve_tsp_dynamic_programming(A)
+print(permutation)
+plot_polygons(P, sub_polygons, G)
+"""

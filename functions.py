@@ -295,7 +295,7 @@ def split_polygon(P, depth=0):
 
     # Go through each concave vertex
     for i, cv in enumerate(P.concave_vertices):
-        print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
+        #print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
         split_polygons = []
 
         # Check lines which passes the concave vertex i and parallels edge e
@@ -306,7 +306,7 @@ def split_polygon(P, depth=0):
             intersection_normals = []
             illegal_dir = 0
 
-            print(f'\tchecking edge {e}')
+            #print(f'\tchecking edge {e}')
 
             # Define a vector from the vertices in edge e
             vec = e.v_to.get_array() - e.v_from.get_array()
@@ -322,7 +322,7 @@ def split_polygon(P, depth=0):
                 # Compute intersection with edge e2 (if any)
                 ip, t = compute_intersection(vec, cv, e2)
                 if ip is not None:
-                    print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
+                    #print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
 
                     intersection_points.append(ip)
                     intersection_edges.append(e2)
@@ -331,7 +331,7 @@ def split_polygon(P, depth=0):
 
                     if t * cross(vec, vec2) < 0:
                         illegal_dir = t
-                        print(f'\t\t\tINVALID {t=}, normal={cross(vec,vec2)}, t*normal={t*cross(vec, vec2)}')
+                        #print(f'\t\t\tINVALID {t=}, normal={cross(vec,vec2)}, t*normal={t*cross(vec, vec2)}')
 
             # Handle invalid intersections
 
