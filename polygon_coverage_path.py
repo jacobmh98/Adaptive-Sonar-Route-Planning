@@ -71,7 +71,6 @@ def compute_offset_vector(v1,v2, sweep_direction, d):
 
 def compute_sweep_direction(v1, v2, a):
     """
-    :param poly: Polygon
     :param v1: NumPy array, the start point of the vector (b)
     :param v2: NumPy array, the end point of the vector (b_mate)
     :param a: NumPy array with 2D point coordinates
@@ -103,10 +102,6 @@ def extend_vector_to_boundary(poly, v1, v2):
     """
     # Extract the boundary box values
     min_x, max_x, min_y, max_y = poly.boundary
-    print(min_x)
-    print(max_x)
-    print(min_y)
-    print(max_y)
 
     # Calculate the direction vector from v1 to v2
     direction = create_vector(v1, v2)
@@ -202,6 +197,9 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
     b = poly.vertices[b_index].v
     b_mate = poly.vertices[b_mate_index].v
     a = poly.vertices[a_index].v
+    print(b)
+    print(b_mate)
+    print(a)
     #print(f'b = {b}')
     #print(f'b_mate = {b_mate}')
     #print(f'a = {a}')

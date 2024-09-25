@@ -25,11 +25,12 @@ class Edge:
         return f"Edge({self.v_from.index}, {self.v_to.index})"
 
 class Polygon:
-    def __init__(self, v):
+    def __init__(self, v, boundary):
         self.vertices = v
         self.number_vertices = len(self.vertices)
         self.concave_vertices = []
         self.edges = []
+        self.boundary = boundary
 
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]
@@ -38,18 +39,6 @@ class Polygon:
 
             v1.prev = self.vertices[(i - 1) % self.number_vertices]
             v1.next = self.vertices[(i + 1) % self.number_vertices]
-
-        # Calculate and store the boundary as a tuple (min_x, max_x, min_y, max_y)
-        self.boundary = self.calculate_boundary()
-
-    def calculate_boundary(self):
-        """ Calculate the boundary of the polygon as (min_x, max_x, min_y, max_y) """
-        min_x = min(v.x for v in self.vertices)
-        max_x = max(v.x for v in self.vertices)
-        min_y = min(v.y for v in self.vertices)
-        max_y = max(v.y for v in self.vertices)
-
-        return min_x, max_x, min_y, max_y
 
     def remove_vertex(self, v):
         self.vertices.remove(v)
@@ -84,13 +73,6 @@ class Polygon:
 
         plt.plot(x_coords, y_coords, f'{color}-', marker='o')
         plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-
-        # Plot the boundary
-        min_x, max_x, min_y, max_y = self.boundary
-        plt.plot([min_x, max_x, max_x, min_x, min_x],
-                 [min_y, min_y, max_y, max_y, min_y],
-                 'g--', label='Boundary')  # Plot boundary as a dashed green rectangle
-
         plt.show()
 
     def line_intersection(self, p1, p2, q1, q2):

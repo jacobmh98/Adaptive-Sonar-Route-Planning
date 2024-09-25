@@ -24,9 +24,23 @@ def path_distance(cp):
     return distance
 
 def create_polygon(vert_data):
-    vertices = [Vertex(i, v[0], v[1]) for i, v in enumerate(vert_data)]
-    polygon = Polygon(vertices)
-    return polygon
+    vertices = []
+    min_x = INFINITY
+    max_x = -INFINITY
+    min_y = INFINITY
+    max_y = -INFINITY
+    for i, v in enumerate(vert_data):
+        if v[0] < min_x:
+            min_x = v[0]
+        if v[0] > max_x:
+            max_x = v[0]
+        if v[1] < min_y:
+            min_y= v[1]
+        if v[1] > max_y:
+            max_y = v[1]
+        vertices.append(Vertex(i, v[0], v[1]))
+    return Polygon(vertices, np.array([min_x, max_x, min_y, max_y]))
+
 
 def rotating_calipers_path_planner(p, d_pq, ps, pe, pw):
     """ Algorithm 2: Rotating Calipers Path Planner.
@@ -95,6 +109,10 @@ poly1_1 = create_polygon(coord1_1)
 polygons = []
 polygons.append(poly1_0)
 polygons.append(poly1_1)
+print(poly1_0.vertices)
+print(poly1_0.vertices[0].v)
+print()
+
 
 total_path = multi_poly_planning.multi_path_planning(polygons, extern_start_end, p_start, p_end, dx)
 print(np.array(total_path))
