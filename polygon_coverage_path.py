@@ -181,10 +181,11 @@ def check_and_connect(path, p1, p2, b):
     return path
 
 # Algorithm 1
-def get_path(poly, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
+def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
     """ GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
 
     :param poly: Polygon P, using Polygon class
+    :param fp: bool
     :param dx: Path width (0.1 = 100 meters)
     :param ps: Path starting point (Not a polygon vertex)
     :param pe: Path ending point (Not a polygon vertex)
@@ -223,7 +224,10 @@ def get_path(poly, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
     L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundaries)
 
     # Initializing the path with the starting point
-    path = []
+    if fp:
+        path = []
+    else:
+        path = [ps]
     found_path = True
 
     # Fail-safe parameters for the while loop
@@ -247,7 +251,7 @@ def get_path(poly, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
         if counter >= max_iterations:
             print(f"Max iterations of {max_iterations} reached.")
             found_path = False
-            break
+            return None
         counter += 1
 
     #if found_path:
@@ -255,18 +259,19 @@ def get_path(poly, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
 
     return np.array(path)
 
-def best_path(polygon, i, j, ps, pe, dx, boundaries):
+def best_path(polygon, fp, i, j, ps, pe, dx, boundaries):
     """
     Compute the best back-and-forth path between antipodal points i and j, and plot both paths.
 
     Args:
         polygon: Polygon object representing the region.
+        fp: bool
         i: Index of the first antipodal vertex.
         j: Index of the second antipodal vertex.
-        ps: Starting point of the mission (2D tuple or numpy array).
-        pe: Ending point of the mission (2D tuple or numpy array).
-        dx: Path width (spacing between flight lines).
-        boundaries: P's boundaries (used in the get_path function).
+        ps: Starting point
+        pe: Ending point
+        dx: Path width
+        boundaries: P's boundaries
 
     Returns:
         Tuple (optimal_path, min_cost):
@@ -280,7 +285,7 @@ def best_path(polygon, i, j, ps, pe, dx, boundaries):
         a = j
 
     # Compute the first back-and-forth path from i to j using get_path
-    path1 = get_path(polygon, dx, ps, pe, i, polygon.vertices[i].next.index, a, boundaries)
+    path1 = get_path(polygon, fp, dx, ps, pe, i, polygon.vertices[i].next.index, a, boundaries)
 
     # Calculate the cost for path1
     cost1 = calculate_total_cost(path1, ps, pe)
@@ -295,10 +300,10 @@ def best_path(polygon, i, j, ps, pe, dx, boundaries):
         a = i
 
     # Compute the second back-and-forth path from j to i using get_path
-    path2 = get_path(polygon, dx, ps, pe, j, polygon.vertices[j].next.index, a, boundaries)  #(p, dx, b, b_mate, a, bound)
+    path2 = get_path(polygon, fp, dx, ps, pe, j, polygon.vertices[j].next.index, a, boundaries)  #(p, dx, b, b_mate, a, bound)
 
     # Calculate the cost for path2
-    cost2 = calculate_total_cost(path2, pe, ps)
+    cost2 = calculate_total_cost(path2, ps, pe)
 
     #plot_path(polygon.vertices[j].v, polygon.vertices[j].next.v, polygon.vertices[a].v, dx, boundaries, polygon, path2)
     #print(f'Path from {j} to {i} (Cost: {cost2:.2f})')

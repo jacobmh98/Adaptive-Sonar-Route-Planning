@@ -90,13 +90,14 @@ all_boundaries.append(boundaries1_1)
 
 
 # Start parameters
-p_start = [-0.5, -0.5]
+p_start = [0.5, -0.5]
 p_end = [2.75, 1.75]
+extern_start_end = False
 dx = 0.1 # Path width (Must be >0)
 #b_index = 0 # Index of start vertex
 #b_mate_index = polygon_coverage_path.get_b_mate(polygons[0], b_index)  # Automatically computes counterclockwise neighbour vertex to b
 
-total_path = multi_poly_planning.multi_path_planning(polygons, p_start, p_end, dx, all_boundaries)
+total_path = multi_poly_planning.multi_path_planning(polygons, extern_start_end, p_start, p_end, dx, all_boundaries)
 print(np.array(total_path))
 multi_poly_planning.multi_poly_plot(np.array(total_path), polygons, p_start, p_end, dx)
 
@@ -145,7 +146,7 @@ if np.allclose(b_mate_index, diametric_antipode_index):
 #polygon_coverage_path.plot_path(poly.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[diametric_antipode_index].v, dx, boundaries, poly, curr_path)
 
 # Using rotating calipers method to find the shortest path in the polygon, using b as starting point
-shortest_path = rotating_calipers_path_planner(poly, diametric_antipodal_pairs, p_start, p_end, dx, boundaries)
+shortest_path = rotating_calipers_path_planner(poly, p_start, p_end, dx, boundaries)
 polygon_coverage_path.plot_path(poly.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[diametric_antipode_index].v, dx, boundaries, poly, shortest_path)
 
 quit()
