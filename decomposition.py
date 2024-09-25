@@ -33,10 +33,9 @@ for i, v in enumerate(vertices_data):
 
 P = Polygon(vertices)
 
+P.plot('b')
 # Compute the split that gives the sub-polygons
 sub_polygons = split_polygon(P)
-
-print(sub_polygons)
 
 # Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
 """
@@ -68,5 +67,7 @@ for i, p_i in  enumerate(sub_polygons):
             A[i, j] = 1
             A[j, i] = 1
             G.add_edge(f'P{i}', f'P{j}')
+
+            print(f'{i} and {j} are adjacent')
 
 plot_polygons(P, sub_polygons, G)
