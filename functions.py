@@ -1,71 +1,86 @@
+from asyncio import current_task
 import numpy as np
-import matplotlib.pyplot as plt
+
+def compute_polygon_centroid(pts):
+    n = len(pts)
+
+from Polygon import *
+from scipy.spatial import ConvexHull
+import networkx as nx
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
     concave_vertices = []
 
-    for i in range(P.number_vertices):
-        # Find the adjacent vertices (ccw order)
-        v_left = P.vertices[(i - 1) % P.number_vertices]
-        v = P.vertices[i]
-        v_right = P.vertices[(i + 1) % P.number_vertices]
+    return [x/n, y/n]
 
-        # Computing the concave judgement matrix
-        S_vi = np.linalg.det(np.array([[v_left.x, v_left.y, 1],
-                                       [v.x, v.y, 1],
-                                       [v_right.x, v_right.y, 1]]))
+def get_rectangle_width_height(coords):
+    width = 0  # x
+    height = 0  # y
+    for coord in coords:  # coord = [x, y]
+        if coord[0] > width:
+            width = coord[0]
+        if coord[1] > height:
+            height = coord[1]
+    return width, height
 
-        # Test if the vertex is concave and add it to the list if true
-        if S_vi < 0:
-            concave_vertices.append(v)
+def sweeping_path_rectangle(path_width, coords, speed):
+    path = []
+    y = coords[0][0] + path_width/2
+    start = [0, y]  # Start bottom left, but with height of center of path width
+    path.append(start)
+    forward = True  # Flag to determine path direction
+    width, height = get_rectangle_width_height(coords)  # Finding rectangle dimensions
+    point_counter = 0
 
-    return concave_vertices
+    while True:
+        current_pos = path[point_counter]
 
-def project_onto_direction(vertices, direction):
-    """ Function to project points onto a direction vector """
-    projections = np.dot(vertices.T, direction)
-    return np.max(projections) - np.min(projections)
+        if forward:  # Left to right direction
+            if current_pos[0] < (width - path_width/2):
+                path.append([round(current_pos[0] + speed, 2), current_pos[1]])
+                point_counter += 1
 
-def compute_width_sum(P):
-    """ Function to compute width sum of a polygon """
-    # Convert vertices to a numpy array for easier manipulation
-    vertices = P.vertices_matrix()
+            else:  # Hit right edge of rectangle minus half path width
+                if round(current_pos[1] + path_width,2) < height:  # If space for 1 path, move up and change dir, finish after
+                    path.append([current_pos[0], round(current_pos[1] + path_width, 2)])
+                    point_counter += 1
 
-    #print(f'{vertices.shape=}')
+                elif round(current_pos[1] + path_width/2, 2) < height:  # For complete coverage must check half path width
+                    path.append([current_pos[0], round(current_pos[1] + path_width/2, 2)])
+                    point_counter += 1
+                    print("her")
 
-    # Define directions to project onto (e.g., x and y axes)
-    directions = [
-        np.array([1, 0]),  # X-axis
-        np.array([0, 1]),  # Y-axis
-    ]
+                else:  # If no space, then move to edge and break
+                    while current_pos[0] < width:  # Moving right, stops when hitting edge
+                        path.append([round(current_pos[0] + speed, 2), current_pos[1]])
+                        point_counter += 1
+                        current_pos = path[point_counter]
+                    break
 
-    # Compute width sum
-    width_sum = 0
-    for direction in directions:
-        width_sum += project_onto_direction(vertices, direction)
+                forward = False  # If top have not been hit, change direction
+                continue
 
-    return width_sum
+        if not forward:  # Right to left direction
+            if current_pos[0] > (0 + path_width/2):
+                path.append([round(current_pos[0] - speed, 2), current_pos[1]])
+                point_counter += 1
 
-def plot_results(split_polygons, D_i, cv_index):
-    """ Create a figure with a grid of sub-plots """
-    rows = 3
-    cols = 5
+            else:
+                if round(current_pos[1] + path_width,2) < height: # If space for 1 path, move up and change dir, finish after
+                    path.append([current_pos[0], round(current_pos[1] + path_width, 2)])
+                    point_counter += 1
 
-    r = -1
-    fig, axs = plt.subplots(3, 5, figsize=(12, 8))
+                elif round(current_pos[1] + path_width/2, 2) < height:  # For complete coverage must check half path width
+                    path.append([current_pos[0], round(current_pos[1] + path_width/2, 2)])
+                    point_counter += 1
 
-    for c, (P1, P2) in enumerate(split_polygons):
-        if c % cols == 0:
-            r += 1
+                else:  # If no space, then move to edge and break
+                    while current_pos[0] > 0:  # Moving left, stops when hitting edge
+                        path.append([round(current_pos[0] - speed, 2), current_pos[1]])
+                        point_counter += 1
+                        current_pos = path[point_counter]
+                    break
+                forward = True  # Change direction
 
-        P1_xcoords, P1_ycoords = P1.get_coords()
-        P2_xcoords, P2_ycoords = P2.get_coords()
-
-        axs[r, c % cols].plot(P1_xcoords, P1_ycoords, 'b-', marker='o')
-        axs[r, c % cols].plot([P1_xcoords[-1], P1_xcoords[0]], [P1_ycoords[-1], P1_ycoords[0]], 'b-')
-        axs[r, c % cols].plot(P2_xcoords, P2_ycoords, 'r-', marker='o')
-        axs[r, c % cols].plot([P2_xcoords[-1], P2_xcoords[0]], [P2_ycoords[-1], P2_ycoords[0]], 'r-')
-        axs[r, c % cols].set_title(f'D({cv_index},{c}) = {np.round(D_i[c], 1)}')
-
-    plt.tight_layout()
+    return path

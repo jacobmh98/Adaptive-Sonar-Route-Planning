@@ -174,18 +174,6 @@ def get_diametral_antipodal_point(P, pq, a):
     else:
         return diametral_pair[0]
 
-def edge_vertex_path(Q, dx, b, b_mate,a):
     """
-    :param Q:
-        Q is a polygon of shape {V,E}, where V is the list of vertices and E is the list of edges.
-    :param dx:
-        distance between sweep lines
-    :param b:
-        initial vertex
-    :param b_mate:
-        vertex adjacent to b
-    :param a:
-        antipodal vertex to b
-    :return:
     """
     return 0
