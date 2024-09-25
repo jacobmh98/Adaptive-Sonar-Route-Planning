@@ -1,5 +1,3 @@
-from enum import unique
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,10 +12,6 @@ class Vertex:
 
     def get_array(self):
         return np.array([[self.x], [self.y]])
-
-        self.v = np.array([x, y])
-        self.prev = None
-        self.next = None
 
     def __repr__(self):
         return f"Vertex({self.index}, {self.x}, {self.y})"
@@ -45,6 +39,18 @@ class Polygon:
             v1.prev = self.vertices[(i - 1) % self.number_vertices]
             v1.next = self.vertices[(i + 1) % self.number_vertices]
 
+        # Calculate and store the boundary as a tuple (min_x, max_x, min_y, max_y)
+        self.boundary = self.calculate_boundary()
+
+    def calculate_boundary(self):
+        """ Calculate the boundary of the polygon as (min_x, max_x, min_y, max_y) """
+        min_x = min(v.x for v in self.vertices)
+        max_x = max(v.x for v in self.vertices)
+        min_y = min(v.y for v in self.vertices)
+        max_y = max(v.y for v in self.vertices)
+
+        return min_x, max_x, min_y, max_y
+
     def remove_vertex(self, v):
         self.vertices.remove(v)
         self.__init__(self.vertices)
@@ -66,7 +72,7 @@ class Polygon:
 
         return np.array([x_coords, y_coords])
 
-    def plot(self,color):
+    def plot(self, color):
         x_coords = []
         y_coords = []
         fig = plt.figure()
@@ -78,9 +84,13 @@ class Polygon:
 
         plt.plot(x_coords, y_coords, f'{color}-', marker='o')
         plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-        plt.show()
-        plt.plot(x_coords, y_coords, 'b-', marker='o')
-        plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+
+        # Plot the boundary
+        min_x, max_x, min_y, max_y = self.boundary
+        plt.plot([min_x, max_x, max_x, min_x, min_x],
+                 [min_y, min_y, max_y, max_y, min_y],
+                 'g--', label='Boundary')  # Plot boundary as a dashed green rectangle
+
         plt.show()
 
     def line_intersection(self, p1, p2, q1, q2):
@@ -134,6 +144,5 @@ class Polygon:
                     seen.add(point_tuple)  # Track the unique points as tuples
             intersections = unique_points
             print(f"intersections: {intersections}")
-
 
         return intersections

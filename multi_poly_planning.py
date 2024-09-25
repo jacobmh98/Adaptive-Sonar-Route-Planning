@@ -24,7 +24,7 @@ def get_nearest_neighbour_vertex(poly1, poly2):
     return nearest_vertex
 
 
-def rotating_calipers_path_planner(p, fp, d_pq, ps, pe, pw, bounds):
+def rotating_calipers_path_planner(p, fp, d_pq, ps, pe, pw):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
 
@@ -34,7 +34,6 @@ def rotating_calipers_path_planner(p, fp, d_pq, ps, pe, pw, bounds):
     :param ps: Starting point
     :param pe: Ending point
     :param pw: Path width
-    :param bounds: Boundaries of the polygon.
     :return optimal_path: The best back-and-forth path (computed using best_path).
     """
 
@@ -47,7 +46,7 @@ def rotating_calipers_path_planner(p, fp, d_pq, ps, pe, pw, bounds):
     for (i, j) in d_pq:
         #print(f'i,j: {i},{j}')
         # Compute the best path for the current antipodal pair
-        current_path, current_cost = polygon_coverage_path.best_path(p, fp, i, j, ps, pe, pw, bounds)
+        current_path, current_cost = polygon_coverage_path.best_path(p, fp, i, j, ps, pe, pw)
 
         # Update the optimal path if the current path has a lower cost
         if current_cost < min_cost:
@@ -57,7 +56,7 @@ def rotating_calipers_path_planner(p, fp, d_pq, ps, pe, pw, bounds):
 
     return optimal_path
 
-def multi_path_planning(polygons, include_start_end, ps, pe, dx, boundaries):
+def multi_path_planning(polygons, include_start_end, ps, pe, dx):
 
     # Creating np list to store full path
     total_path = np.empty((0,2))
@@ -115,7 +114,7 @@ def multi_path_planning(polygons, include_start_end, ps, pe, dx, boundaries):
                 new_p_end = current_poly.vertices[diametric_antipode_index].v
 
 
-        shortest_path = rotating_calipers_path_planner(current_poly, first_poly, diametric_antipodal_pairs, new_p_start, new_p_end, dx, boundaries[i])
+        shortest_path = rotating_calipers_path_planner(current_poly, first_poly, diametric_antipodal_pairs, new_p_start, new_p_end, dx)
 
         # polygons[i+1].vertices[0].v
         total_path = np.vstack([total_path, shortest_path])

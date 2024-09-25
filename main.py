@@ -1,41 +1,108 @@
 import json
-from functions import *
 import numpy as np
-from python_tsp.exact import solve_tsp_dynamic_programming
+import matplotlib.pyplot as plt
+import math
+import antipodal_points
+import polygon_coverage_path
+import Rotating_Calipers_antipodal_pairs
+import multi_poly_planning
+from Polygon import Polygon, Vertex
+from json.encoder import INFINITY
+from functions import *
+
+def path_distance(cp):
+    """ Calculate the total distance travelled along a path.
+
+    :param cp: NumPy array of 2D points representing the current path
+    :return distance: The total Euclidean distance between consecutive points in the path.
+    """
+    distance = 0.0
+    for i in range(1, len(cp)):
+        # Calculate the distance between the consecutive points
+        distance += math.sqrt((cp[i][0] - cp[i - 1][0]) ** 2 + (cp[i][1] - cp[i - 1][1]) ** 2)
+
+    return distance
+
+def create_polygon(vert_data):
+    vertices = [Vertex(i, v[0], v[1]) for i, v in enumerate(vert_data)]
+    polygon = Polygon(vertices)
+    return polygon
+
+def rotating_calipers_path_planner(p, d_pq, ps, pe, pw):
+    """ Algorithm 2: Rotating Calipers Path Planner.
+    Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
+
+    :param p: Polygon
+    :param d_pq: List of tuples representing antipodal pairs (i, j).
+    :param ps: Starting point
+    :param pe: Ending point
+    :param pw: Path width
+    :return optimal_path: The best back-and-forth path (computed using best_path).
+    """
+
+    # Initialize variables to store the best path and the minimal cost
+    min_cost = float('inf')
+    optimal_path = None
+    new_best_pair = ()
+
+    # Iterate over all antipodal pairs (i, j)
+    for (i, j) in d_pq:
+        #print(f'i,j: {i},{j}')
+        # Compute the best path for the current antipodal pair
+        current_path, current_cost = polygon_coverage_path.best_path(p, i, j, ps, pe, pw)
+
+        # Update the optimal path if the current path has a lower cost
+        if current_cost < min_cost:
+            min_cost = current_cost
+            optimal_path = current_path
+            new_best_pair = (i,j)
+
+    return optimal_path
+
+#from python_tsp.exact import solve_tsp_dynamic_programming
 
 # Reading the test data
-f = open('test_data/complex_polygon.json')
+#f = open('test_data/complex_polygon.json')
 #f = open('test_data/complex_polygon3.json')
-data = json.load(f)
-vertices_data = data['area']['coordinates']
+#data = json.load(f)
+#vertices_data = data['area']['coordinates']
 
-# Defining the initial polygon and the boúnding box
-vertices = []
-min_x = np.inf
-max_x = -np.inf
-min_y = np.inf
-max_y = -np.inf
-
-for i, v in enumerate(vertices_data):
-    if v[0] < min_x:
-        min_x = v[0]
-
-    if v[0] > max_x:
-        max_x = v[0]
-
-    if v[1] < min_y:
-        min_y= v[1]
-
-    if v[1] > max_y:
-        max_y = v[1]
-
-    vertices.append(Vertex(i, v[0], v[1]))
-
-P = Polygon(vertices)
+#P = Polygon(create_polygon(vertices_data))
 
 # Compute the split that gives the sub-polygons
-sub_polygons = split_polygon(P)
+#sub_polygons = split_polygon(P)
 
+# Start parameters
+dx = 0.1 # Path width (Must be >0)
+extern_start_end = False
+if extern_start_end:
+    p_start = [0.5, -0.5]
+    p_end = [2.75, 1.75]
+else:
+    p_start = None
+    p_end = None
+
+
+# Manually creating polygons
+t1_0 = open('test_data/connected_poly_1_0.json')
+t1_1 = open('test_data/connected_poly_1_1.json')
+data1_0 = json.load(t1_0)
+data1_1 = json.load(t1_1)
+coord1_0 = data1_0['area']['coordinates']
+coord1_1 = data1_1['area']['coordinates']
+poly1_0 = create_polygon(coord1_0)
+poly1_1 = create_polygon(coord1_1)
+polygons = []
+polygons.append(poly1_0)
+polygons.append(poly1_1)
+
+total_path = multi_poly_planning.multi_path_planning(polygons, extern_start_end, p_start, p_end, dx)
+print(np.array(total_path))
+multi_poly_planning.multi_poly_plot(np.array(total_path), polygons, p_start, p_end, dx)
+
+
+
+quit()
 
 # Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
 m = len(sub_polygons)
@@ -62,6 +129,9 @@ for i, p_i in  enumerate(sub_polygons):
 
 
 plot_polygons(P, sub_polygons, G)
+
+
+quit()
 """
 #print(adj_matrix)
 #print(A)
@@ -73,79 +143,6 @@ plot_polygons(P, sub_polygons, G)
 print(permutation)
 plot_polygons(P, sub_polygons, G)
 """
-import numpy as np
-import matplotlib.pyplot as plt
-import math
-import json
-import antipodal_points
-import polygon_coverage_path
-import Rotating_Calipers_antipodal_pairs
-import multi_poly_planning
-from Polygon import Polygon, Vertex
-from json.encoder import INFINITY
-
-def path_distance(cp):
-    """ Calculate the total distance travelled along a path.
-
-    :param cp: NumPy array of 2D points representing the current path
-    :return distance: The total Euclidean distance between consecutive points in the path.
-    """
-    distance = 0.0
-    for i in range(1, len(cp)):
-        # Calculate the distance between the consecutive points
-        distance += math.sqrt((cp[i][0] - cp[i - 1][0]) ** 2 + (cp[i][1] - cp[i - 1][1]) ** 2)
-
-    return distance
-
-def create_polygon(vertices_data):
-    vertices = []
-    min_x = INFINITY
-    max_x = -INFINITY
-    min_y = INFINITY
-    max_y = -INFINITY
-    for i, v in enumerate(vertices_data):
-        if v[0] < min_x:
-            min_x = v[0]
-        if v[0] > max_x:
-            max_x = v[0]
-        if v[1] < min_y:
-            min_y= v[1]
-        if v[1] > max_y:
-            max_y = v[1]
-        vertices.append(Vertex(i, v[0], v[1]))
-    return Polygon(vertices), np.array([min_x, max_x, min_y, max_y])
-
-def rotating_calipers_path_planner(p, d_pq, ps, pe, pw, bounds):
-    """ Algorithm 2: Rotating Calipers Path Planner.
-    Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
-
-    :param p: Polygon
-    :param d_pq: List of tuples representing antipodal pairs (i, j).
-    :param ps: Starting point
-    :param pe: Ending point
-    :param pw: Path width
-    :param bounds: Boundaries of the polygon.
-    :return optimal_path: The best back-and-forth path (computed using best_path).
-    """
-
-    # Initialize variables to store the best path and the minimal cost
-    min_cost = float('inf')
-    optimal_path = None
-    new_best_pair = ()
-
-    # Iterate over all antipodal pairs (i, j)
-    for (i, j) in d_pq:
-        #print(f'i,j: {i},{j}')
-        # Compute the best path for the current antipodal pair
-        current_path, current_cost = polygon_coverage_path.best_path(p, i, j, ps, pe, pw, bounds)
-
-        # Update the optimal path if the current path has a lower cost
-        if current_cost < min_cost:
-            min_cost = current_cost
-            optimal_path = current_path
-            new_best_pair = (i,j)
-
-    return optimal_path
 
 # Manually creating polygons
 t1_0 = open('test_data/connected_poly_1_0.json')

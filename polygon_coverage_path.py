@@ -92,17 +92,21 @@ def compute_sweep_direction(v1, v2, a):
 
     return sweep_direction
 
-def extend_vector_to_boundary(v1, v2, boundaries):
+def extend_vector_to_boundary(poly, v1, v2):
     """ Extend the vector from v1 to v2 to intersect with the boundary box
 
+    :param poly: Polygon
     :param v1: NumPy array, the start point of the original vector
     :param v2: NumPy array, the end point of the original vector
-    :param boundaries: NumPy array [min_x, max_x, min_y, max_y] representing the boundary box
     :return extended_v1: NumPy array, the new start point of the extended vector
     :return extended_v2: NumPy array, the new end point of the extended vector
     """
     # Extract the boundary box values
-    min_x, max_x, min_y, max_y = boundaries
+    min_x, max_x, min_y, max_y = poly.boundary
+    print(min_x)
+    print(max_x)
+    print(min_y)
+    print(max_y)
 
     # Calculate the direction vector from v1 to v2
     direction = create_vector(v1, v2)
@@ -181,7 +185,7 @@ def check_and_connect(path, p1, p2, b):
     return path
 
 # Algorithm 1
-def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
+def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
     """ GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
 
     :param poly: Polygon P, using Polygon class
@@ -192,7 +196,6 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
     :param b_index: Starting vertex index
     :param b_mate_index: b's counterclockwise neighbour index
     :param a_index: b's diametral antipodal point index
-    :param boundaries: P's boundaries
     :return path: A path which fully covers P
     """
     # Getting the three vertices as points from the polygon
@@ -221,7 +224,7 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
     # Offsetting vector b to b_mate with delta_init towards point a
     L_flight = compute_offset_vector(b, b_mate, sweep_direction, delta_init)
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
-    L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundaries)
+    L_flight = extend_vector_to_boundary(poly, L_flight[0], L_flight[1])
 
     # Initializing the path with the starting point
     if fp:
@@ -246,7 +249,7 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
 
         # Computing next extended offset vector, offset with full path width dx
         L_flight = compute_offset_vector(L_flight[0], L_flight[1], sweep_direction, dx)
-        L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundaries)
+        L_flight = extend_vector_to_boundary(poly, L_flight[0], L_flight[1])
 
         if counter >= max_iterations:
             print(f"Max iterations of {max_iterations} reached.")
@@ -259,7 +262,7 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index, boundaries):
 
     return np.array(path)
 
-def best_path(polygon, fp, i, j, ps, pe, dx, boundaries):
+def best_path(polygon, fp, i, j, ps, pe, dx):
     """
     Compute the best back-and-forth path between antipodal points i and j, and plot both paths.
 
@@ -271,7 +274,6 @@ def best_path(polygon, fp, i, j, ps, pe, dx, boundaries):
         ps: Starting point
         pe: Ending point
         dx: Path width
-        boundaries: P's boundaries
 
     Returns:
         Tuple (optimal_path, min_cost):
@@ -285,7 +287,7 @@ def best_path(polygon, fp, i, j, ps, pe, dx, boundaries):
         a = j
 
     # Compute the first back-and-forth path from i to j using get_path
-    path1 = get_path(polygon, fp, dx, ps, pe, i, polygon.vertices[i].next.index, a, boundaries)
+    path1 = get_path(polygon, fp, dx, ps, pe, i, polygon.vertices[i].next.index, a)
 
     # Calculate the cost for path1
     cost1 = calculate_total_cost(path1, ps, pe)
@@ -300,7 +302,7 @@ def best_path(polygon, fp, i, j, ps, pe, dx, boundaries):
         a = i
 
     # Compute the second back-and-forth path from j to i using get_path
-    path2 = get_path(polygon, fp, dx, ps, pe, j, polygon.vertices[j].next.index, a, boundaries)  #(p, dx, b, b_mate, a, bound)
+    path2 = get_path(polygon, fp, dx, ps, pe, j, polygon.vertices[j].next.index, a)  #(p, dx, b, b_mate, a, bound)
 
     # Calculate the cost for path2
     cost2 = calculate_total_cost(path2, ps, pe)
