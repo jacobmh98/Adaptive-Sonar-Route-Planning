@@ -1,6 +1,7 @@
 import json
 import math
 import multi_poly_planning
+import traveling_salesman_variation
 from functions import *
 
 def path_distance(cp):
@@ -51,5 +52,14 @@ for i,poly in enumerate(sub_polygons):
 
 #sub_polygons = [sub_polygons[1]]
 
-total_path = multi_poly_planning.multi_path_planning(sub_polygons, dx, extern_start_end, p_start, p_end)
-multi_poly_planning.multi_poly_plot(sub_polygons, dx, extern_start_end, p_start, p_end, np.array(total_path))
+# For tsp
+distance_matrix = traveling_salesman_variation.create_distance_matrix(sub_polygons)
+tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
+#traveling_salesman_variation.visualize_tsp_solution(sub_polygons, tsp_route)
+
+# Sort the polygons according to the TSP route
+sorted_polygons = [sub_polygons[i] for i in tsp_route]
+
+
+total_path = multi_poly_planning.multi_path_planning(sorted_polygons, dx, extern_start_end, p_start, p_end)
+multi_poly_planning.multi_poly_plot(sorted_polygons, dx, extern_start_end, p_start, p_end, np.array(total_path))

@@ -238,7 +238,7 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
 
     return np.array(path)
 
-def best_path(poly, dx, b_index, a_index, p_start, p_end, weight_distance=0.5, weight_turns=0.5):
+def best_path(poly, dx, b_index, a_index, p_start, p_end, weight_distance=0.5, weight_turns=25):
     """Compute the best path based on both distance and number of turns."""
     # Path 1 calculation
     b_mate_index = poly.get_mate(b_index)
@@ -246,8 +246,8 @@ def best_path(poly, dx, b_index, a_index, p_start, p_end, weight_distance=0.5, w
     path1 = get_path(poly, dx, b_index, b_mate_index, new_a_index)
     distance1 = calculate_total_distance(path1, p_start, p_end)
     turns1 = path1.shape[0]
-    print(f'distance1 : {distance1}')
-    print(f'turns1 : {turns1}')
+    #print(f'distance1 : {distance1}')
+    #print(f'turns1 : {turns1}')
 
     # Path 2 calculation
     a_mate_index = poly.get_mate(a_index)
@@ -255,19 +255,19 @@ def best_path(poly, dx, b_index, a_index, p_start, p_end, weight_distance=0.5, w
     path2 = get_path(poly, dx, a_index, a_mate_index, new_b_index)
     distance2 = calculate_total_distance(path2, p_start, p_end)
     turns2 = path2.shape[0]
-    print(f'turns2 : {turns2}')
-    print(f'distance2 : {distance2}')
+    #print(f'turns2 : {turns2}')
+    #print(f'distance2 : {distance2}')
 
     # Normalize the values for comparison
     max_distance = max(distance1, distance2)
     max_turns = max(turns1, turns2)
     normalized_distance1 = distance1 / max_distance if max_distance > 0 else 0
     normalized_turns1 = turns1 / max_turns if max_turns > 0 else 0
-    score1 = (weight_distance * normalized_distance1) + (weight_turns * normalized_turns1)
+    score1 = distance1 #(weight_distance * normalized_distance1) + (weight_turns * normalized_turns1)
 
     normalized_distance2 = distance2 / max_distance if max_distance > 0 else 0
     normalized_turns2 = turns2 / max_turns if max_turns > 0 else 0
-    score2 = (weight_distance * normalized_distance2) + (weight_turns * normalized_turns2)
+    score2 = distance2 #(weight_distance * normalized_distance2) + (weight_turns * normalized_turns2)
     print(f'score1: {score1}')
     print(f'score2: {score2}')
     print()
