@@ -3,6 +3,7 @@ from networkx import intersection
 from Polygon import *
 from scipy.spatial import ConvexHull
 import networkx as nx
+from json.encoder import INFINITY
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -160,6 +161,25 @@ def points_are_equal(P1, P2, epsilon=0.1):
     # Check if the distance between the points is smaller than epsilon
     return np.all(np.abs(P1 - P2) < epsilon)
 
+def create_polygon(vert_data):
+    vertices = []
+    min_x = INFINITY
+    max_x = -INFINITY
+    min_y = INFINITY
+    max_y = -INFINITY
+    for i, v in enumerate(vert_data):
+        if v[0] < min_x:
+            min_x = v[0]
+        if v[0] > max_x:
+            max_x = v[0]
+        if v[1] < min_y:
+            min_y= v[1]
+        if v[1] > max_y:
+            max_y = v[1]
+        vertices.append(Vertex(i, v[0], v[1]))
+    return Polygon(vertices, np.array([min_x, max_x, min_y, max_y]))
+
+
 def split_polygon_single(e2, intersection_p, cv):
     """ Split a polygon based on a single intersection point """
     v0 = Vertex(0, intersection_p[0, 0], intersection_p[1, 0])
@@ -186,9 +206,9 @@ def split_polygon_single(e2, intersection_p, cv):
 
     vn = Vertex(v_index, intersection_p[0, 0], intersection_p[1, 0])
     P2_vertices.append(vn)
-
-    P1 = Polygon(P1_vertices)
-    P2 = Polygon(P2_vertices)
+    print(P1_vertices[0])
+    P1 = create_polygon(P1_vertices)
+    P2 = create_polygon(P2_vertices)
     return P1, P2
 
 def compute_intersection(vec, cv, e2):

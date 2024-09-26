@@ -41,7 +41,6 @@ def create_polygon(vert_data):
         vertices.append(Vertex(i, v[0], v[1]))
     return Polygon(vertices, np.array([min_x, max_x, min_y, max_y]))
 
-
 def rotating_calipers_path_planner(p, d_pq, ps, pe, pw):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
@@ -81,7 +80,7 @@ def rotating_calipers_path_planner(p, d_pq, ps, pe, pw):
 #data = json.load(f)
 #vertices_data = data['area']['coordinates']
 
-#P = Polygon(create_polygon(vertices_data))
+#P = create_polygon(vertices_data)
 
 # Compute the split that gives the sub-polygons
 #sub_polygons = split_polygon(P)
@@ -96,28 +95,45 @@ else:
     p_start = None
     p_end = None
 
+#total_path = multi_poly_planning.multi_path_planning(sub_polygons, extern_start_end, p_start, p_end, dx)
+#print(np.array(total_path))
+#multi_poly_planning.multi_poly_plot(np.array(total_path), extern_start_end, sub_polygons, p_start, p_end, dx)
 
 # Manually creating polygons
+sub_polygons = []
+
 t1_0 = open('test_data/connected_poly_1_0.json')
 t1_1 = open('test_data/connected_poly_1_1.json')
+t1_2 = open('test_data/connected_poly_1_2.json')
+t1_3 = open('test_data/connected_poly_1_3.json')
+t1_4 = open('test_data/connected_poly_1_4.json')
+
 data1_0 = json.load(t1_0)
 data1_1 = json.load(t1_1)
+data1_2 = json.load(t1_2)
+data1_3 = json.load(t1_3)
+data1_4 = json.load(t1_4)
+
 coord1_0 = data1_0['area']['coordinates']
 coord1_1 = data1_1['area']['coordinates']
+coord1_2 = data1_2['area']['coordinates']
+coord1_3= data1_3['area']['coordinates']
+coord1_4= data1_4['area']['coordinates']
+
 poly1_0 = create_polygon(coord1_0)
 poly1_1 = create_polygon(coord1_1)
-polygons = []
-polygons.append(poly1_0)
-polygons.append(poly1_1)
-print(poly1_0.vertices)
-print(poly1_0.vertices[0].v)
-print()
+poly1_2 = create_polygon(coord1_2)
+poly1_3 = create_polygon(coord1_3)
+poly1_4 = create_polygon(coord1_4)
 
+sub_polygons.append(poly1_0)
+sub_polygons.append(poly1_1)
+sub_polygons.append(poly1_2)
+sub_polygons.append(poly1_3)
+sub_polygons.append(poly1_4)
 
-total_path = multi_poly_planning.multi_path_planning(polygons, extern_start_end, p_start, p_end, dx)
-print(np.array(total_path))
-multi_poly_planning.multi_poly_plot(np.array(total_path), polygons, p_start, p_end, dx)
-
+total_path = multi_poly_planning.multi_path_planning(sub_polygons, extern_start_end, p_start, p_end, dx)
+multi_poly_planning.multi_poly_plot(np.array(total_path), extern_start_end, sub_polygons, p_start, p_end, dx)
 
 
 quit()

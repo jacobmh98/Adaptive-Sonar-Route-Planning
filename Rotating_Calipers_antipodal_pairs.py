@@ -51,6 +51,8 @@ def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
     unique_pairs = set()
 
     for i, j in antipodal_pairs:
+        if i == j:  # TODO: Ensure that a (1,1) dont get added as an antipodal point, this is a temp fix
+            continue
         # Filter out neighboring pairs
         if abs(i - j) % n != 1:
             # Add the pair if its reverse doesn't exist

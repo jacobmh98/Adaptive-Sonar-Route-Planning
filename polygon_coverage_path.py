@@ -197,9 +197,6 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
     b = poly.vertices[b_index].v
     b_mate = poly.vertices[b_mate_index].v
     a = poly.vertices[a_index].v
-    print(b)
-    print(b_mate)
-    print(a)
     #print(f'b = {b}')
     #print(f'b_mate = {b_mate}')
     #print(f'a = {a}')
@@ -228,7 +225,7 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
     if fp:
         path = []
     else:
-        path = [ps]
+        path = []
     found_path = True
 
     # Fail-safe parameters for the while loop
@@ -252,17 +249,18 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
         if counter >= max_iterations:
             print(f"Max iterations of {max_iterations} reached.")
             found_path = False
-            return None
+            break
         counter += 1
+
+        #print(np.array(path))
 
     #if found_path:
         #print(f"Computed path after {counter} iterations.")
-
     return np.array(path)
 
 def best_path(polygon, fp, i, j, ps, pe, dx):
     """
-    Compute the best back-and-forth path between antipodal points i and j, and plot both paths.
+    Compute the best back-and-forth path between antipodal points i and j.
 
     Args:
         polygon: Polygon object representing the region.
@@ -300,7 +298,7 @@ def best_path(polygon, fp, i, j, ps, pe, dx):
         a = i
 
     # Compute the second back-and-forth path from j to i using get_path
-    path2 = get_path(polygon, fp, dx, ps, pe, j, polygon.vertices[j].next.index, a)  #(p, dx, b, b_mate, a, bound)
+    path2 = get_path(polygon, fp, dx, ps, pe, j, polygon.vertices[j].next.index, a)
 
     # Calculate the cost for path2
     cost2 = calculate_total_cost(path2, ps, pe)

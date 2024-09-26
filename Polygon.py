@@ -6,12 +6,12 @@ class Vertex:
         self.index = i
         self.x = x
         self.y = y
-        self.v = np.array([[x], [y]])
+        self.v = np.array([x, y])
         self.prev = None
         self.next = None
 
     def get_array(self):
-        return np.array([[self.x], [self.y]])
+        return np.array([self.x, self.y])
 
     def __repr__(self):
         return f"Vertex({self.index}, {self.x}, {self.y})"
