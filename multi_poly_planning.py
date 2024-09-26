@@ -1,8 +1,6 @@
-from http.cookiejar import cut_port_re
-
 import numpy as np
 import polygon_coverage_path
-import Rotating_Calipers_antipodal_pairs
+import rotating_calipers_antipodal_pairs
 import matplotlib.pyplot as plt
 
 
@@ -24,116 +22,93 @@ def get_nearest_neighbour_vertex(poly1, poly2):
     return nearest_vertex
 
 
-def rotating_calipers_path_planner(p, fp, d_pq, ps, pe, pw):
+def rotating_calipers_path_planner(polygon, dx, d_pq, p_start, p_end):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
 
-    :param p: Polygon
-    :param fp: Bool, indicates if first polygon
-    :param d_pq: List of tuples representing antipodal pairs (i, j).
-    :param ps: Starting point
-    :param pe: Ending point
-    :param pw: Path width
+    :param polygon: Polygon
+    :param dx: float, the path width
+    :param d_pq: List of tuples representing antipodal pairs (b, a).
+    :param p_start: Start point of path
+    :param p_end: End point of path
     :return optimal_path: The best back-and-forth path (computed using best_path).
     """
-
     # Initialize variables to store the best path and the minimal cost
     min_cost = float('inf')
     optimal_path = None
-    new_best_pair = ()
 
-    # Iterate over all antipodal pairs (i, j)
-    for (i, j) in d_pq:
-        #print(f'i,j: {i},{j}')
+    # Iterate over all antipodal pairs (b, a)
+    for (b_index, a_index) in d_pq:
         # Compute the best path for the current antipodal pair
-        current_path, current_cost = polygon_coverage_path.best_path(p, fp, i, j, ps, pe, pw)
+        current_path, current_cost = polygon_coverage_path.best_path(polygon, dx, b_index, a_index, p_start, p_end)
 
         # Update the optimal path if the current path has a lower cost
         if current_cost < min_cost:
             min_cost = current_cost
             optimal_path = current_path
-            new_best_pair = (i,j)
 
     return optimal_path
 
-def multi_path_planning(polygons, include_start_end, ps, pe, dx):
-
-    # Creating np list to store full path
+def multi_path_planning(polygons, dx, include_external_start_end, ext_p_start, ext_p_end):
+    """
+    :param polygons: List of Polygons
+    :param dx: float, path width
+    :param include_external_start_end: Bool, indicate if external start and end point included
+    :param ext_p_start: External start point (None if include_external_start_end is False)
+    :param ext_p_end: External end point (None if include_external_start_end is False)
+    :return:
+    """
+    # Creating the np array to store the total path
     total_path = np.empty((0,2))
-    first_poly = False
 
-    if include_start_end:
-        # Appending start point to path
-        total_path = np.append(total_path, [ps], axis=0)
+    if include_external_start_end:
+        # Appending external start point to path
+        total_path = np.append(total_path, [ext_p_start], axis=0)
 
     for i, current_poly in enumerate(polygons):
         b_index = 0  # Start at first vertex in the polygon
-        b_mate_index = polygon_coverage_path.get_b_mate(polygons[0], b_index)  # Automatically computes counterclockwise neighbour vertex to b
+
         # Computing current polygons antipodal points
-        antipodal_vertices = Rotating_Calipers_antipodal_pairs.compute_antipodal_pairs(current_poly)
+        antipodal_vertices = rotating_calipers_antipodal_pairs.compute_antipodal_pairs(current_poly)
         # Removes neighbour pairs and double pairs, i.e. for [0,1] and [1,0] only 1 of them is necessary
-        filtered_antipodal_vertices = Rotating_Calipers_antipodal_pairs.filter_and_remove_redundant_pairs(current_poly, antipodal_vertices)
+        filtered_antipodal_vertices = rotating_calipers_antipodal_pairs.filter_and_remove_redundant_pairs(current_poly, antipodal_vertices)
         # Computing the diametric antipodal pairs (optimizing number of paths computed)
-        diametric_antipodal_pairs = Rotating_Calipers_antipodal_pairs.filter_diametric_antipodal_pairs(current_poly, filtered_antipodal_vertices)
+        diametric_antipodal_pairs = rotating_calipers_antipodal_pairs.filter_diametric_antipodal_pairs(current_poly, filtered_antipodal_vertices)
         # Getting index of a, the diametric antipodal point of b
-        diametric_antipode_index = Rotating_Calipers_antipodal_pairs.get_diametric_antipodal_point_index(diametric_antipodal_pairs, b_index)
+        diametric_antipode_index = rotating_calipers_antipodal_pairs.get_diametric_antipodal_point_index(diametric_antipodal_pairs, b_index)
 
-        # (Triangle edge case) If b_mate and a are the same point, change a to last remaining vertex in the triangle polygon
-        if np.allclose(b_mate_index, diametric_antipode_index):
-            diametric_antipode_index = current_poly.vertices[polygon_coverage_path.get_previous_vertex(current_poly, b_index)].v
-
-        # Setting start point and last point from previous poly
-        if include_start_end:
-
-            # Will always have the ps in path if included
+        # Setting start point as the current last point in the total path
+        if total_path.shape[0] > 0:  # if ext points included, ext_p_start will be the last (only) point in the path
             new_p_start = total_path[total_path.shape[0]-1]
+        else:  # If first polygon and no ext points, then make its first vertex b the starting point
+            new_p_start = current_poly.vertices[b_index].v
 
-            # Setting end point to be the closest point in the next poly
-            if i < len(polygons) - 1:
-                new_p_end = get_nearest_neighbour_vertex(current_poly, polygons[i + 1]).v
+        # Setting end point to be the closest point in the next poly
+        if i < len(polygons) - 1:
+            new_p_end = get_nearest_neighbour_vertex(current_poly, polygons[i+1]).v  # TODO: Might not always create the optimal path
+        else: # On the last polygon in the list
+            if include_external_start_end:
+                new_p_end = ext_p_end
             else:
-                new_p_end = pe
-
-        else:
-            # New start point is the current last point in the total path
-            if total_path.shape[0] > 0:
-                new_p_start = total_path[total_path.shape[0]-1]
-                first_poly = False
-
-            # If first polygon, then make its first vertex b the starting point
-            else:
-                new_p_start = current_poly.vertices[b_index].v
-                first_poly = True
-
-            # Setting end point to be the closest point in the next poly
-            if i < len(polygons) - 1:
-                new_p_end = get_nearest_neighbour_vertex(current_poly, polygons[i+1]).v
-            else:
-                # If on the last polygon, then its last point in the path will be the total path endpoint
+                # Last point in the current path will be the total path endpoint
                 new_p_end = current_poly.vertices[diametric_antipode_index].v
 
-        #print(f'new_p_start: {new_p_start}')
-        #print(f'new_p_end: {new_p_end}')
-
-        shortest_path = rotating_calipers_path_planner(current_poly, first_poly, diametric_antipodal_pairs, new_p_start, new_p_end, dx)
-
-        #print(f'shortest path: {shortest_path}')
-        # polygons[i+1].vertices[0].v
+        shortest_path = rotating_calipers_path_planner(current_poly, dx, diametric_antipodal_pairs, new_p_start, new_p_end)
         total_path = np.vstack([total_path, shortest_path])
 
     # Appending the last point into path
-    if include_start_end:
-        total_path = np.append(total_path, [pe], axis=0)
+    if include_external_start_end:
+        total_path = np.append(total_path, [ext_p_end], axis=0)
 
     return total_path
 
 
 # def plot_path(b, b_mate, a, dx, boundaries, polygon, path, ps=None, pe=None):
-def multi_poly_plot(path, show_start_end, polygons, ps, pe, dx):
+def multi_poly_plot(polygons, dx, include_external_start_end, ps, pe, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
 
-    :param show_start_end: bool
+    :param include_external_start_end: bool
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
     :param polygons: List of Polygon objects to be plotted
     :param ps: Starting point of the mission
@@ -185,7 +160,7 @@ def multi_poly_plot(path, show_start_end, polygons, ps, pe, dx):
         print("Empty path")
 
     # Plot the mission start and end points
-    if show_start_end:
+    if include_external_start_end:
         ax.plot(ps[0], ps[1], 'bo', markersize=12, label='Mission Start Point')
         ax.text(ps[0], ps[1], 'Start', fontsize=14, color='blue')
 

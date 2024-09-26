@@ -63,8 +63,6 @@ class Polygon:
         """Return the polygon boundaries as (min_x, max_x, min_y, max_y)"""
         return self.boundary
 
-
-
     def remove_vertex(self, v):
         self.vertices.remove(v)
         self.__init__(self.vertices)
@@ -85,6 +83,32 @@ class Polygon:
         x_coords, y_coords = self.get_coords()
 
         return np.array([x_coords, y_coords])
+
+    def get_mate(self, b):
+        """ Find b's neighbour b_mate (counterclockwise neighbour)
+        :param self: Polygon
+        :param b: int, index of vertex b
+        :return neighbour: int, index of b's neighbour vertex b_mate
+        """
+        n = len(self.vertices)
+
+        if b == (n - 1):  # If b is the last vertex in the polygon
+            return 0
+        else:
+            return b + 1
+
+    def get_previous_vertex(self, b):
+        """ Find b's previous neighbour
+        :param self: Polygon
+        :param b: int, index of vertex b
+        :return neighbour: int, index of b's previous neighbour
+        """
+        n = len(self.vertices)
+
+        if b == 0:  # If b is the first vertex
+            return n - 1
+        else:
+            return b - 1
 
     def plot(self, color="b"):
         x_coords = []

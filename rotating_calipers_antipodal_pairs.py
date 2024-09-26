@@ -28,7 +28,7 @@ def compute_antipodal_pairs(polygon):
         j += 1
 
     # Loop over each vertex i
-    for i in range(n):
+    for i in range(0,n):
         antipodal_pairs.append((i, j))
 
         # Move the caliper to the next vertex and check the antipodal condition

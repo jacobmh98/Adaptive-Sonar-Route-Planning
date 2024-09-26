@@ -4,35 +4,18 @@ import math
 from Polygon import Polygon, Vertex
 from matplotlib.patches import Patch
 
-def get_b_mate(p, b):
-    """ Find b's neighbour b_mate (counterclockwise neighbour)
-    :param b: int, index of vertex b
-    :param p: Polygon
-    :return neighbour: int, index of b's neighbour vertex b_mate
+def triangle_antipodal_edge_case(poly, mate_index, antipodal_index):
     """
-    n = len(p.vertices)
-
-    if b == (n - 1):
-        neighbour = 0
-    else:
-        neighbour = b + 1
-
-    return neighbour
-
-def get_previous_vertex(p, b):
-    """ Find b's previous neighbour
-    :param p: Polygon
-    :param b: int, index of vertex b
-    :return neighbour: int, index of b's previous neighbour
+    :param poly: Polygon
+    :param mate_index: Index of point's mate in the polygon (b_mate)
+    :param antipodal_index: Index of points's antipodal point (a)
+    :return: index of a
     """
-    n = len(p.vertices)
-
-    if b == 0:
-        neighbour = n - 1
+    # If b_mate index and a_index are the same point, change point a to last remaining vertex in the triangle polygon
+    if mate_index == antipodal_index:
+        return poly.get_mate(mate_index)
     else:
-        neighbour = b - 1
-
-    return neighbour
+        return antipodal_index
 
 def create_vector(v1, v2):
     """ Computing a vector from vertex v1 to vertex v2
@@ -180,14 +163,11 @@ def check_and_connect(path, p1, p2, b):
     return path
 
 # Algorithm 1
-def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
+def get_path(poly, dx, b_index, b_mate_index, a_index):
     """ GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
 
     :param poly: Polygon P, using Polygon class
-    :param fp: bool
     :param dx: Path width (0.1 = 100 meters)
-    :param ps: Path starting point (Not a polygon vertex)
-    :param pe: Path ending point (Not a polygon vertex)
     :param b_index: Starting vertex index
     :param b_mate_index: b's counterclockwise neighbour index
     :param a_index: b's diametral antipodal point index
@@ -197,18 +177,22 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
     b = poly.vertices[b_index].v.flatten()
     b_mate = poly.vertices[b_mate_index].v.flatten()
     a = poly.vertices[a_index].v.flatten()
-    #print(f'b = {b}')
-    #print(f'b_mate = {b_mate}')
-    #print(f'a = {a}')
 
-    # Polygon diameter is distance from b to a
-    diameter = distance_between_points(b, a)
+    path = []
 
     # Finding direction from vector b, b_mate towards a (+1 or -1)
     sweep_direction = compute_sweep_direction(b, b_mate, a)
 
-    # First pass is offset from polygon edge with half path width
-    if dx > diameter:
+    # First pass is offset from polygon edge with half path width, unless path width is too large for the polygon
+    b_a_dist = distance_between_points(b, a)
+    b_mate_a_dist = distance_between_points(b_mate, a)
+
+    if b_a_dist < b_mate_a_dist:
+        diameter = b_a_dist
+    else:
+        diameter = b_mate_a_dist
+
+    if dx >= diameter:
         # In case of path width being too large to fit inside polygon, changed to fit using polygon diameter
         delta_init = diameter / 2
     else:
@@ -221,16 +205,10 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
     L_flight = extend_vector_to_boundary(poly, L_flight[0], L_flight[1])
 
-    # Initializing the path with the starting point
-    if fp:
-        path = []
-    else:
-        path = []
-    found_path = True
-
     # Fail-safe parameters for the while loop
     max_iterations = 10000
     counter = 0
+    go_to_edge = True
 
     # Loop until no intersections is found
     while not (Polygon.find_intersections(poly, L_flight[0], L_flight[1]) == []):  # Optimize by only calling function once?
@@ -240,97 +218,89 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
         path = check_and_connect(path, ip1, ip2, b)
 
         # Plot for checking every iteration of the path
-        #plot_path(b, b_mate, a, dx, boundaries, poly, np.array(path))
+        #plot_path(poly, b, b_mate, a, dx, np.array(path))
+
+        # Ensure coverage gets as close to polygon edge as needed for full coverage
+        if (distance_between_points(a, ip1) <= dx) or (distance_between_points(a, ip2) <= dx):
+            if go_to_edge:  # Only divide once per poly, to avoid never ending loop
+                dx = dx/2
+                go_to_edge = False
 
         # Computing next extended offset vector, offset with full path width dx
         L_flight = compute_offset_vector(L_flight[0], L_flight[1], sweep_direction, dx)
         L_flight = extend_vector_to_boundary(poly, L_flight[0], L_flight[1])
 
+        # Avoid un-ending while loop
         if counter >= max_iterations:
             print(f"Max iterations of {max_iterations} reached.")
-            found_path = False
             break
         counter += 1
 
-        #print(np.array(path))
-
-    #if found_path:
-        #print(f"Computed path after {counter} iterations.")
     return np.array(path)
 
-def best_path(polygon, fp, i, j, ps, pe, dx):
-    """
-    Compute the best back-and-forth path between antipodal points i and j.
+def best_path(poly, dx, b_index, a_index, p_start, p_end, weight_distance=0.5, weight_turns=0.5):
+    """Compute the best path based on both distance and number of turns."""
+    # Path 1 calculation
+    b_mate_index = poly.get_mate(b_index)
+    new_a_index = triangle_antipodal_edge_case(poly, b_mate_index, a_index)
+    path1 = get_path(poly, dx, b_index, b_mate_index, new_a_index)
+    distance1 = calculate_total_distance(path1, p_start, p_end)
+    turns1 = path1.shape[0]
+    print(f'distance1 : {distance1}')
+    print(f'turns1 : {turns1}')
 
-    Args:
-        polygon: Polygon object representing the region.
-        fp: bool
-        i: Index of the first antipodal vertex.
-        j: Index of the second antipodal vertex.
-        ps: Starting point
-        pe: Ending point
-        dx: Path width
+    # Path 2 calculation
+    a_mate_index = poly.get_mate(a_index)
+    new_b_index = triangle_antipodal_edge_case(poly, a_mate_index, b_index)
+    path2 = get_path(poly, dx, a_index, a_mate_index, new_b_index)
+    distance2 = calculate_total_distance(path2, p_start, p_end)
+    turns2 = path2.shape[0]
+    print(f'turns2 : {turns2}')
+    print(f'distance2 : {distance2}')
 
-    Returns:
-        Tuple (optimal_path, min_cost):
-            - optimal_path: The optimal back-and-forth path (computed using get_path).
-            - min_cost: The total travel distance for the optimal path.
-    """
-    # (Triangle edge case) If b_mate and a are the same point, change a to last remaining vertex in the triangle polygon
-    if polygon.vertices[i].next.index == j:
-        a = polygon.vertices[get_previous_vertex(polygon, i)].index
-        print(f'a1: {a}')
-        print()
+    # Normalize the values for comparison
+    max_distance = max(distance1, distance2)
+    max_turns = max(turns1, turns2)
+    normalized_distance1 = distance1 / max_distance if max_distance > 0 else 0
+    normalized_turns1 = turns1 / max_turns if max_turns > 0 else 0
+    score1 = (weight_distance * normalized_distance1) + (weight_turns * normalized_turns1)
+
+    normalized_distance2 = distance2 / max_distance if max_distance > 0 else 0
+    normalized_turns2 = turns2 / max_turns if max_turns > 0 else 0
+    score2 = (weight_distance * normalized_distance2) + (weight_turns * normalized_turns2)
+    print(f'score1: {score1}')
+    print(f'score2: {score2}')
+    print()
+
+    # Select the optimal path based on the lowest score
+    if score1 < score2:
+        optimal_path, optimal_score = path1, score1
+        b_best, b_mate_best, a_best = b_index, b_mate_index, new_a_index
     else:
-        a = j
-        print(f'a2: {a}')
-        print()
+        optimal_path, optimal_score = path2, score2
+        b_best, b_mate_best, a_best = a_index, a_mate_index, new_b_index
 
-    # Compute the first back-and-forth path from i to j using get_path
-    path1 = get_path(polygon, fp, dx, ps, pe, i, polygon.vertices[i].next.index, a)
+        # Plot the comparison with distances
 
-    # Calculate the cost for path1
-    cost1 = calculate_total_cost(path1, ps, pe)
+        #plot_paths_comparison(poly,poly.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[new_a_index].v, path1,poly.vertices[a_index].v, poly.vertices[a_mate_index].v, poly.vertices[new_b_index].v, path2,dx,(optimal_path, optimal_score, poly.vertices[b_best].v, poly.vertices[b_mate_best].v, poly.vertices[a_best].v),score1, score2)
 
-    #plot_path(polygon.vertices[i].v, polygon.vertices[i].next.v, polygon.vertices[a].v, dx, boundaries, polygon, path1)
-    #print(f'Path from {i} to {j} (Cost: {cost1:.2f})')
 
-    # (Triangle edge case) If b_mate and a are the same point, change a to last remaining vertex in the triangle polygon
-    if polygon.vertices[j].next.index == i:
-        a = polygon.vertices[get_previous_vertex(polygon, j)].index
-    else:
-        a = i
+    return optimal_path, optimal_score
 
-    # Compute the second back-and-forth path from j to i using get_path
-    path2 = get_path(polygon, fp, dx, ps, pe, j, polygon.vertices[j].next.index, a)
-
-    # Calculate the cost for path2
-    cost2 = calculate_total_cost(path2, ps, pe)
-
-    #plot_path(polygon.vertices[j].v, polygon.vertices[j].next.v, polygon.vertices[a].v, dx, boundaries, polygon, path2)
-    #print(f'Path from {j} to {i} (Cost: {cost2:.2f})')
-
-    # Compare costs and return the path with the lowest total cost
-    if cost1 < cost2:
-        return path1, cost1
-    else:
-        return path2, cost2
-
-def calculate_total_cost(path, start_point, end_point):
-    """
-    Calculate the total cost of a given path, including the travel distance to
+def calculate_total_distance(path, p_start, p_end):
+    """ Calculate the total cost of a given path, including the travel distance to
     the starting point and from the ending point.
 
-    Args:
-        path: The back-and-forth path (array of waypoints or segments).
-        start_point: Starting point of the mission (2D tuple or numpy array).
-        end_point: Ending point of the mission (2D tuple or numpy array).
-
-    Returns:
-        Total travel distance (float).
+    :param path: A list of points creating the given path
+    :param p_start:
+    :param p_end:
+    :return:
     """
+    if path.size == 0:
+        return 0
+
     # 1. Calculate the distance from the start_point to the first point of the path
-    distance_to_start = np.linalg.norm(np.array(start_point) - np.array(path[0]))
+    distance_to_start = np.linalg.norm(np.array(p_start) - np.array(path[0]))
 
     # 2. Calculate the distance for the entire back-and-forth path (sum of segment distances)
     path_distance = 0
@@ -338,70 +308,53 @@ def calculate_total_cost(path, start_point, end_point):
         path_distance += np.linalg.norm(np.array(path[k]) - np.array(path[k - 1]))
 
     # 3. Calculate the distance from the last point of the path to the end_point
-    distance_to_end = np.linalg.norm(np.array(end_point) - np.array(path[-1]))
+    distance_to_end = np.linalg.norm(np.array(p_end) - np.array(path[-1]))
 
     # 4. Total cost is the sum of all distances
     total_cost = distance_to_start + path_distance + distance_to_end
+
     return total_cost
 
-def plot_path(b, b_mate, a, dx, boundaries, polygon, path, ps=None, pe=None):
+def plot_path(poly, b, b_mate, a, dx, path):
     """
     Plot the original vector from b to b_mate, the offset vector, the boundary box, the polygon,
     including the intersection points between the offset vector and the polygon, and the path points.
     Also, plot the coverage area around the path, and the start/end points of the mission.
 
+    :param poly: Polygon, the polygon object to be plotted
     :param b: Start point of the original vector
     :param b_mate: End point of the original vector
     :param a: Diametric point of b, the direction towards which the vector should be offset
     :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
-    :param boundaries: array, representing the boundary box [min_x, max_x, min_y, max_y]
-    :param polygon: Polygon, the polygon object to be plotted
     :param path: NumPy array, the array of points representing the path [[x1, y1], [x2, y2], ...]
-    :param ps: Starting point of the mission (optional)
-    :param pe: Ending point of the mission (optional)
     """
-
-    # Plot options
-    show_points = True
-    show_polygon = True
-    show_start_vectors = True
-    show_boundary_box = True
-    show_path = True
-    show_start_end_path_points = True
-    show_coverage_area = True
-    show_start_end_mission_points = True
 
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
 
     # Plot the boundary box
-    min_x, max_x, min_y, max_y = boundaries
-    if show_boundary_box:
-        ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box')
+    min_x, max_x, min_y, max_y = poly.get_boundary()
+    ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box')
 
     # Plot the points b, b_mate, and a
-    if show_points:
-        ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', label='Points b, b_mate, a', markersize=10)
-        ax.text(b[0], b[1], f'b', fontsize=16, color='darkblue')
-        ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=16, color='darkblue')
-        ax.text(a[0], a[1], "a", fontsize=16, color='darkblue')
+    ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', label='Points b, b_mate, a', markersize=10)
+    ax.text(b[0], b[1], f'b', fontsize=16, color='darkblue')
+    ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=16, color='darkblue')
+    ax.text(a[0], a[1], "a", fontsize=16, color='darkblue')
 
     # Plot the polygon
-    x_coords, y_coords = polygon.get_coords()
-    if show_polygon:
-        ax.plot(x_coords, y_coords, 'b-', marker='o', label='Polygon')
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+    x_coords, y_coords = poly.get_coords()
+    ax.plot(x_coords, y_coords, 'b-', marker='o', label='Polygon')
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
 
     # Plot the path
     if len(path) > 0:
         path_x, path_y = path[:, 0], path[:, 1]
-        if show_path:
-            ax.plot(path_x, path_y, 'g-', marker='x', label='Path', linewidth=3)
+        ax.plot(path_x, path_y, 'g-', marker='x', label='Path', linewidth=3)
 
         # Highlight the start and end points of the path
-        if show_start_end_path_points:
-            ax.plot(path_x[0], path_y[0], 'go', markersize=10, label='Start Point')  # Start point
-            ax.plot(path_x[-1], path_y[-1], 'yo', markersize=10, label='End Point')  # End point
+        ax.plot(path_x[0], path_y[0], 'go', markersize=10, label='Start Point')  # Start point
+        ax.plot(path_x[-1], path_y[-1], 'yo', markersize=10, label='End Point')  # End point
 
         # Compute and plot coverage area along the path
         for i in range(len(path) - 1):
@@ -421,22 +374,12 @@ def plot_path(b, b_mate, a, dx, boundaries, polygon, path, ps=None, pe=None):
             corner4 = p2 + perp_vector
 
             # Plot the coverage area for this segment as a filled polygon
-            if show_coverage_area:
-                ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
-                        [corner1[1], corner2[1], corner3[1], corner4[1]],
-                        'orange', alpha=0.3, label='_nolegend_')
+            ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
+                    [corner1[1], corner2[1], corner3[1], corner4[1]],
+                    'orange', alpha=0.3, label='_nolegend_')
 
     else:
         print("Empty path")
-
-    # Plot the mission start and end points
-    if ps is not None and show_start_end_mission_points:
-        ax.plot(ps[0], ps[1], 'bo', markersize=12, label='Mission Start Point')
-        ax.text(ps[0], ps[1], 'Start', fontsize=14, color='blue')
-
-    if pe is not None and show_start_end_mission_points:
-        ax.plot(pe[0], pe[1], 'mo', markersize=12, label='Mission End Point')
-        ax.text(pe[0], pe[1], 'End', fontsize=14, color='magenta')
 
     # Used to add coverage in legend as square
     coverage_patch = Patch(color='orange', label='Coverage Area', alpha=0.3)
@@ -446,10 +389,108 @@ def plot_path(b, b_mate, a, dx, boundaries, polygon, path, ps=None, pe=None):
     handles.append(coverage_patch)
     labels.append('Covered Area')
 
-    if show_start_vectors or show_points or show_path or show_polygon or show_start_end_path_points or show_boundary_box or show_coverage_area:
-        ax.legend(handles=handles, labels=labels, loc='best')
+    ax.legend(handles=handles, labels=labels, loc='best')
 
     plt.grid(True)
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.show()
+
+
+def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, dx, best_path_output, score1,
+                          score2):
+    """
+    Plot the two back-and-forth paths (path1 and path2) in separate subplots for comparison,
+    and show the best path in a third subplot.
+
+    :param poly: Polygon, the polygon object to be plotted
+    :param b1, b2: Start points of the original vectors for path1 and path2
+    :param b_mate1, b_mate2: End points of the original vectors for path1 and path2
+    :param a1, a2: Diametric points for path1 and path2
+    :param path1, path2: NumPy arrays, the arrays of points representing the paths
+    :param dx: float, the distance by which the vectors should be offset (defining coverage width)
+    :param best_path_output: Tuple containing the best path and its distance
+    :param distance1, distance2: The distances for path1 and path2
+    """
+
+    # Unpack the best path information from the output of best_path function
+    optimal_path, optimal_distance, b_best, b_mate_best, a_best = best_path_output
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4))
+    fig.suptitle('Comparison of Path 1, Path 2, and Best Path', fontsize=16)
+
+    # Plot Path 1
+    plot_single_path(ax1, poly, b1, b_mate1, a1, dx, path1, title=f"Path 1: From b to a - score = {score1:.2f}")
+
+    # Plot Path 2
+    plot_single_path(ax2, poly, b2, b_mate2, a2, dx, path2, title=f"Path 2: From a to b - score = {score2:.2f}")
+
+    # Plot the Best Path in the third subplot
+    plot_single_path(ax3, poly, b_best, b_mate_best, a_best, dx, optimal_path, title=f"Best Path")
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
+    """
+    Helper function to plot a single path in a given axis, with the distance displayed as text.
+    """
+    ax.set_aspect('equal')
+    ax.set_title(title)
+
+    # Plot the boundary box
+    min_x, max_x, min_y, max_y = poly.get_boundary()
+    ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box')
+
+    # Plot the points b, b_mate, and a
+    ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', label='Points b, b_mate, a', markersize=10)
+    ax.text(b[0], b[1], f'b', fontsize=12, color='darkblue')
+    ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=12, color='darkblue')
+    ax.text(a[0], a[1], "a", fontsize=12, color='darkblue')
+
+    # Plot the polygon
+    x_coords, y_coords = poly.get_coords()
+    ax.plot(x_coords, y_coords, 'b-', marker='o', label='Polygon')
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+
+    # Plot the path
+    if len(path) > 0:
+        path_x, path_y = path[:, 0], path[:, 1]
+        ax.plot(path_x, path_y, 'g-', marker='x', label='Path', linewidth=3)
+
+        # Highlight the start and end points of the path
+        ax.plot(path_x[0], path_y[0], 'go', markersize=10, label='Start Point')  # Start point
+        ax.plot(path_x[-1], path_y[-1], 'yo', markersize=10, label='End Point')  # End point
+
+        # Compute and plot coverage area along the path
+        for i in range(len(path) - 1):
+            p1 = path[i]
+            p2 = path[i + 1]
+            # Vector along the path segment
+            segment_vector = p2 - p1
+            # Normalize the vector to get the perpendicular direction
+            perp_vector = np.array([-segment_vector[1], segment_vector[0]])
+            if np.linalg.norm(perp_vector) != 0:
+                perp_vector = perp_vector / np.linalg.norm(perp_vector) * dx / 2
+
+            # Create four corners of the coverage area for this segment
+            corner1 = p1 + perp_vector
+            corner2 = p1 - perp_vector
+            corner3 = p2 - perp_vector
+            corner4 = p2 + perp_vector
+
+            # Plot the coverage area for this segment as a filled polygon
+            ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
+                    [corner1[1], corner2[1], corner3[1], corner4[1]],
+                    'orange', alpha=0.3, label='_nolegend_')
+
+    else:
+        print("Empty path")
+
+    # Add legend for coverage area
+    #ax.legend(loc='best')
+
+    ax.grid(True)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')

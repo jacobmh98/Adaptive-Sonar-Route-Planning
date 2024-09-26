@@ -174,6 +174,4 @@ def get_diametral_antipodal_point(P, pq, a):
     else:
         return diametral_pair[0]
 
-    """
-    """
     return 0
