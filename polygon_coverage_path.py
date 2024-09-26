@@ -194,9 +194,9 @@ def get_path(poly, fp, dx, ps, pe, b_index, b_mate_index, a_index):
     :return path: A path which fully covers P
     """
     # Getting the three vertices as points from the polygon
-    b = poly.vertices[b_index].v
-    b_mate = poly.vertices[b_mate_index].v
-    a = poly.vertices[a_index].v
+    b = poly.vertices[b_index].v.flatten()
+    b_mate = poly.vertices[b_mate_index].v.flatten()
+    a = poly.vertices[a_index].v.flatten()
     #print(f'b = {b}')
     #print(f'b_mate = {b_mate}')
     #print(f'a = {a}')
@@ -279,8 +279,12 @@ def best_path(polygon, fp, i, j, ps, pe, dx):
     # (Triangle edge case) If b_mate and a are the same point, change a to last remaining vertex in the triangle polygon
     if polygon.vertices[i].next.index == j:
         a = polygon.vertices[get_previous_vertex(polygon, i)].index
+        print(f'a1: {a}')
+        print()
     else:
         a = j
+        print(f'a2: {a}')
+        print()
 
     # Compute the first back-and-forth path from i to j using get_path
     path1 = get_path(polygon, fp, dx, ps, pe, i, polygon.vertices[i].next.index, a)

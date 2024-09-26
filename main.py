@@ -25,21 +25,10 @@ def path_distance(cp):
 
 def create_polygon(vert_data):
     vertices = []
-    min_x = INFINITY
-    max_x = -INFINITY
-    min_y = INFINITY
-    max_y = -INFINITY
     for i, v in enumerate(vert_data):
-        if v[0] < min_x:
-            min_x = v[0]
-        if v[0] > max_x:
-            max_x = v[0]
-        if v[1] < min_y:
-            min_y= v[1]
-        if v[1] > max_y:
-            max_y = v[1]
         vertices.append(Vertex(i, v[0], v[1]))
-    return Polygon(vertices, np.array([min_x, max_x, min_y, max_y]))
+
+    return Polygon(vertices)
 
 def rotating_calipers_path_planner(p, d_pq, ps, pe, pw):
     """ Algorithm 2: Rotating Calipers Path Planner.
@@ -75,18 +64,18 @@ def rotating_calipers_path_planner(p, d_pq, ps, pe, pw):
 #from python_tsp.exact import solve_tsp_dynamic_programming
 
 # Reading the test data
-#f = open('test_data/complex_polygon.json')
+f = open('test_data/complex_polygon.json')
 #f = open('test_data/complex_polygon3.json')
-#data = json.load(f)
-#vertices_data = data['area']['coordinates']
+data = json.load(f)
+vertices_data = data['area']['coordinates']
 
-#P = create_polygon(vertices_data)
+P = create_polygon(vertices_data)
 
 # Compute the split that gives the sub-polygons
-#sub_polygons = split_polygon(P)
+sub_polygons = split_polygon(P)
 
 # Start parameters
-dx = 0.1 # Path width (Must be >0)
+dx = 0.2 # Path width (Must be >0)
 extern_start_end = False
 if extern_start_end:
     p_start = [0.5, -0.5]
@@ -95,10 +84,16 @@ else:
     p_start = None
     p_end = None
 
-#total_path = multi_poly_planning.multi_path_planning(sub_polygons, extern_start_end, p_start, p_end, dx)
-#print(np.array(total_path))
-#multi_poly_planning.multi_poly_plot(np.array(total_path), extern_start_end, sub_polygons, p_start, p_end, dx)
+for i,poly in enumerate(sub_polygons):
+    if i == 1:
+        sub_polygons.remove(poly)
 
+total_path = multi_poly_planning.multi_path_planning(sub_polygons, extern_start_end, p_start, p_end, dx)
+#print(np.array(total_path))
+multi_poly_planning.multi_poly_plot(np.array(total_path), extern_start_end, sub_polygons, p_start, p_end, dx)
+
+
+quit()
 # Manually creating polygons
 sub_polygons = []
 

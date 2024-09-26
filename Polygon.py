@@ -6,12 +6,12 @@ class Vertex:
         self.index = i
         self.x = x
         self.y = y
-        self.v = np.array([x, y])
+        self.v = np.array([[x], [y]])
         self.prev = None
         self.next = None
 
     def get_array(self):
-        return np.array([self.x, self.y])
+        return np.array([[self.x], [self.y]])
 
     def __repr__(self):
         return f"Vertex({self.index}, {self.x}, {self.y})"
@@ -25,13 +25,19 @@ class Edge:
         return f"Edge({self.v_from.index}, {self.v_to.index})"
 
 class Polygon:
-    def __init__(self, v, boundary):
+    def __init__(self, v):
         self.vertices = v
         self.number_vertices = len(self.vertices)
         self.concave_vertices = []
         self.edges = []
-        self.boundary = boundary
 
+        # Initialize boundaries
+        self.min_x = float('inf')
+        self.max_x = float('-inf')
+        self.min_y = float('inf')
+        self.max_y = float('-inf')
+
+        # Calculate edges and set up next and prev for vertices
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]
             v2 = self.vertices[(i + 1) % self.number_vertices]
@@ -39,6 +45,25 @@ class Polygon:
 
             v1.prev = self.vertices[(i - 1) % self.number_vertices]
             v1.next = self.vertices[(i + 1) % self.number_vertices]
+
+            # Update boundaries
+            if v1.x < self.min_x:
+                self.min_x = v1.x
+            if v1.x > self.max_x:
+                self.max_x = v1.x
+            if v1.y < self.min_y:
+                self.min_y = v1.y
+            if v1.y > self.max_y:
+                self.max_y = v1.y
+
+        # Store the boundary as a numpy array
+        self.boundary = np.array([self.min_x, self.max_x, self.min_y, self.max_y])
+
+    def get_boundary(self):
+        """Return the polygon boundaries as (min_x, max_x, min_y, max_y)"""
+        return self.boundary
+
+
 
     def remove_vertex(self, v):
         self.vertices.remove(v)
@@ -61,7 +86,7 @@ class Polygon:
 
         return np.array([x_coords, y_coords])
 
-    def plot(self, color):
+    def plot(self, color="b"):
         x_coords = []
         y_coords = []
         fig = plt.figure()
