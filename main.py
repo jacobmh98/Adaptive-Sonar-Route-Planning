@@ -17,6 +17,8 @@ for i, v in enumerate(vertices_data):
     vertices.append(Vertex(i, v[0], v[1]))
 
 P = Polygon(vertices)
+#P.plot()
+#plt.show()
 
 # Compute the split that gives the sub-polygons
 sub_polygons = split_polygon(P)

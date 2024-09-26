@@ -65,13 +65,14 @@ class Polygon:
     def plot(self, color='k'):
         x_coords = []
         y_coords = []
-        #fig = plt.figure()
+        fig, ax = plt.subplots(1, 1)
 
         for v in self.vertices:
             x_coords.append(v.x)
             y_coords.append(v.y)
             plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
-        plt.plot(x_coords, y_coords, f'{color}-', marker='o')
-        plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+        ax.plot(x_coords, y_coords, f'{color}-', marker='o')
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+        ax.set_aspect('equal')
         #plt.show()

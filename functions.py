@@ -160,7 +160,7 @@ def cross(v1, v2):
 def split_polygon(P, depth=0):
     #P.plot('g')
     #if depth == 1:
-     #   quit()
+#        quit()
 
     # Compute the concave vertices
     P.concave_vertices = compute_concave_vertices(P)
@@ -171,7 +171,7 @@ def split_polygon(P, depth=0):
     if ncc == 0:
         return [P]
 
-    #print(f'concave vertices = {P.concave_vertices}')
+    print(f'concave vertices = {P.concave_vertices}')
 
     # Initialize the width sum matrix
     D = np.empty((ncc, n))
@@ -179,7 +179,7 @@ def split_polygon(P, depth=0):
 
     # Go through each concave vertex
     for i, cv in enumerate(P.concave_vertices):
-        #print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
+        print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
         split_polygons = []
 
         # Check lines which passes the concave vertex i and parallels edge e
@@ -190,7 +190,7 @@ def split_polygon(P, depth=0):
             intersection_normals = []
             illegal_dir = 0
 
-            #print(f'\tchecking edge {e}')
+            print(f'\tchecking edge {e}')
 
             # Define a vector from the vertices in edge e
             vec = e.v_to.get_array() - e.v_from.get_array()
@@ -206,7 +206,7 @@ def split_polygon(P, depth=0):
                 # Compute intersection with edge e2 (if any)
                 ip, t = compute_intersection(vec, cv, e2)
                 if ip is not None:
-                    #print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
+                    print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
 
                     intersection_points.append(ip)
                     intersection_edges.append(e2)
@@ -215,7 +215,7 @@ def split_polygon(P, depth=0):
 
                     if t * cross(vec, vec2) < 0:
                         illegal_dir = t
-                        #print(f'\t\t\tINVALID {t=}, normal={cross(vec,vec2)}, t*normal={t*cross(vec, vec2)}')
+                        print(f'\t\t\tINVALID {t=}, normal={cross(vec,vec2)}, t*normal={t*cross(vec, vec2)}')
 
             # Handle invalid intersections
 
@@ -228,6 +228,9 @@ def split_polygon(P, depth=0):
 
             # Get the index of the intersection with minimum distance
             min_index = np.argmin(np.abs(intersection_directions))
+            intersection_points = np.array(intersection_points)
+            intersection_edges = np.array(intersection_edges)
+            intersection_directions = np.array(intersection_directions)
 
             # Check if the intersection is legal
             if intersection_normals[min_index] * intersection_directions[min_index] >= 0:
@@ -242,8 +245,19 @@ def split_polygon(P, depth=0):
                 D[i, j] = min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
                 split_polygons.append((P1, P2))
             else:
-                # TODO otherwise only consider intersections in the oppositite directions
-                P1, P2 = split_polygon_single(intersection_edges[min_index], intersection_points[min_index], cv)
+                if intersection_directions[min_index] >= 0:
+                    legal_mask = intersection_directions < 0
+                else:
+                    legal_mask = intersection_directions >= 0
+                #print(f'{legal_mask=}')
+                #print(f'{intersection_points=}')
+                intersection_points_legal_dir = intersection_points[legal_mask]
+                intersection_edges_legal_dir = intersection_edges[legal_mask]
+                intersection_directions_legal = intersection_directions[legal_mask]
+
+                min_index = np.argmin(np.abs(intersection_directions_legal))
+
+                P1, P2 = split_polygon_single(intersection_edges_legal_dir[min_index], intersection_points_legal_dir[min_index], cv)
 
                 # Remove collinear vertices form each sub-polygon
                 P1 = remove_collinear_vertices(P1)
@@ -274,7 +288,6 @@ def split_polygon(P, depth=0):
 
     # Combine both lists into one and return it
     return result1 + result2
-    #return None, None
 
 def point_line_distance(point, line_point1, line_point2):
     """ Function to compute the perpendicular distance between a point and a line """
@@ -373,6 +386,7 @@ def find_shared_edge(P1, P2):
                 return e, e2
     return None
 
+# TODO handle partial edges as well
 def optimize_polygons(sub_polygons):
     """ Optimize the sub-polygons by combining them when possible (they share an edge that can be removed while keeping the polygon convex """
     merged = True
