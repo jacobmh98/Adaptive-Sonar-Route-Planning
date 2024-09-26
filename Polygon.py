@@ -20,6 +20,8 @@ class Edge:
     def __init__(self, v1, v2):
         self.v_from = v1
         self.v_to = v2
+        self.prev = None
+        self.next = None
 
     def __repr__(self):
         return f"Edge({self.v_from.index}, {self.v_to.index})"
@@ -39,9 +41,9 @@ class Polygon:
             v1.prev = self.vertices[(i - 1) % self.number_vertices]
             v1.next = self.vertices[(i + 1) % self.number_vertices]
 
-    def remove_vertex(self, v):
-        self.vertices.remove(v)
-        self.__init__(self.vertices)
+        for j in range(len(self.edges)):
+            self.edges[j].prev = self.edges[(j - 1) % len(self.edges)]
+            self.edges[j].next = self.edges[(j + 1) % len(self.edges)]
 
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""
@@ -60,10 +62,10 @@ class Polygon:
 
         return np.array([x_coords, y_coords])
 
-    def plot(self, color):
+    def plot(self, color='k'):
         x_coords = []
         y_coords = []
-        fig = plt.figure()
+        #fig = plt.figure()
 
         for v in self.vertices:
             x_coords.append(v.x)
@@ -72,4 +74,4 @@ class Polygon:
 
         plt.plot(x_coords, y_coords, f'{color}-', marker='o')
         plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-        plt.show()
+        #plt.show()

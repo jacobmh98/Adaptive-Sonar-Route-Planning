@@ -1,8 +1,7 @@
-from networkx import intersection
+import networkx as nx
 
 from Polygon import *
 from scipy.spatial import ConvexHull
-import networkx as nx
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -25,131 +24,11 @@ def compute_concave_vertices(P):
 
     return concave_vertices
 
-def plot_results(split_polygons, cv, Di):
-    """ Create a figure with a grid of sub-plots """
-
-    cols = 5
-    rows = int(np.ceil(len(split_polygons) / cols))
-
-    fig, ax = plt.subplots(rows, cols)
-
-    r = 0
-    c = 0
-    count = 0
-
-    for (P1, P2) in split_polygons:
-        P1_coords = P1.vertices_matrix()
-        P2_coords = P2.vertices_matrix()
-
-        ax[r, c].plot(P1_coords[0, :], P1_coords[1, :], 'b-')
-        ax[r, c].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-')
-        ax[r, c].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
-        ax[r, c].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-')
-        ax[r, c].set_title(f'D{cv},{count} = {np.round(Di[count], 1)}')
-        ax[r, c].axis('equal')
-        count += 1
-
-        # ax[r, c].quiver(cv.x, cv.y, vec[0], vec[1], angles='xy', scale_units='xy', scale=1, color='r', width=0.015)
-        # ax[plot_r, c].quiver(cv.x, cv.y, v_dir2[0], v_dir2[1], angles='xy', scale_units='xy', scale=1, color='g')
-        c += 1
-
-        if c != 0 and c % cols == 0:
-            r += 1
-            c = 0
-    fig.tight_layout()
-    plt.show()
-
-def plot_results2(P, P1, P2, depth, cv, edge, Dij):
-    fig, ax = plt.subplots(1, 4)
-
-    P1_coords = P1.vertices_matrix()
-    P2_coords = P2.vertices_matrix()
-    P_coords = P.vertices_matrix()
-
-    for v in P.vertices:
-        ax[0].text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
-
-    ax[0].plot(P_coords[0, :], P_coords[1, :], color='black', marker='o')
-    ax[0].plot(P_coords[0, :], P_coords[1, :], 'k-')
-    ax[0].plot(P_coords[0, :], P_coords[1, :], 'k-')
-    ax[0].plot([P_coords[0, :][-1], P_coords[0, :][0]], [P_coords[1, :][-1], P_coords[1, :][0]], 'k-')
-    #ax[0].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
-    #ax[0].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-')
-    ax[0].set_title(f'P')
-    ax[0].axis('equal')
-
-    #ax[1].plot(P1_coords[0, :], P1_coords[1, :], color='blue', marker='o')
-    ax[1].plot(P1_coords[0, :], P1_coords[1, :], 'b-o')
-    ax[1].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-o')
-    ax[1].plot(P2_coords[0, :], P2_coords[1, :], 'r-o')
-    ax[1].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-o')
-    ax[1].set_title(f'P1 & P2')
-    ax[1].axis('equal')
-
-#    ax[2].plot(P1_coords[0, :], P1_coords[1, :], color='black', marker='o')
-    ax[2].plot(P1_coords[0, :], P1_coords[1, :], 'b-o')
-    ax[2].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-o')
-    ax[2].set_title(f'P1')
-    ax[2].axis('equal')
-
-    #ax[3].plot(P2_coords[0, :], P2_coords[1, :], color='black', marker='o')
-    ax[3].plot(P2_coords[0, :], P2_coords[1, :], 'r-o')
-    ax[3].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-o')
-    ax[3].set_title(f'P2')
-    ax[3].axis('equal')
-
-    print(f'{depth=}')
-    print(f'\t{cv=}')
-    print(f'\t{edge=}')
-    print(f'\tD_ij={np.round(Dij, 1)}')
-    #print(f'P1 = {P1.vertices_matrix()}')
-    #print(f'P2 = {P2.vertices_matrix()}')
-    #print(f'\tP1 = {P1.vertices}')
-    #print(f'\tP2 = {P2.vertices}')
-
-    fig.tight_layout()
-    #mng = plt.get_current_fig_manager()
-    #mng.full_screen_toggle()
-
-    plt.show()
-
 def get_center_of_polygon(P):
     """ Compute the center of a polygon"""
     x_coords, y_coords = P.get_coords()
 
     return np.sum(x_coords) / len(x_coords), np.sum(y_coords) / len(y_coords)
-
-def plot_polygons(P, sub_polygons, G):
-    fig, ax = plt.subplots(1, 3)
-    x_coords, y_coords = P.get_coords()
-    ax[0].plot(x_coords, y_coords, 'k-')
-    ax[0].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
-    ax[0].set_title('Initial Polygon')
-    ax[0].set_aspect('equal')
-
-    for i, p in enumerate(sub_polygons):
-        c_x, c_y = get_center_of_polygon(p)
-        x_coords, y_coords = p.get_coords()
-        ax[1].plot(x_coords, y_coords, 'k-')
-        ax[1].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
-        ax[1].text(c_x-0.1, c_y, f'P{i}', color='r', fontsize=7)
-    ax[1].set_title('Decomposition of Polygon')
-    ax[1].set_aspect('equal')
-
-    pos = nx.spring_layout(G)  # Layout for node positions
-    nx.draw(G, pos, ax=ax[2], with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
-    ax[2].set_title('Undirected Graph')
-    #ax[2].set_aspect('equal')
-    """fig, ax = plt.subplots(1, len(sub_polygons))
-    for i, p in enumerate(sub_polygons):
-        c_x, c_y = get_center_of_polygon(p)
-        x_coords, y_coords = p.get_coords()
-        ax[i].plot(x_coords, y_coords, 'k-')
-        ax[i].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
-        ax[i].text(c_x, c_y, f'{i}')
-        ax[i].set_title(f'P{i}')
-        ax[i].set_aspect('equal')"""
-    plt.show()
 
 def distance(v1, v2):
     """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
@@ -238,7 +117,7 @@ def compute_intersection(vec, cv, e2):
     return None, None
 
 def find_min_value_matrix(D):
-    """ Find the minimum value as well as its indices (i,j) in a matrix """
+    """ Find the minimum value as well as its indices (i,j) in a 2D matrix """
     min_v = np.inf
     min_indices = (-1, -1)
 
@@ -257,7 +136,10 @@ def is_valid_polygon(P):
     return True
 
 def remove_collinear_vertices(P, epsilon=0.1):
-    """ Remove all collinear vertices in P within some error """
+    """ Remove all collinear vertices in a polygon within some error """
+
+    vertices = []
+
     for v in P.vertices:
         x1, y1 = v.prev.get_array().flatten()
         x2, y2 = v.get_array().flatten()
@@ -266,8 +148,10 @@ def remove_collinear_vertices(P, epsilon=0.1):
         # Compute the cross product of vectors v1->v2 and v2->v3
         cross_product = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
         # If the cross product is 0, the points are collinear
-        if -epsilon <= cross_product <= epsilon:
-            P.remove_vertex(v)
+        if not (-epsilon <= cross_product <= epsilon):
+            vertices.append(Vertex(len(vertices), v.x, v.y))
+
+    return Polygon(vertices)
 
 def cross(v1, v2):
     """ Cross product between two vectors """
@@ -350,8 +234,8 @@ def split_polygon(P, depth=0):
                 P1, P2 = split_polygon_single(intersection_edges[min_index], intersection_points[min_index], cv)
 
                 # Remove collinear vertices form each sub-polygon
-                remove_collinear_vertices(P1)
-                remove_collinear_vertices(P2)
+                P1 = remove_collinear_vertices(P1)
+                P2 = remove_collinear_vertices(P2)
 
                 # Compute the width sum of P1 and P2
                 #D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
@@ -362,8 +246,8 @@ def split_polygon(P, depth=0):
                 P1, P2 = split_polygon_single(intersection_edges[min_index], intersection_points[min_index], cv)
 
                 # Remove collinear vertices form each sub-polygon
-                remove_collinear_vertices(P1)
-                remove_collinear_vertices(P2)
+                P1 = remove_collinear_vertices(P1)
+                P2 = remove_collinear_vertices(P2)
 
                 # Compute the width sum of P1 and P2
                 # D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
@@ -393,7 +277,7 @@ def split_polygon(P, depth=0):
     #return None, None
 
 def point_line_distance(point, line_point1, line_point2):
-    # Function to compute the perpendicular distance between a point and a line
+    """ Function to compute the perpendicular distance between a point and a line """
     numerator = np.abs((line_point2[1] - line_point1[1]) * point[0] -
                        (line_point2[0] - line_point1[0]) * point[1] +
                        line_point2[0] * line_point1[1] - line_point2[1] * line_point1[0])
@@ -473,3 +357,224 @@ def polygons_are_adjacent(P1, P2, i, j, epsilon=0.1):
                         #print(f'partial overlap between {i} and {j}')
                         return True
     return False
+
+def find_shared_edge(P1, P2):
+    """ Return the shared edge for P1 and P2 if they have a complete adjacent edge """
+    for e in P1.edges:
+
+        for e2 in P2.edges:
+
+            # Check if P_i and P_j share an edge completely
+            if (points_are_equal(e.v_from.get_array(), e2.v_from.get_array()) and points_are_equal(
+                    e.v_to.get_array(), e2.v_to.get_array())) or \
+                    (points_are_equal(e.v_from.get_array(), e2.v_to.get_array()) and points_are_equal(
+                        e.v_to.get_array(), e2.v_from.get_array())):
+
+                return e, e2
+    return None
+
+def optimize_polygons(sub_polygons):
+    """ Optimize the sub-polygons by combining them when possible (they share an edge that can be removed while keeping the polygon convex """
+    merged = True
+
+    while merged:
+        merged = False
+
+        # Go through each sub-polygon and compare with the other sub-polygons
+        for i, P_i in enumerate(sub_polygons):
+            for j, P_j in enumerate(sub_polygons):
+                if j <= i:
+                    continue
+
+                shared_edges = find_shared_edge(P_i, P_j)
+
+                if shared_edges is not None:
+                    combined_polygon_vertices = []
+
+                    #print(f'\t\tP_{i} and P_{j}, complete overlap between  {shared_edges[0]} and {shared_edges[1]}')
+                    e, e2 = shared_edges
+
+                    while e.next != shared_edges[0]:
+                        combined_polygon_vertices.append(Vertex(len(combined_polygon_vertices), e.next.v_from.x, e.next.v_from.y))
+                        e = e.next
+
+                    while e2.next != shared_edges[1]:
+                        combined_polygon_vertices.append(Vertex(len(combined_polygon_vertices), e2.next.v_from.x, e2.next.v_from.y))
+                        e2 = e2.next
+
+                    P = Polygon(combined_polygon_vertices)
+                    P = remove_collinear_vertices(P)
+
+                    if len(compute_concave_vertices(P)) == 0:
+                        sub_polygons[i] = P
+                        sub_polygons.pop(j)
+                        merged = True
+                    break
+            if merged:
+                break
+    return sub_polygons
+
+
+""" Temporary plot functions """
+def plot_results(split_polygons, cv, Di):
+    """ Create a figure with a grid of sub-plots """
+    cols = 5
+    rows = int(np.ceil(len(split_polygons) / cols))
+
+    fig, ax = plt.subplots(rows, cols)
+
+    r = 0
+    c = 0
+    count = 0
+
+    for (P1, P2) in split_polygons:
+        P1_coords = P1.vertices_matrix()
+        P2_coords = P2.vertices_matrix()
+
+        ax[r, c].plot(P1_coords[0, :], P1_coords[1, :], 'b-')
+        ax[r, c].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-')
+        ax[r, c].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
+        ax[r, c].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-')
+        ax[r, c].set_title(f'D{cv},{count} = {np.round(Di[count], 1)}')
+        ax[r, c].axis('equal')
+        count += 1
+
+        # ax[r, c].quiver(cv.x, cv.y, vec[0], vec[1], angles='xy', scale_units='xy', scale=1, color='r', width=0.015)
+        # ax[plot_r, c].quiver(cv.x, cv.y, v_dir2[0], v_dir2[1], angles='xy', scale_units='xy', scale=1, color='g')
+        c += 1
+
+        if c != 0 and c % cols == 0:
+            r += 1
+            c = 0
+    fig.tight_layout()
+    plt.show()
+
+def plot_results2(P, P1, P2, depth, cv, edge, Dij):
+    fig, ax = plt.subplots(1, 4)
+
+    P1_coords = P1.vertices_matrix()
+    P2_coords = P2.vertices_matrix()
+    P_coords = P.vertices_matrix()
+
+    for v in P.vertices:
+        ax[0].text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+
+    ax[0].plot(P_coords[0, :], P_coords[1, :], color='black', marker='o')
+    ax[0].plot(P_coords[0, :], P_coords[1, :], 'k-')
+    ax[0].plot(P_coords[0, :], P_coords[1, :], 'k-')
+    ax[0].plot([P_coords[0, :][-1], P_coords[0, :][0]], [P_coords[1, :][-1], P_coords[1, :][0]], 'k-')
+    #ax[0].plot(P2_coords[0, :], P2_coords[1, :], 'r-')
+    #ax[0].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-')
+    ax[0].set_title(f'P')
+    ax[0].axis('equal')
+
+    #ax[1].plot(P1_coords[0, :], P1_coords[1, :], color='blue', marker='o')
+    ax[1].plot(P1_coords[0, :], P1_coords[1, :], 'b-o')
+    ax[1].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-o')
+    ax[1].plot(P2_coords[0, :], P2_coords[1, :], 'r-o')
+    ax[1].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-o')
+    ax[1].set_title(f'P1 & P2')
+    ax[1].axis('equal')
+
+#    ax[2].plot(P1_coords[0, :], P1_coords[1, :], color='black', marker='o')
+    ax[2].plot(P1_coords[0, :], P1_coords[1, :], 'b-o')
+    ax[2].plot([P1_coords[0, :][-1], P1_coords[0, :][0]], [P1_coords[1, :][-1], P1_coords[1, :][0]], 'b-o')
+    ax[2].set_title(f'P1')
+    ax[2].axis('equal')
+
+    #ax[3].plot(P2_coords[0, :], P2_coords[1, :], color='black', marker='o')
+    ax[3].plot(P2_coords[0, :], P2_coords[1, :], 'r-o')
+    ax[3].plot([P2_coords[0, :][-1], P2_coords[0, :][0]], [P2_coords[1, :][-1], P2_coords[1, :][0]], 'r-o')
+    ax[3].set_title(f'P2')
+    ax[3].axis('equal')
+
+    print(f'{depth=}')
+    print(f'\t{cv=}')
+    print(f'\t{edge=}')
+    print(f'\tD_ij={np.round(Dij, 1)}')
+    #print(f'P1 = {P1.vertices_matrix()}')
+    #print(f'P2 = {P2.vertices_matrix()}')
+    #print(f'\tP1 = {P1.vertices}')
+    #print(f'\tP2 = {P2.vertices}')
+
+    fig.tight_layout()
+    #mng = plt.get_current_fig_manager()
+    #mng.full_screen_toggle()
+
+    plt.show()
+
+def plot_results3(sub_polygons):
+    fig = plt.figure()
+
+    for P in sub_polygons:
+        P.plot()
+    plt.show()
+
+def plot_polygons(P, sub_polygons, G):
+    fig, ax = plt.subplots(1, 3)
+    x_coords, y_coords = P.get_coords()
+    ax[0].plot(x_coords, y_coords, 'k-')
+    ax[0].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+    ax[0].set_title('Initial Polygon')
+    ax[0].set_aspect('equal')
+
+    for i, p in enumerate(sub_polygons):
+        c_x, c_y = get_center_of_polygon(p)
+        x_coords, y_coords = p.get_coords()
+        ax[1].plot(x_coords, y_coords, 'k-')
+        ax[1].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[1].text(c_x-0.1, c_y, f'P{i}', color='r', fontsize=7)
+    ax[1].set_title('Decomposition of Polygon')
+    ax[1].set_aspect('equal')
+
+    pos = nx.spring_layout(G)  # Layout for node positions
+    nx.draw(G, pos, ax=ax[2], with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
+    ax[2].set_title('Undirected Graph')
+    #ax[2].set_aspect('equal')
+    """fig, ax = plt.subplots(1, len(sub_polygons))
+    for i, p in enumerate(sub_polygons):
+        c_x, c_y = get_center_of_polygon(p)
+        x_coords, y_coords = p.get_coords()
+        ax[i].plot(x_coords, y_coords, 'k-')
+        ax[i].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[i].text(c_x, c_y, f'{i}')
+        ax[i].set_title(f'P{i}')
+        ax[i].set_aspect('equal')"""
+    plt.show()
+
+def plot_polygons2(P, sub_polygons, optimized_sub_polygons):
+    fig, ax = plt.subplots(1, 3)
+    x_coords, y_coords = P.get_coords()
+    ax[0].plot(x_coords, y_coords, 'k-')
+    ax[0].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+    ax[0].set_title('Initial Polygon')
+    ax[0].set_aspect('equal')
+
+    for i, p in enumerate(sub_polygons):
+        c_x, c_y = get_center_of_polygon(p)
+        x_coords, y_coords = p.get_coords()
+        ax[1].plot(x_coords, y_coords, 'k-')
+        ax[1].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[1].text(c_x-0.1, c_y, f'P{i}', color='r', fontsize=7)
+    ax[1].set_title('Decomposition of Polygon')
+    ax[1].set_aspect('equal')
+
+    for i, p in enumerate(optimized_sub_polygons):
+        c_x, c_y = get_center_of_polygon(p)
+        x_coords, y_coords = p.get_coords()
+        ax[2].plot(x_coords, y_coords, 'k-')
+        ax[2].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[2].text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
+    ax[2].set_title('Merging Polygons')
+    ax[2].set_aspect('equal')
+    #ax[2].set_aspect('equal')
+    """fig, ax = plt.subplots(1, len(sub_polygons))
+    for i, p in enumerate(sub_polygons):
+        c_x, c_y = get_center_of_polygon(p)
+        x_coords, y_coords = p.get_coords()
+        ax[i].plot(x_coords, y_coords, 'k-')
+        ax[i].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax[i].text(c_x, c_y, f'{i}')
+        ax[i].set_title(f'P{i}')
+        ax[i].set_aspect('equal')"""
+    plt.show()
