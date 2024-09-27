@@ -54,7 +54,7 @@ with open('./test_data/antwerpen.pkl', 'rb') as file:
     sub_polygons = pickle.load(file)
 plot_results3(sub_polygons)
 
-# TODO har ikke testet om den stadig laver den korrekte adjacent matrix for adjacent polygoner
+# TODO har ikke testet om den stadig laver den korrekte adjacent matrix. Men tror stadig det virker
 # Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
 m = len(sub_polygons)
 A = np.zeros((m, m))
