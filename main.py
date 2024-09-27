@@ -1,39 +1,60 @@
 import copy
 import json
 from functions import *
-import numpy as np
-import pandas as pd
-from python_tsp.exact import solve_tsp_dynamic_programming
-
-from global_variables import scale
-
-vertices = []
-#x_max = 1#150163.9756
-#x_min = 146917.8335
-#y_max = 1#219012.8431
-#y_min = 216418.246
+import pickle
 
 # Reading the test data
-#f = open('test_data/complex_polygon2.json')
-#data = json.load(f)
-#vertices_data = data['area']['coordinates']
+f1 = open('test_data/antwerpen_part1.json')
+f2 = open('test_data/antwerpen_part2.json')
+data1 = json.load(f1)
+data2 = json.load(f2)
+vertices_data1 = data1['area']['coordinates']
+vertices_data2 = data2['area']['coordinates']
 
 # Defining the initial polygon and the boúnding box
-#vertices = []
+vertices1 = []
+vertices2 = []
 
-#for i, v in enumerate(vertices_data):
-#    vertices.append(Vertex(i, v[0], v[1]))
+for i, v in enumerate(vertices_data1):
+    vertices1.append(Vertex(i, v[0], v[1]))
 
-P = load_data_excel('test_data/antwerpen.xlsx', 3)
-P.plot()
-plt.show()
+for i, v in enumerate(vertices_data2):
+    vertices2.append(Vertex(i, v[0], v[1]))
+
+P1 = Polygon(vertices1)
+P2 = Polygon(vertices2)
+
 # Compute the split that gives the sub-polygons
-sub_polygons = split_polygon(P)
-optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
-plot_polygons2(P, sub_polygons, optimized_sub_polygons)
-quit()
+run = False
+while run:
+    try:
+        print('running 1')
+        sub_polygons1 = split_polygon(P1)
+        run = False
+    except:
+        None
 
-"""
+while run:
+    try:
+        print('running 2')
+        sub_polygons2 = split_polygon(P2)
+        run = False
+    except:
+        None
+
+#optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons1))
+#optimized_sub_polygons2 = optimize_polygons(copy.deepcopy(sub_polygons2))
+
+#sub_polygons = optimized_sub_polygons + optimized_sub_polygons2
+#with open('C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen.pkl', 'wb') as file:
+#    pickle.dump(sub_polygons, file)
+
+# TODO Det her er sub polygonerne du skal bruge
+with open('./test_data/antwerpen.pkl', 'rb') as file:
+    sub_polygons = pickle.load(file)
+plot_results3(sub_polygons)
+
+# TODO har ikke testet om den stadig laver den korrekte adjacent matrix for adjacent polygoner
 # Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
 m = len(sub_polygons)
 A = np.zeros((m, m))
@@ -55,12 +76,5 @@ for i, p_i in  enumerate(sub_polygons):
             G.add_edge(f'P{i}', f'P{j}')
         else:
             A[i, j] = np.inf
-            #print(f'{i} and {j} are adjacent')
 
-print(A)
-
-# Solve TSP
-#permutation, distance = solve_tsp_dynamic_programming(A)
-print(permutation)
-plot_polygons(P, sub_polygons, G)
-"""
+plot_graph(G)

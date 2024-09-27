@@ -79,4 +79,4 @@ class Polygon:
         ax.plot(x_coords, y_coords, f'{color}-', marker='o')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
         ax.set_aspect('equal')
-        #plt.show()
+        plt.show()

@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import networkx as nx
 
 from Polygon import *
@@ -5,32 +6,6 @@ from scipy.spatial import ConvexHull
 import pandas as pd
 
 from global_variables import epsilon
-
-def load_data_excel(path, include=3):
-    df = pd.read_excel(path, header=None, index_col=0)
-    vertices = []
-
-    x_min = np.inf
-    y_min = np.inf
-
-    index = 0
-    for i, r in df.iterrows():
-        if r[include] == '#':
-            arr = np.array(r[0:2])
-
-            if arr[0] < x_min:
-                x_min = arr[0]
-
-            if arr[1] < y_min:
-                y_min = arr[1]
-
-    for i, r in df.iterrows():
-        if r[include] == '#':
-            arr = np.array(r[0:2])
-            vertices.append(Vertex(index, (arr[0] - x_min) , (arr[1] - y_min)))
-            index += 1
-
-    return Polygon(vertices)
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -130,12 +105,9 @@ def compute_intersection(vec, cv, e2):
     else:
         s = - ((y0 * vx - y1 * vx - vy * x0 + vy * x1) / s_denominator)
 
-    #tmp print
-    if e2.v_to.index == 10 and e2.v_from.index == 0:
-        print(f'\t\t\t{s = }')
     t = - ((s * x1 - s * x2 + x0 - x1) / vx)
 
-    # Test if the line e intersects the edge e2
+    # Test if the vector intersects the edge e2
     if 0 <= s <= 1:
         # Compute the coordinates of the intersection point
         intersection_point =  cv.get_array() + t * vec
@@ -204,7 +176,7 @@ def cross(v1, v2):
 def split_polygon(P, depth=0):
     #P.plot()
     #plt.show()
-    print(f'{depth=}')
+    #print(f'{depth=}')
     #if depth == 1:
 #        quit()
 
@@ -218,7 +190,7 @@ def split_polygon(P, depth=0):
         #print(f'\treturning')
         return [P]
 
-    print(f'concave vertices = {P.concave_vertices}')
+    #print(f'concave vertices = {P.concave_vertices}')
 
     # Initialize the width sum matrix
     D = np.empty((ncc, n))
@@ -226,7 +198,7 @@ def split_polygon(P, depth=0):
 
     # Go through each concave vertex
     for i, cv in enumerate(P.concave_vertices):
-        print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
+        #print(f"checking for {cv.index=} with coord = ({cv.x}, {cv.y})")
         split_polygons = []
 
         # Check lines which passes the concave vertex i and parallels edge e
@@ -237,7 +209,7 @@ def split_polygon(P, depth=0):
             intersection_normals = []
             intersection_legal = []
 
-            print(f'\tchecking edge {e}')
+            #print(f'\tchecking edge {e}')
 
             # Define a vector from the vertices in edge e
             vec = e.v_to.get_array() - e.v_from.get_array()
@@ -247,13 +219,14 @@ def split_polygon(P, depth=0):
             for e2 in P.edges:
                 if e == e2:
                     continue
+                #print(f'\t\twith {e2}')
                 # Define the vector from the vertices in edge e2
                 vec2 = e2.v_to.get_array() - e2.v_from.get_array()
 
                 # Compute intersection with edge e2 (if any)
                 ip, t = compute_intersection(vec, cv, e2)
                 if ip is not None:
-                    print(f'\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
+                    #print(f'\t\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
 
                     intersection_points.append(ip)
                     intersection_edges.append(e2)
@@ -262,7 +235,7 @@ def split_polygon(P, depth=0):
 
                     if t * cross(vec, vec2) < 0:
                         intersection_legal.append(False)
-                        print(f'\t\t\tINVALID {t=}, normal={cross(vec,vec2)}, t*normal={t*cross(vec, vec2)}')
+                        #print(f'\t\t\tINVALID {t=}, normal={cross(vec,vec2)}, t*normal={t*cross(vec, vec2)}')
                     else:
                         intersection_legal.append(True)
             # Handle invalid intersections
@@ -275,10 +248,8 @@ def split_polygon(P, depth=0):
                 if t_i * normal_i < 0:"""
 
             # Get the index of the intersection with minimum distance
-            try:
-                min_index = np.argmin(np.abs(intersection_directions))
-            except:
-                print('CATCHING ERROR 1:((')
+
+            min_index = np.argmin(np.abs(intersection_directions))
             intersection_points = np.array(intersection_points)
             intersection_edges = np.array(intersection_edges)
             intersection_directions = np.array(intersection_directions)
@@ -289,6 +260,7 @@ def split_polygon(P, depth=0):
             if intersection_normals[min_index] * intersection_directions[min_index] >= 0:
                 P1, P2 = split_polygon_single(intersection_edges[min_index], intersection_points[min_index], cv)
 
+                #print(f'\tselecting {intersection_points[min_index].flatten()}')
                 # Remove collinear vertices form each sub-polygon
                 #P1 = remove_collinear_vertices(P1)
                 #P2 = remove_collinear_vertices(P2)
@@ -309,15 +281,10 @@ def split_polygon(P, depth=0):
                 intersection_directions_legal = intersection_directions[legal_mask]
                 intersection_normals_legal = intersection_normals[legal_mask]
 
-                try:
-                    min_index = np.argmin(np.abs(intersection_directions_legal))
-                except:
-                    print('CATCH ERROR 2:((')
-                    split_polygons.append(([], []))
-                    continue
+                min_index = np.argmin(np.abs(intersection_directions_legal))
 
                 if intersection_normals_legal[min_index] * intersection_directions_legal[min_index] < 0:
-
+                    #print(f'\tselecting {intersection_points_legal_dir[min_index].flatten()}')
                     P1, P2 = split_polygon_single(intersection_edges_legal_dir[min_index], intersection_points_legal_dir[min_index], cv)
 
                     # Remove collinear vertices form each sub-polygon
@@ -580,12 +547,27 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
 def plot_results3(sub_polygons):
     fig, ax = plt.subplots(1,1)
 
-    for poly in sub_polygons:
+    for i, poly in enumerate(sub_polygons):
         x_coords, y_coords = poly.get_coords()
+
+        c_x, c_y = get_center_of_polygon(poly)
+
+        ax.plot(x_coords, y_coords, 'k-')
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
 
         ax.plot(x_coords, y_coords, 'k-')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
         ax.set_aspect('equal')
+        ax.set_title('Antwerpen Decomposition')
+    plt.show()
+
+def plot_graph(G):
+    fig, ax = plt.subplots(1)
+
+    pos = nx.spring_layout(G)  # Layout for node positions
+    nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
+    ax.set_title('Undirected Graph')
     plt.show()
 
 def plot_polygons(P, sub_polygons, G):
