@@ -22,9 +22,13 @@ class Edge:
         self.v_to = v2
         self.prev = None
         self.next = None
+        if (v2.x - v1.x) == 0:
+            self.slope = 0
+        else:
+            self.slope = (v2.y - v1.y) / (v2.x - v1.x)
 
     def __repr__(self):
-        return f"Edge({self.v_from.index}, {self.v_to.index})"
+        return f"Edge({self.v_from.index}, {self.v_to.index}, {self.slope})"
 
 class Polygon:
     def __init__(self, v):

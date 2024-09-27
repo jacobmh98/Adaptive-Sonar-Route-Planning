@@ -2,28 +2,36 @@ import copy
 import json
 from functions import *
 import numpy as np
+import pandas as pd
 from python_tsp.exact import solve_tsp_dynamic_programming
 
-# Reading the test data
-f = open('test_data/complex_polygon3.json')
+from global_variables import scale
 
-data = json.load(f)
-vertices_data = data['area']['coordinates']
+vertices = []
+#x_max = 1#150163.9756
+#x_min = 146917.8335
+#y_max = 1#219012.8431
+#y_min = 216418.246
+
+# Reading the test data
+#f = open('test_data/complex_polygon2.json')
+#data = json.load(f)
+#vertices_data = data['area']['coordinates']
 
 # Defining the initial polygon and the boúnding box
-vertices = []
+#vertices = []
 
-for i, v in enumerate(vertices_data):
-    vertices.append(Vertex(i, v[0], v[1]))
+#for i, v in enumerate(vertices_data):
+#    vertices.append(Vertex(i, v[0], v[1]))
 
-P = Polygon(vertices)
-#P.plot()
-#plt.show()
-
+P = load_data_excel('test_data/antwerpen.xlsx', 3)
+P.plot()
+plt.show()
 # Compute the split that gives the sub-polygons
 sub_polygons = split_polygon(P)
 optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
 plot_polygons2(P, sub_polygons, optimized_sub_polygons)
+quit()
 
 """
 # Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
@@ -48,10 +56,8 @@ for i, p_i in  enumerate(sub_polygons):
         else:
             A[i, j] = np.inf
             #print(f'{i} and {j} are adjacent')
-#print(adj_matrix)
-#print(A)
-# Replace 0s (disconnected) with large value, except diagonal (self-loops)
-#adj_matrix = np.where(adj_matrix == 0, 999999, adj_matrix)
+
+print(A)
 
 # Solve TSP
 #permutation, distance = solve_tsp_dynamic_programming(A)

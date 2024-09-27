@@ -2,6 +2,35 @@ import networkx as nx
 
 from Polygon import *
 from scipy.spatial import ConvexHull
+import pandas as pd
+
+from global_variables import epsilon
+
+def load_data_excel(path, include=3):
+    df = pd.read_excel(path, header=None, index_col=0)
+    vertices = []
+
+    x_min = np.inf
+    y_min = np.inf
+
+    index = 0
+    for i, r in df.iterrows():
+        if r[include] == '#':
+            arr = np.array(r[0:2])
+
+            if arr[0] < x_min:
+                x_min = arr[0]
+
+            if arr[1] < y_min:
+                y_min = arr[1]
+
+    for i, r in df.iterrows():
+        if r[include] == '#':
+            arr = np.array(r[0:2])
+            vertices.append(Vertex(index, (arr[0] - x_min) , (arr[1] - y_min)))
+            index += 1
+
+    return Polygon(vertices)
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -20,7 +49,17 @@ def compute_concave_vertices(P):
 
         # Test if the vertex is concave and add it to the list if true
         if S_vi < 0:
-            concave_vertices.append(v)
+            # Check the angle is not 180 deg
+            vec1 = v_left.get_array() - v.get_array()
+            vec2 = v_right.get_array() - v.get_array()
+
+            dot_product = dot(vec1, vec2)
+            neg_mag = -np.linalg.norm(vec1) * np.linalg.norm(vec2)
+
+            if not (dot_product - epsilon <= neg_mag <= dot_product + epsilon):
+                #print(f'\t\tcv = {i}, dot = {dot(vec1, vec2)}, mag = {- np.linalg.norm(vec1) * np.linalg.norm(vec2)}')
+                #if not (dot(v_left.get_array(), v_right.get_array()) <= 0 <= dot(v_left.get_array(), v_right.get_array()) + epsilon):
+                concave_vertices.append(v)
 
     return concave_vertices
 
@@ -34,7 +73,7 @@ def distance(v1, v2):
     """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
     return np.linalg.norm(v1 - v2)
 
-def points_are_equal(P1, P2, epsilon=0.1):
+def points_are_equal(P1, P2, epsilon=epsilon):
     """ Checks if two points P1 and P2 are approximately equal within a tolerance epsilon. """
     # Check if the distance between the points is smaller than epsilon
     return np.all(np.abs(P1 - P2) < epsilon)
@@ -90,6 +129,10 @@ def compute_intersection(vec, cv, e2):
         s = 0
     else:
         s = - ((y0 * vx - y1 * vx - vy * x0 + vy * x1) / s_denominator)
+
+    #tmp print
+    if e2.v_to.index == 10 and e2.v_from.index == 0:
+        print(f'\t\t\t{s = }')
     t = - ((s * x1 - s * x2 + x0 - x1) / vx)
 
     # Test if the line e intersects the edge e2
@@ -131,13 +174,14 @@ def find_min_value_matrix(D):
 def is_valid_polygon(P):
     """ Test if a polygon is a valid """
     # TODO think of more criteria of a valid polygon
+    if not P:
+        return False
     if len(P.vertices) < 3:
         return False
     return True
 
-def remove_collinear_vertices(P, epsilon=0.1):
+def remove_collinear_vertices(P, epsilon=epsilon):
     """ Remove all collinear vertices in a polygon within some error """
-
     vertices = []
 
     for v in P.vertices:
@@ -158,7 +202,9 @@ def cross(v1, v2):
     return np.cross(v1.flatten(), v2.flatten())
 
 def split_polygon(P, depth=0):
-    #P.plot('g')
+    #P.plot()
+    #plt.show()
+    print(f'{depth=}')
     #if depth == 1:
 #        quit()
 
@@ -169,6 +215,7 @@ def split_polygon(P, depth=0):
 
     # Base case: if the polygon is convex, return it
     if ncc == 0:
+        #print(f'\treturning')
         return [P]
 
     print(f'concave vertices = {P.concave_vertices}')
@@ -188,7 +235,7 @@ def split_polygon(P, depth=0):
             intersection_edges = []
             intersection_directions = []
             intersection_normals = []
-            illegal_dir = 0
+            intersection_legal = []
 
             print(f'\tchecking edge {e}')
 
@@ -214,9 +261,10 @@ def split_polygon(P, depth=0):
                     intersection_normals.append(cross(vec, vec2))
 
                     if t * cross(vec, vec2) < 0:
-                        illegal_dir = t
+                        intersection_legal.append(False)
                         print(f'\t\t\tINVALID {t=}, normal={cross(vec,vec2)}, t*normal={t*cross(vec, vec2)}')
-
+                    else:
+                        intersection_legal.append(True)
             # Handle invalid intersections
 
             """for i, ip in enumerate(intersection_points):
@@ -227,18 +275,23 @@ def split_polygon(P, depth=0):
                 if t_i * normal_i < 0:"""
 
             # Get the index of the intersection with minimum distance
-            min_index = np.argmin(np.abs(intersection_directions))
+            try:
+                min_index = np.argmin(np.abs(intersection_directions))
+            except:
+                print('CATCHING ERROR 1:((')
             intersection_points = np.array(intersection_points)
             intersection_edges = np.array(intersection_edges)
             intersection_directions = np.array(intersection_directions)
+            intersection_normals = np.array(intersection_normals)
+
 
             # Check if the intersection is legal
             if intersection_normals[min_index] * intersection_directions[min_index] >= 0:
                 P1, P2 = split_polygon_single(intersection_edges[min_index], intersection_points[min_index], cv)
 
                 # Remove collinear vertices form each sub-polygon
-                P1 = remove_collinear_vertices(P1)
-                P2 = remove_collinear_vertices(P2)
+                #P1 = remove_collinear_vertices(P1)
+                #P2 = remove_collinear_vertices(P2)
 
                 # Compute the width sum of P1 and P2
                 #D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
@@ -254,19 +307,27 @@ def split_polygon(P, depth=0):
                 intersection_points_legal_dir = intersection_points[legal_mask]
                 intersection_edges_legal_dir = intersection_edges[legal_mask]
                 intersection_directions_legal = intersection_directions[legal_mask]
+                intersection_normals_legal = intersection_normals[legal_mask]
 
-                min_index = np.argmin(np.abs(intersection_directions_legal))
+                try:
+                    min_index = np.argmin(np.abs(intersection_directions_legal))
+                except:
+                    print('CATCH ERROR 2:((')
+                    split_polygons.append(([], []))
+                    continue
 
-                P1, P2 = split_polygon_single(intersection_edges_legal_dir[min_index], intersection_points_legal_dir[min_index], cv)
+                if intersection_normals_legal[min_index] * intersection_directions_legal[min_index] < 0:
 
-                # Remove collinear vertices form each sub-polygon
-                P1 = remove_collinear_vertices(P1)
-                P2 = remove_collinear_vertices(P2)
+                    P1, P2 = split_polygon_single(intersection_edges_legal_dir[min_index], intersection_points_legal_dir[min_index], cv)
 
-                # Compute the width sum of P1 and P2
-                # D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
-                D[i, j] = min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
-                split_polygons.append((P1, P2))
+                    # Remove collinear vertices form each sub-polygon
+                    #P1 = remove_collinear_vertices(P1)
+                    #P2 = remove_collinear_vertices(P2)
+
+                    # Compute the width sum of P1 and P2
+                    # D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
+                    D[i, j] = min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
+                    split_polygons.append((P1, P2))
 
         #plot_results(split_polygons, cv.index, D[i, :])
         D_polygons.append(split_polygons)
@@ -333,7 +394,7 @@ def dot(v1, v2):
     """ Dot product between two vertical vectors """
     return v1.flatten() @ v2.flatten()
 
-def polygons_are_adjacent(P1, P2, i, j, epsilon=0.1):
+def polygons_are_adjacent(P1, P2, i, j, epsilon=epsilon):
     """ Determine if two polygons share an edge either by complete or partial adjacency"""
     for e in P1.edges:
         for e2 in P2.edges:
@@ -417,7 +478,7 @@ def optimize_polygons(sub_polygons):
                         e2 = e2.next
 
                     P = Polygon(combined_polygon_vertices)
-                    P = remove_collinear_vertices(P)
+                    #P = remove_collinear_vertices(P)
 
                     if len(compute_concave_vertices(P)) == 0:
                         sub_polygons[i] = P
@@ -427,7 +488,6 @@ def optimize_polygons(sub_polygons):
             if merged:
                 break
     return sub_polygons
-
 
 """ Temporary plot functions """
 def plot_results(split_polygons, cv, Di):
@@ -502,7 +562,7 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     ax[3].set_title(f'P2')
     ax[3].axis('equal')
 
-    print(f'{depth=}')
+    print(f'\t{depth=}')
     print(f'\t{cv=}')
     print(f'\t{edge=}')
     print(f'\tD_ij={np.round(Dij, 1)}')
@@ -518,10 +578,14 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     plt.show()
 
 def plot_results3(sub_polygons):
-    fig = plt.figure()
+    fig, ax = plt.subplots(1,1)
 
-    for P in sub_polygons:
-        P.plot()
+    for poly in sub_polygons:
+        x_coords, y_coords = poly.get_coords()
+
+        ax.plot(x_coords, y_coords, 'k-')
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        ax.set_aspect('equal')
     plt.show()
 
 def plot_polygons(P, sub_polygons, G):
