@@ -560,7 +560,7 @@ def plot_results3(sub_polygons):
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
         ax.set_aspect('equal')
         ax.set_title('Antwerpen Decomposition')
-    plt.show()
+    #plt.show()
 
 def plot_graph(G):
     fig, ax = plt.subplots(1)
@@ -568,7 +568,7 @@ def plot_graph(G):
     pos = nx.spring_layout(G)  # Layout for node positions
     nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
     ax.set_title('Undirected Graph')
-    plt.show()
+    #plt.show()
 
 def plot_polygons(P, sub_polygons, G):
     fig, ax = plt.subplots(1, 3)

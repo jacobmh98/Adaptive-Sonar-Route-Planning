@@ -78,3 +78,5 @@ for i, p_i in  enumerate(sub_polygons):
             A[i, j] = np.inf
 
 plot_graph(G)
+
+plt.show()
