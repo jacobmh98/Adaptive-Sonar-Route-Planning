@@ -5,7 +5,7 @@ import pandas as pd
 from Polygon import *
 
 path = 'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen.xlsx'
-filename = '/test_data/antwerpen_part2.json'
+filename = 'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen_full.json'
 
 df = pd.read_excel(path, header=None, index_col=0)
 vertices = []

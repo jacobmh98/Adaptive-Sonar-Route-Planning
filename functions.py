@@ -174,9 +174,7 @@ def cross(v1, v2):
     return np.cross(v1.flatten(), v2.flatten())
 
 def split_polygon(P, depth=0):
-    #P.plot()
-    #plt.show()
-    #print(f'{depth=}')
+
     #if depth == 1:
 #        quit()
 
@@ -184,15 +182,17 @@ def split_polygon(P, depth=0):
     P.concave_vertices = compute_concave_vertices(P)
     ncc = len(P.concave_vertices)
     n = len(P.vertices)
-
+    #save_polygon(P, depth, n)
     # Base case: if the polygon is convex, return it
     if ncc == 0:
         #print(f'\treturning')
         return [P]
-
+    #print(f'{depth=}')
     #print(f'concave vertices = {P.concave_vertices}')
 
     # Initialize the width sum matrix
+    #print(f'{ncc=}')
+    #print(f'{n=}')
     D = np.empty((ncc, n))
     D_polygons = []
 
@@ -226,7 +226,7 @@ def split_polygon(P, depth=0):
                 # Compute intersection with edge e2 (if any)
                 ip, t = compute_intersection(vec, cv, e2)
                 if ip is not None:
-                    #print(f'\t\t\t{e} intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
+                    #print(f'\t\t\t intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
 
                     intersection_points.append(ip)
                     intersection_edges.append(e2)
@@ -529,10 +529,10 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     ax[3].set_title(f'P2')
     ax[3].axis('equal')
 
-    print(f'\t{depth=}')
-    print(f'\t{cv=}')
-    print(f'\t{edge=}')
-    print(f'\tD_ij={np.round(Dij, 1)}')
+    #print(f'\t{depth=}')
+    #print(f'\t{cv=}')
+    #print(f'\t{edge=}')
+    #print(f'\tD_ij={np.round(Dij, 1)}')
     #print(f'P1 = {P1.vertices_matrix()}')
     #print(f'P2 = {P2.vertices_matrix()}')
     #print(f'\tP1 = {P1.vertices}')
@@ -560,7 +560,7 @@ def plot_results3(sub_polygons):
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
         ax.set_aspect('equal')
         ax.set_title('Antwerpen Decomposition')
-    #plt.show()
+    plt.show()
 
 def plot_graph(G):
     fig, ax = plt.subplots(1)
@@ -638,3 +638,20 @@ def plot_polygons2(P, sub_polygons, optimized_sub_polygons):
         ax[i].set_title(f'P{i}')
         ax[i].set_aspect('equal')"""
     plt.show()
+
+def save_polygon(P, depth, n, color='k'):
+    x_coords = []
+    y_coords = []
+    fig, ax = plt.subplots(1, 1)
+
+    for v in P.vertices:
+        x_coords.append(v.x)
+        y_coords.append(v.y)
+        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+
+    ax.plot(x_coords, y_coords, f'{color}-', marker='o')
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+    ax.set_title(f'{depth=}, {n=}')
+    ax.set_aspect('equal')
+    plt.savefig(f'./figs/fig{id(P)}.png')
+    plt.close()
