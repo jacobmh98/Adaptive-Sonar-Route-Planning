@@ -73,6 +73,9 @@ def create_adjacency_matrix(polygons):
 
 # Reading the test data
 f = open('test_data/complex_polygon.json')
+f1 = open('test_data/simple_triangle.json')
+f2 = open('test_data/simple_skewed_rectangle.json')
+f3 = open('test_data/simple_pentagon.json')
 data = json.load(f)
 vertices_data = data['area']['coordinates']
 P = create_polygon(vertices_data)
@@ -81,7 +84,7 @@ P = create_polygon(vertices_data)
 sub_polygons = split_polygon(P)
 
 # Start parameters
-dx = 0.2 # Path width (Must be >0)
+dx = 0.3 # Path width (Must be >0)
 extern_start_end = False
 if extern_start_end:
     p_start = [0.0, 0.0]
@@ -102,7 +105,7 @@ adjacency_matrix, adjacency_graph = create_adjacency_matrix(sub_polygons)
 #functions.plot_polygons(P, sub_polygons, adjacency_graph)
 sorted_polygons = sort_sub_polygons_using_dfs(adjacency_graph, sub_polygons, start_node)
 
-#sorted_polygons = [sorted_polygons[5]]
+#sorted_polygons = sub_polygons
 
 total_path = multi_poly_planning.multi_path_planning(sorted_polygons, dx, extern_start_end, p_start, p_end)
 print(f'Path distance = {path_distance(total_path)}')

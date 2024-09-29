@@ -124,30 +124,25 @@ class Polygon:
         plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
         plt.show()
 
-    def line_intersection(self, p1, p2, q1, q2):
+    def line_intersection(self, p1, p2, q1, q2, epsilon=1e-9):
         """ Find intersection between two line segments (p1, p2) and (q1, q2) with floating-point tolerance """
-        # Convert points to vectors
         r = np.array(p2) - np.array(p1)
         s = np.array(q2) - np.array(q1)
 
-        # Cross product r x s
         r_cross_s = np.cross(r, s)
-        if r_cross_s == 0:
-            return None
+        if abs(r_cross_s) < epsilon:
+            return None  # Lines are parallel or collinear
 
-        # Vector from p1 to q1
         p1_q1 = np.array(q1) - np.array(p1)
-
-        # Find intersection parameters
         t = np.cross(p1_q1, s) / r_cross_s
         u = np.cross(p1_q1, r) / r_cross_s
 
-        # Check if intersection point is within both line segments
-        if 0 <= t <= 1 and 0 <= u <= 1:
+        # Check if the intersection is within the bounds of the line segments
+        if (0 <= t <= 1 or abs(t) < epsilon or abs(t - 1) < epsilon) and \
+                (0 <= u <= 1 or abs(u) < epsilon or abs(u - 1) < epsilon):
             intersection_point = p1 + t * r
             return intersection_point
-        else:
-            return None
+        return None
 
     def find_intersections(self, vector_start, vector_end):
         """ Find all intersections of a vector with the polygon edges """
@@ -174,6 +169,5 @@ class Polygon:
                     unique_points.append(point)
                     seen.add(point_tuple)  # Track the unique points as tuples
             intersections = unique_points
-            print(f"intersections: {intersections}")
 
         return intersections
