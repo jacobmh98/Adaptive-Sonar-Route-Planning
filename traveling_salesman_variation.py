@@ -75,11 +75,15 @@ def visualize_tsp_solution(polygons, tsp_route):
     # Plot polygons
     plt.figure(figsize=(8, 8))
 
-    for polygon in polygons:
+    for i, polygon in enumerate(polygons):
         x_coords, y_coords = polygon.get_coords()
         x_coords.append(x_coords[0])  # Close the polygon
         y_coords.append(y_coords[0])
         plt.plot(x_coords, y_coords, 'r-', lw=2, marker='o')
+
+        # Add a label to the centroid of the polygon
+        centroid = compute_centroid(polygon)
+        plt.text(centroid[0], centroid[1], f'{tsp_route[i]}', fontsize=12, ha='center', color='blue')
 
     # Plot TSP path
     for i in range(len(tsp_route)):
@@ -93,5 +97,3 @@ def visualize_tsp_solution(polygons, tsp_route):
 
     plt.title("TSP Optimal Path Visiting Polygons")
     plt.show()
-
-

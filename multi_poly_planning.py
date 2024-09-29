@@ -21,7 +21,6 @@ def get_nearest_neighbour_vertex(poly1, poly2):
 
     return nearest_vertex
 
-
 def rotating_calipers_path_planner(polygon, dx, d_pq, p_start, p_end):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
@@ -36,11 +35,12 @@ def rotating_calipers_path_planner(polygon, dx, d_pq, p_start, p_end):
     # Initialize variables to store the best path and the minimal cost
     min_cost = float('inf')
     optimal_path = None
+    current_path_distance = 0
 
     # Iterate over all antipodal pairs (b, a)
-    for (b_index, a_index) in d_pq:
+    for (i, j) in d_pq:
         # Compute the best path for the current antipodal pair
-        current_path, current_cost = polygon_coverage_path.best_path(polygon, dx, b_index, a_index, p_start, p_end)
+        current_path, current_cost = polygon_coverage_path.best_path(polygon, dx, i, j, p_start, p_end)
 
         # Update the optimal path if the current path has a lower cost
         if current_cost < min_cost:
@@ -103,7 +103,6 @@ def multi_path_planning(polygons, dx, include_external_start_end, ext_p_start, e
     return total_path
 
 
-# def plot_path(b, b_mate, a, dx, boundaries, polygon, path, ps=None, pe=None):
 def multi_poly_plot(polygons, dx, include_external_start_end, ps, pe, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
@@ -120,10 +119,17 @@ def multi_poly_plot(polygons, dx, include_external_start_end, ps, pe, path):
     ax.set_aspect('equal')
 
     # Plot the polygons
-    for poly in polygons:
+    for i, poly in enumerate(polygons):
         x_coords, y_coords = poly.get_coords()
         ax.plot(x_coords, y_coords, 'b-', marker='o', label='Polygon')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+
+        # Find the center of the polygon to place the label
+        centroid_x = np.mean(x_coords)
+        centroid_y = np.mean(y_coords)
+
+        # Label the polygon with its number
+        ax.text(centroid_x, centroid_y, f'{i}', fontsize=16, color='black')
 
     # Plot the path
     if len(path) > 0:
@@ -171,3 +177,4 @@ def multi_poly_plot(polygons, dx, include_external_start_end, ps, pe, path):
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.show()
+

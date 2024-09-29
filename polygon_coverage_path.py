@@ -221,10 +221,12 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
         #plot_path(poly, b, b_mate, a, dx, np.array(path))
 
         # Ensure coverage gets as close to polygon edge as needed for full coverage
+        """  TODO: Need to create function to check full coverage, else best coverage path wont get chosen as it is longer than path without full coverage
         if (distance_between_points(a, ip1) <= dx) or (distance_between_points(a, ip2) <= dx):
             if go_to_edge:  # Only divide once per poly, to avoid never ending loop
                 dx = dx/2
                 go_to_edge = False
+        """
 
         # Computing next extended offset vector, offset with full path width dx
         L_flight = compute_offset_vector(L_flight[0], L_flight[1], sweep_direction, dx)
@@ -238,52 +240,73 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
 
     return np.array(path)
 
-def best_path(poly, dx, b_index, a_index, p_start, p_end, weight_distance=0.5, weight_turns=25):
+def best_path(poly, dx, i, j, p_start, p_end, weight_distance=0.5, weight_turns=25):
     """Compute the best path based on both distance and number of turns."""
-    # Path 1 calculation
-    b_mate_index = poly.get_mate(b_index)
-    new_a_index = triangle_antipodal_edge_case(poly, b_mate_index, a_index)
-    path1 = get_path(poly, dx, b_index, b_mate_index, new_a_index)
-    distance1 = calculate_total_distance(path1, p_start, p_end)
-    turns1 = path1.shape[0]
-    #print(f'distance1 : {distance1}')
-    #print(f'turns1 : {turns1}')
 
-    # Path 2 calculation
-    a_mate_index = poly.get_mate(a_index)
-    new_b_index = triangle_antipodal_edge_case(poly, a_mate_index, b_index)
-    path2 = get_path(poly, dx, a_index, a_mate_index, new_b_index)
-    distance2 = calculate_total_distance(path2, p_start, p_end)
-    turns2 = path2.shape[0]
-    #print(f'turns2 : {turns2}')
-    #print(f'distance2 : {distance2}')
+    # TODO: Use distance from b to a metric to avoid computing all 4 paths, but only the ones with highest distance (fewest flight lines)
 
-    # Normalize the values for comparison
-    max_distance = max(distance1, distance2)
-    max_turns = max(turns1, turns2)
-    normalized_distance1 = distance1 / max_distance if max_distance > 0 else 0
-    normalized_turns1 = turns1 / max_turns if max_turns > 0 else 0
-    score1 = distance1 #(weight_distance * normalized_distance1) + (weight_turns * normalized_turns1)
+    # From b towards a
+    # Clockwise caliper
+    cw_b1 = i
+    cw_b1_mate = poly.get_mate(cw_b1)
+    cw_a1 = triangle_antipodal_edge_case(poly, cw_b1_mate, j)
+    cw_path1 = get_path(poly, dx, cw_b1, cw_b1_mate, cw_a1)
+    cw_dist1 = calculate_total_distance(cw_path1, p_start, p_end)
 
-    normalized_distance2 = distance2 / max_distance if max_distance > 0 else 0
-    normalized_turns2 = turns2 / max_turns if max_turns > 0 else 0
-    score2 = distance2 #(weight_distance * normalized_distance2) + (weight_turns * normalized_turns2)
-    print(f'score1: {score1}')
-    print(f'score2: {score2}')
-    print()
+    # Counterclockwise
+    ccw_b1 = cw_b1_mate
+    ccw_b1_mate = i
+    ccw_a1 = cw_a1  # Unchanged
+    ccw_path1 = get_path(poly, dx, ccw_b1, ccw_b1_mate, ccw_a1)
+    ccw_dist1 = calculate_total_distance(ccw_path1, p_start, p_end)
 
-    # Select the optimal path based on the lowest score
-    if score1 < score2:
-        optimal_path, optimal_score = path1, score1
-        b_best, b_mate_best, a_best = b_index, b_mate_index, new_a_index
+    # Select the optimal rotation from the shortest path distance
+    if cw_dist1 < ccw_dist1:
+        optimal_path1, optimal_dist1 = cw_path1, cw_dist1
+        b1_best, b1_mate_best, a1_best = cw_b1, cw_b1_mate, cw_a1
     else:
-        optimal_path, optimal_score = path2, score2
-        b_best, b_mate_best, a_best = a_index, a_mate_index, new_b_index
+        optimal_path1, optimal_dist1 = ccw_path1, ccw_dist1
+        b1_best, b1_mate_best, a1_best = ccw_b1, ccw_b1_mate, ccw_a1
 
-        # Plot the comparison with distances
+    #plot_paths_comparison(poly, p_start, poly.vertices[cw_b1].v, poly.vertices[cw_b1_mate].v, poly.vertices[cw_a1].v, cw_path1, poly.vertices[ccw_b1].v, poly.vertices[ccw_b1_mate].v, poly.vertices[ccw_a1].v, ccw_path1,dx,(optimal_path, optimal_score, poly.vertices[b_best].v, poly.vertices[b_mate_best].v, poly.vertices[a_best].v),cw_score1, ccw_score1)
 
-        #plot_paths_comparison(poly,poly.vertices[b_index].v, poly.vertices[b_mate_index].v, poly.vertices[new_a_index].v, path1,poly.vertices[a_index].v, poly.vertices[a_mate_index].v, poly.vertices[new_b_index].v, path2,dx,(optimal_path, optimal_score, poly.vertices[b_best].v, poly.vertices[b_mate_best].v, poly.vertices[a_best].v),score1, score2)
+    # From a towards b
+    # Clockwise caliper
+    cw_b2 = j
+    cw_b2_mate = poly.get_mate(cw_b2)
+    cw_a2 = triangle_antipodal_edge_case(poly, cw_b2_mate, i)
+    cw_path2 = get_path(poly, dx, cw_b2, cw_b2_mate, cw_a2)
+    cw_dist2 = calculate_total_distance(cw_path2, p_start, p_end)
 
+    # Counterclockwise
+    ccw_b2 = cw_b2_mate
+    ccw_b2_mate = j
+    ccw_a2 = cw_a2  # Unchanged
+    ccw_path2 = get_path(poly, dx, ccw_b2, ccw_b2_mate, ccw_a2)
+    ccw_dist2 = calculate_total_distance(ccw_path2, p_start, p_end)
+
+    # Select the optimal rotation from the shortest path distance
+    if cw_dist2 < ccw_dist2:
+        optimal_path2, optimal_dist2 = cw_path2, cw_dist2
+        b2_best, b2_mate_best, a2_best = cw_b2, cw_b2_mate, cw_a2
+    else:
+        optimal_path2, optimal_dist2 = ccw_path2, ccw_dist2
+        b2_best, b2_mate_best, a2_best = ccw_b2, ccw_b2_mate, ccw_a2
+
+    #plot_paths_comparison(poly, p_start, poly.vertices[cw_b2].v, poly.vertices[cw_b2_mate].v, poly.vertices[cw_a2].v, cw_path2, poly.vertices[ccw_b2].v, poly.vertices[ccw_b2_mate].v, poly.vertices[ccw_a2].v, ccw_path2,dx,(optimal_path, optimal_score, poly.vertices[b_best].v, poly.vertices[b_mate_best].v, poly.vertices[a_best].v),cw_score2, ccw_score2)
+
+    score1 = optimal_dist1
+    score2 = optimal_dist2
+
+    # Select the optimal path
+    if score1 < score2:
+        optimal_path, optimal_score = optimal_path1, score1
+        b_best, b_mate_best, a_best = b1_best, b1_mate_best, a1_best
+    else:
+        optimal_path, optimal_score = optimal_path2, score2
+        b_best, b_mate_best, a_best = b2_best, b2_mate_best, a2_best
+
+    #plot_paths_comparison(poly, p_start, poly.vertices[b1_best].v, poly.vertices[b1_mate_best].v, poly.vertices[a1_best].v, optimal_path1, poly.vertices[b2_best].v, poly.vertices[b2_mate_best].v, poly.vertices[a2_best].v, optimal_path2,dx,(optimal_path, optimal_score, poly.vertices[b_best].v, poly.vertices[b_mate_best].v, poly.vertices[a_best].v),score1, score2)
 
     return optimal_path, optimal_score
 
@@ -397,7 +420,7 @@ def plot_path(poly, b, b_mate, a, dx, path):
     plt.show()
 
 
-def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, dx, best_path_output, score1,
+def plot_paths_comparison(poly, p_start, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, dx, best_path_output, score1,
                           score2):
     """
     Plot the two back-and-forth paths (path1 and path2) in separate subplots for comparison,
