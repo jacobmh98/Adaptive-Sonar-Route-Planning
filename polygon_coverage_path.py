@@ -227,6 +227,8 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
     else:
         diameter = b_mate_a_dist
 
+    #print(f'diameter = {diameter}')
+
     if dx > diameter:
         # In case of path width being too large to fit inside polygon, changed to fit using polygon diameter
         delta_init = diameter / 2
@@ -286,6 +288,10 @@ def best_path(polygons, current_polygon_index, dx, i, j, p_start, p_end):
     cw_b1 = i
     cw_b1_mate = poly.get_mate(cw_b1)
     cw_a1 = triangle_antipodal_edge_case(poly, cw_b1_mate, j)
+    #print(f'cw_b1: {cw_b1}')
+    #print(f'cw_b1_mate: {cw_b1_mate}')
+    #print(f'cw_a1: {cw_a1}')
+
     cw_path1 = get_path(poly, dx, cw_b1, cw_b1_mate, cw_a1)
 
     if current_polygon_index < (n-1):

@@ -6,7 +6,6 @@ from functions import *
 import pickle
 import traceback
 from global_variables import load_existing_data
-from polygon_coverage_path import plot_path
 
 if not load_existing_data:
     # Reading the test data
@@ -95,8 +94,13 @@ def create_adjacency_matrix(polygons):
                 #print(f'{i} and {j} are adjacent')
     return A,G
 
+
+
+
 # Start parameters
-dx = 15 # Path width (Must be >0)
+dx = 22 # Path width (Must be >0) (1 is 1 meter)
+tsp_sort = False
+dfs_sort = True
 extern_start_end = False
 if extern_start_end:
     p_start = [0.0, 0.0]
@@ -105,67 +109,71 @@ else:
     p_start = None
     p_end = None
 
-# Order the list of sub polygons
-start_node = 'P0'  # TODO: Use top of adjacency graph
-adjacency_matrix, adjacency_graph = create_adjacency_matrix(optimize_sub_polygons)
-#functions.plot_graph(adjacency_graph)
-sorted_polygons = sort_sub_polygons_using_dfs(adjacency_graph, optimize_sub_polygons, start_node)
-"""
-f = open('test_data/fail_poly.json')
-data = json.load(f)
-vertices_data = data['area']['coordinates']
+# Choosing sorting method for the order of sub polygons
+if tsp_sort:
+    distance_matrix = traveling_salesman_variation.create_distance_matrix(optimize_sub_polygons)
+    tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
+    #traveling_salesman_variation.visualize_tsp_solution(sub_polygons, tsp_route)
+    sorted_polygons = [sub_polygons[i] for i in tsp_route]
 
-vertices = []
-for i, v in enumerate(vertices_data):
-    vertices.append(Vertex(i, v[0], v[1]))
-P = Polygon(vertices)"""
+elif dfs_sort:
+    # Order the list of sub polygons
+    start_node = 'P0'  # TODO: Use top of adjacency graph
+    adjacency_matrix, adjacency_graph = create_adjacency_matrix(optimize_sub_polygons)
+    #functions.plot_graph(adjacency_graph)
+    sorted_polygons = sort_sub_polygons_using_dfs(adjacency_graph, optimize_sub_polygons, start_node)
 
-"""for p in sorted_polygons:
-    try:
-        total_path = multi_poly_planning.multi_path_planning(sorted_polygons, dx, extern_start_end, p_start, p_end)
-        # print(f'Path distance = {path_distance(total_path)}')
-        multi_poly_planning.multi_poly_plot(sorted_polygons, dx, extern_start_end, p_start, p_end, np.array(total_path))
-    except:
-        print('error :(')"""
+else:  # Unsorted polygons
+    sorted_polygons = optimize_sub_polygons
 
 print(f'num_polygons = {len(sorted_polygons)}')
 
-#sorted_polygons[1].plot()
-complete_path = np.empty((0,2))
-for i, poly in enumerate(sorted_polygons):
-    #poly.plot()
-    new_polygon = [sorted_polygons[i]]
-    try:
 
+def remove_unnecessary_vertices(polygon, epsilon=1e-9):
+    """Remove vertices that form a straight line with their neighbors.
+
+    :param polygon: Polygon object
+    :param epsilon: Tolerance for floating point comparisons
+    :return: A new polygon with unnecessary vertices removed
+    """
+    new_vertices = []
+    for i in range(len(polygon.vertices)):
+        v_prev = polygon.vertices[i - 1]
+        v_curr = polygon.vertices[i]
+        v_next = polygon.vertices[(i + 1) % len(polygon.vertices)]
+
+        # Vector from previous vertex to current vertex
+        vector1 = np.array([v_curr.x - v_prev.x, v_curr.y - v_prev.y, 0])  # Add 3rd dimension as 0
+        # Vector from current vertex to next vertex
+        vector2 = np.array([v_next.x - v_curr.x, v_next.y - v_curr.y, 0])  # Add 3rd dimension as 0
+
+        # Compute the cross product and only take the z-component
+        cross_product = np.cross(vector1, vector2)[-1]
+
+        # If cross product is not zero (within epsilon), the vertex is necessary
+        if abs(cross_product) > epsilon:
+            new_vertices.append(v_curr)
+
+    # Return a new polygon with filtered vertices
+    return Polygon(new_vertices)
+
+complete_path = np.empty((0,2))
+
+for i, poly in enumerate(sorted_polygons):
+    new_polygon = [sorted_polygons[i]]
+
+    try:
+        new_polygon = [remove_unnecessary_vertices(new_polygon[0])]  # Removing parallel vertices, minimizing number of paths generated
         total_path = multi_poly_planning.multi_path_planning(new_polygon, dx, extern_start_end, p_start, p_end)
         complete_path = np.vstack([complete_path, total_path])
         #multi_poly_planning.multi_poly_plot(new_polygon, dx, extern_start_end, p_start, p_end, np.array(total_path))
-        print(f'{new_polygon[0].get_index()} is working')
+        print(f'{i} is working')
 
     except Exception as e:
-        print(f'not working on {new_polygon[0].get_index()}')
-        #traceback.print_exc()
-        #poly.plot()
-        #break
+        print(f'not working on {i}')
+        traceback.print_exc()
+        new_polygon[0].plot()
+        break
 
 multi_poly_planning.multi_poly_plot(antwerp_poly, dx, extern_start_end, p_start, p_end, np.array(complete_path))
 
-#print(sorted_polygons[0].get_boundary())
-
-#total_path = multi_poly_planning.multi_path_planning(sorted_polygons, dx, extern_start_end, p_start, p_end)
-#print(f'Path distance = {path_distance(total_path)}')
-#multi_poly_planning.multi_poly_plot(sorted_polygons, dx, extern_start_end, p_start, p_end, np.array(total_path))
-
-
-quit()
-# For tsp
-distance_matrix = traveling_salesman_variation.create_distance_matrix(sub_polygons)
-tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-#traveling_salesman_variation.visualize_tsp_solution(sub_polygons, tsp_route)
-
-# Sort the polygons according to the TSP route
-sorted_polygons = [sub_polygons[i] for i in tsp_route]
-#sorted_polygons = [sub_polygons[5]]
-total_path = multi_poly_planning.multi_path_planning(sorted_polygons, dx, extern_start_end, p_start, p_end)
-print(path_distance(total_path))
-multi_poly_planning.multi_poly_plot(sorted_polygons, dx, extern_start_end, p_start, p_end, np.array(total_path))

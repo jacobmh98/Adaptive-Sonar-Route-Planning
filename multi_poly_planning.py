@@ -3,8 +3,6 @@ import polygon_coverage_path
 import rotating_calipers_antipodal_pairs
 import matplotlib.pyplot as plt
 
-
-
 def get_nearest_neighbour_vertex(poly1, poly2):
     nearest_vertex = None
     min_distance = float('inf')
@@ -95,6 +93,9 @@ def multi_path_planning(polygons, dx, include_external_start_end, ext_p_start, e
                 new_p_end = current_poly.vertices[diametric_antipode_index].v
 
         shortest_path = rotating_calipers_path_planner(polygons, i, dx, diametric_antipodal_pairs, new_p_start, new_p_end)
+
+        if shortest_path.size == 0:
+            shortest_path = np.empty((0, 2))  # Resetting shortest path
 
         total_path = np.vstack([total_path, shortest_path])
 
