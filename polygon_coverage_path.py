@@ -74,6 +74,12 @@ def compute_sweep_direction(v1, v2, a):
 
     return sweep_direction
 
+def compute_boundary(poly):
+    coords = poly.vertices_matrix()
+    boundary = (np.min(coords[0, :]), np.max(coords[0, :]),
+                     np.min(coords[1, :]), np.max(coords[1, :]))
+    return boundary
+
 def extend_vector_to_boundary(poly, v1, v2):
     """ Extend the vector from v1 to v2 to intersect with the boundary box
 
@@ -84,7 +90,7 @@ def extend_vector_to_boundary(poly, v1, v2):
     :return extended_v2: NumPy array, the new end point of the extended vector
     """
     # Extract the boundary box values
-    min_x, max_x, min_y, max_y = poly.boundary
+    min_x, max_x, min_y, max_y = compute_boundary(poly)
 
     # Calculate the direction vector from v1 to v2
     direction = create_vector(v1, v2)
@@ -191,7 +197,6 @@ def closest_vertex(poly1, poly2, a_index):
     return closest_point
 
 
-
 # Algorithm 1
 def get_path(poly, dx, b_index, b_mate_index, a_index):
     """ GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
@@ -222,7 +227,7 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
     else:
         diameter = b_mate_a_dist
 
-    if dx >= diameter:
+    if dx > diameter:
         # In case of path width being too large to fit inside polygon, changed to fit using polygon diameter
         delta_init = diameter / 2
     else:
@@ -282,6 +287,7 @@ def best_path(polygons, current_polygon_index, dx, i, j, p_start, p_end):
     cw_b1_mate = poly.get_mate(cw_b1)
     cw_a1 = triangle_antipodal_edge_case(poly, cw_b1_mate, j)
     cw_path1 = get_path(poly, dx, cw_b1, cw_b1_mate, cw_a1)
+
     if current_polygon_index < (n-1):
         cw_p_end1 = closest_vertex(poly, polygons[current_polygon_index+1], cw_a1)  # Finding the closest vertex in next polygon from path endpoint a
     else:

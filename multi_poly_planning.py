@@ -4,6 +4,7 @@ import rotating_calipers_antipodal_pairs
 import matplotlib.pyplot as plt
 
 
+
 def get_nearest_neighbour_vertex(poly1, poly2):
     nearest_vertex = None
     min_distance = float('inf')
@@ -94,6 +95,7 @@ def multi_path_planning(polygons, dx, include_external_start_end, ext_p_start, e
                 new_p_end = current_poly.vertices[diametric_antipode_index].v
 
         shortest_path = rotating_calipers_path_planner(polygons, i, dx, diametric_antipodal_pairs, new_p_start, new_p_end)
+
         total_path = np.vstack([total_path, shortest_path])
 
     # Appending the last point into path
@@ -103,7 +105,7 @@ def multi_path_planning(polygons, dx, include_external_start_end, ext_p_start, e
     return total_path
 
 
-def multi_poly_plot(polygons, dx, include_external_start_end, ps, pe, path):
+def multi_poly_plot(polygon, dx, include_external_start_end, ps, pe, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
 
@@ -114,53 +116,61 @@ def multi_poly_plot(polygons, dx, include_external_start_end, ps, pe, path):
     :param pe: Ending point of the mission
     :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
     """
+    coverage = False
+    fig, ax = plt.subplots(1, 1)
+    color = "k"
+    # Plot the polygons
+    x_coords, y_coords = polygon.get_coords()
 
-    fig, ax = plt.subplots()
+    ax.plot(x_coords, y_coords, f'{color}-', marker='o')
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
     ax.set_aspect('equal')
 
-    # Plot the polygons
+
+    """
     for i, poly in enumerate(polygons):
         x_coords, y_coords = poly.get_coords()
-        ax.plot(x_coords, y_coords, 'b-', marker='o', label='Polygon')
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
+        ax.plot(x_coords, y_coords, 'k-', marker='o',markersize=3, label='Polygon')
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
 
         # Find the center of the polygon to place the label
         centroid_x = np.mean(x_coords)
         centroid_y = np.mean(y_coords)
 
         # Label the polygon with its number
-        ax.text(centroid_x, centroid_y, f'{i}', fontsize=16, color='black')
-
+        #ax.text(centroid_x, centroid_y, f'{i}', fontsize=26, color='black')
+    """
     # Plot the path
     if len(path) > 0:
         path_x, path_y = path[:, 0], path[:, 1]
-        ax.plot(path_x, path_y, 'g-', marker='x', label='Path', linewidth=3)
+        ax.plot(path_x, path_y, 'r-', label='Path', linewidth=1)
 
         # Highlight the start and end points of the path
-        ax.plot(path_x[0], path_y[0], 'go', markersize=10, label='Start Point')  # Start point
-        ax.plot(path_x[-1], path_y[-1], 'yo', markersize=10, label='End Point')  # End point
+        ax.plot(path_x[0], path_y[0], 'go', markersize=8, label='Start Point')  # Start point
+        ax.plot(path_x[-1], path_y[-1], 'yo', markersize=8, label='End Point')  # End point
 
         # Compute and plot coverage area along the path
-        for i in range(len(path) - 1):
-            p1 = path[i]
-            p2 = path[i + 1]
-            # Vector along the path segment
-            segment_vector = p2 - p1
-            # Normalize the vector to get the perpendicular direction
-            perp_vector = np.array([-segment_vector[1], segment_vector[0]])
-            if np.linalg.norm(perp_vector) != 0:
-                perp_vector = perp_vector / np.linalg.norm(perp_vector) * dx / 2
+        if coverage:
+            for i in range(len(path) - 1):
+                p1 = path[i]
+                p2 = path[i + 1]
+                # Vector along the path segment
+                segment_vector = p2 - p1
+                # Normalize the vector to get the perpendicular direction
+                perp_vector = np.array([-segment_vector[1], segment_vector[0]])
+                if np.linalg.norm(perp_vector) != 0:
+                    perp_vector = perp_vector / np.linalg.norm(perp_vector) * dx / 2
 
-            # Create four corners of the coverage area for this segment
-            corner1 = p1 + perp_vector
-            corner2 = p1 - perp_vector
-            corner3 = p2 - perp_vector
-            corner4 = p2 + perp_vector
+                # Create four corners of the coverage area for this segment
+                corner1 = p1 + perp_vector
+                corner2 = p1 - perp_vector
+                corner3 = p2 - perp_vector
+                corner4 = p2 + perp_vector
 
-            # Plot the coverage area for this segment as a filled polygon
-            ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
-                    [corner1[1], corner2[1], corner3[1], corner4[1]],
-                    'orange', alpha=0.3, label='_nolegend_')
+                # Plot the coverage area for this segment as a filled polygon
+                ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
+                        [corner1[1], corner2[1], corner3[1], corner4[1]],
+                        'orange', alpha=0.3, label='_nolegend_')
 
     else:
         print("Empty path")

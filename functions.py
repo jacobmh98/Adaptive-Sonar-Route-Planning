@@ -161,11 +161,23 @@ def remove_collinear_vertices(P, epsilon=epsilon):
         x2, y2 = v.get_array().flatten()
         x3, y3 = v.next.get_array().flatten()
 
-        # Compute the cross product of vectors v1->v2 and v2->v3
+        # Check the angle is not 180 deg
+        vec1 = v.prev.get_array() - v.get_array()
+        vec2 = v.next.get_array() - v.get_array()
+
+        dot_product = dot(vec1, vec2)
+        neg_mag = -np.linalg.norm(vec1) * np.linalg.norm(vec2)
+
+        if not (dot_product - epsilon <= neg_mag <= dot_product + epsilon):
+            # print(f'\t\tcv = {i}, dot = {dot(vec1, vec2)}, mag = {- np.linalg.norm(vec1) * np.linalg.norm(vec2)}')
+            # if not (dot(v_left.get_array(), v_right.get_array()) <= 0 <= dot(v_left.get_array(), v_right.get_array()) + epsilon):
+            vertices.append(Vertex(len(vertices), v.x, v.y))
+
+        """# Compute the cross product of vectors v1->v2 and v2->v3
         cross_product = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
         # If the cross product is 0, the points are collinear
         if not (-epsilon <= cross_product <= epsilon):
-            vertices.append(Vertex(len(vertices), v.x, v.y))
+            vertices.append(Vertex(len(vertices), v.x, v.y))"""
 
     return Polygon(vertices)
 
@@ -568,7 +580,7 @@ def plot_graph(G):
     pos = nx.spring_layout(G)  # Layout for node positions
     nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
     ax.set_title('Undirected Graph')
-    #plt.show()
+    plt.show()
 
 def plot_polygons(P, sub_polygons, G):
     fig, ax = plt.subplots(1, 3)

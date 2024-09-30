@@ -81,6 +81,32 @@ class Polygon:
         ax.set_aspect('equal')
         plt.show()
 
+    def get_mate(self, b):
+        """ Find b's neighbour b_mate (counterclockwise neighbour)
+        :param self: Polygon
+        :param b: int, index of vertex b
+        :return neighbour: int, index of b's neighbour vertex b_mate
+        """
+        n = len(self.vertices)
+
+        if b == (n - 1):  # If b is the last vertex in the polygon
+            return 0
+        else:
+            return b + 1
+
+    def get_previous_vertex(self, b):
+        """ Find b's previous neighbour
+        :param self: Polygon
+        :param b: int, index of vertex b
+        :return neighbour: int, index of b's previous neighbour
+        """
+        n = len(self.vertices)
+
+        if b == 0:  # If b is the first vertex
+            return n - 1
+        else:
+            return b - 1
+
     def line_intersection(self, p1, p2, q1, q2, epsilon=1e-9):
         """ Find intersection between two line segments (p1, p2) and (q1, q2) with floating-point tolerance """
         r = np.array(p2) - np.array(p1)
