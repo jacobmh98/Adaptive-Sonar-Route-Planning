@@ -1,55 +1,63 @@
+import copy
 import json
-import math
-import multi_poly_planning
 from functions import *
+import pickle
 
-def path_distance(cp):
-    """ Calculate the total distance travelled along a path.
+from global_variables import load_existing_data
 
-    :param cp: NumPy array of 2D points representing the current path
-    :return distance: The total Euclidean distance between consecutive points in the path.
-    """
-    dist = 0.0
-    for i in range(1, len(cp)):
-        # Calculate the distance between the consecutive points
-        dist += math.sqrt((cp[i][0] - cp[i - 1][0]) ** 2 + (cp[i][1] - cp[i - 1][1]) ** 2)
+if not load_existing_data:
+    # Reading the test data
+    f = open('test_data/antwerpen_full.json')
+    data = json.load(f)
+    vertices_data = data['area']['coordinates']
 
-    return dist
-
-def create_polygon(vert_data):
+    # Defining the initial polygon and the boúnding box
     vertices = []
-    for i, v in enumerate(vert_data):
-        vertices.append(Vertex(i, v[0], v[1]))
 
-    return Polygon(vertices)
+    for i in range(len(vertices_data)):
+        vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
 
-# Reading the test data
-f = open('test_data/complex_polygon.json')
-data = json.load(f)
-vertices_data = data['area']['coordinates']
-P = create_polygon(vertices_data)
+    P = Polygon(vertices)
 
-# Compute the split that gives the sub-polygons
-sub_polygons = split_polygon(P)
+    # Compute the split that gives the sub-polygons
+    print('running')
+    sub_polygons = split_polygon(P)
 
-#for i,poly in enumerate(sub_polygons):
-#    poly.plot()
-
-# Start parameters
-dx = 0.2 # Path width (Must be >0)
-extern_start_end = False
-if extern_start_end:
-    p_start = [0.0, 0.0]
-    p_end = [7, 6]
+    # Save the sub polygon objects
+    with open('C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen.pkl', 'wb') as file:
+        pickle.dump(sub_polygons, file)
 else:
-    p_start = None
-    p_end = None
+    with open('./test_data/antwerpen.pkl', 'rb') as file:
+        sub_polygons = pickle.load(file)
 
-for i,poly in enumerate(sub_polygons):
-    if i == 1:
-        sub_polygons.remove(poly)
+# Optimizing the sub-polygons
+optimize_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
 
-#sub_polygons = [sub_polygons[1]]
+# Plotting the sub-polygons
+plot_results3(optimize_sub_polygons)
 
-total_path = multi_poly_planning.multi_path_planning(sub_polygons, dx, extern_start_end, p_start, p_end)
-multi_poly_planning.multi_poly_plot(sub_polygons, dx, extern_start_end, p_start, p_end, np.array(total_path))
+
+# TODO har ikke testet om den stadig laver den korrekte adjacent matrix. Men tror stadig det virker
+# Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
+"""m = len(sub_polygons)
+A = np.zeros((m, m))
+G = nx.Graph()
+
+# Go through each edge in p_i and compare with each edge in p_j
+for i, p_i in  enumerate(sub_polygons):
+    for j, p_j in enumerate(sub_polygons):
+        # Ignore if the two polygons are equal
+        if i == j:
+            A[i, j] = 0
+            continue
+
+        # Test if the two polygons p_i and p_j are adjacent (either complete or partial)
+        if polygons_are_adjacent(p_i, p_j, i, j):
+            # Update the adjacent matrix
+            A[i, j] = 1
+            A[j, i] = 1
+            G.add_edge(f'P{i}', f'P{j}')
+        else:
+            A[i, j] = np.inf
+
+plot_graph(G)"""
