@@ -86,8 +86,11 @@ def split_polygon_single(e2, intersection_p, cv):
 
 def compute_intersection(vec, cv, e2):
     """ Computes the points of intersection (if any) between a vector from a point cv and an edge e2 """
-    vx = vec[0, 0]
-    vy = vec[1, 0]
+    # Handle vertical or horizontal lines
+    epsilon2 = epsilon
+
+    vx = vec[0, 0] + epsilon2
+    vy = vec[1, 0] + epsilon2
 
     x0 = cv.x
     y0 = cv.y
@@ -98,13 +101,7 @@ def compute_intersection(vec, cv, e2):
     x2 = e2.v_to.x
     y2 = e2.v_to.y
 
-    s_denominator = (y1 * vx - y2 * vx - vy * x1 + vy * x2)
-
-    if s_denominator == 0:
-        s = 0
-    else:
-        s = - ((y0 * vx - y1 * vx - vy * x0 + vy * x1) / s_denominator)
-
+    s = - ((y0 * vx - y1 * vx - vy * x0 + vy * x1) / (y1 * vx - y2 * vx - vy * x1 + vy * x2))
     t = - ((s * x1 - s * x2 + x0 - x1) / vx)
 
     # Test if the vector intersects the edge e2
@@ -143,14 +140,96 @@ def find_min_value_matrix(D):
                 min_indices = (i, j)
     return min_v, min_indices
 
-def is_valid_polygon(P):
-    """ Test if a polygon is a valid """
+def remove_equal_points(P):
+    vertices = []
+
+    for i, v in enumerate(P.vertices):
+        add_v = True
+
+        for j, v2 in enumerate(P.vertices):
+            if j >= i:
+                break
+
+            if points_are_equal(v.get_array(), v2.get_array()):
+                add_v = False
+                break
+
+        vertices.append(v)
+
+    return Polygon(vertices)
+
+def is_well_formed(polygon):
+    polygon = remove_collinear_vertices(polygon, 1e-3)
+
+    # 1. Check if the polygon has at least 3 vertices
+    if len(polygon.vertices) < 3:
+        return False, "Polygon must have at least 3 vertices."
+
+    # 2. Check if vertices are distinct
+    unique_vertices = set((v.x, v.y) for v in polygon.vertices)
+    if len(unique_vertices) != len(polygon.vertices):
+        return False, "Polygon has duplicate vertices."
+
+    # 3. Check if the polygon is in counterclockwise order
+    if not is_ccw(polygon):
+        return False, "Vertices are not in counterclockwise order."
+
+    # 4. Check for edge intersections (except consecutive edges)
+    #if has_self_intersections(polygon):
+    #        return False, "Polygon has self-intersecting edges."
+
+    return True, "Polygon is well-formed."
+
+def is_ccw(polygon):
+    # Use the signed area to determine if the vertices are in ccw order
+    total = 0
+    vertices = polygon.vertices
+    for i in range(len(vertices)):
+        v1 = vertices[i]
+        v2 = vertices[(i + 1) % len(vertices)]
+        total += (v2.x - v1.x) * (v2.y + v1.y)
+    return total < 0
+
+def has_self_intersections(polygon):
+    edges = polygon.edges
+    # Compare each edge with every other edge (ignoring consecutive edges)
+    for i, e1 in enumerate(edges):
+        for j, e2 in enumerate(edges):
+            if i <= j:
+                break
+
+            if edges_intersect(e1, e2):
+                return True
+    return False
+
+def edges_intersect(e1, e2):
+    # Extract the points of each edge
+    p1, p2 = e1.v_from, e1.v_to
+    q1, q2 = e2.v_from, e2.v_to
+
+    return False
+
+"""def is_valid_polygon(P):
+    #Test if a polygon is a valid
     # TODO think of more criteria of a valid polygon
-    if not P:
+    P = remove_collinear_vertices(P)
+    #P = remove_equal_points(P)
+
+    if P is []:
         return False
     if len(P.vertices) < 3:
         return False
-    return True
+    if len(P.vertices) == 3:
+        p1 = P.vertices[0]
+        p2 = P.vertices[1]
+        p3 = P.vertices[2]
+
+        if points_are_equal(p1.get_array(), p2.get_array()) or \
+            points_are_equal(p1.get_array(), p3.get_array()) or \
+            points_are_equal(p2.get_array(), p3.get_array()):
+            return False
+
+    return True"""
 
 def remove_collinear_vertices(P, epsilon=epsilon):
     """ Remove all collinear vertices in a polygon within some error """
@@ -161,11 +240,23 @@ def remove_collinear_vertices(P, epsilon=epsilon):
         x2, y2 = v.get_array().flatten()
         x3, y3 = v.next.get_array().flatten()
 
-        # Compute the cross product of vectors v1->v2 and v2->v3
+        # Check the angle is not 180 deg
+        vec1 = v.prev.get_array() - v.get_array()
+        vec2 = v.next.get_array() - v.get_array()
+
+        dot_product = dot(vec1, vec2)
+        neg_mag = -np.linalg.norm(vec1) * np.linalg.norm(vec2)
+
+        if not (dot_product - epsilon <= neg_mag <= dot_product + epsilon):
+            # print(f'\t\tcv = {i}, dot = {dot(vec1, vec2)}, mag = {- np.linalg.norm(vec1) * np.linalg.norm(vec2)}')
+            # if not (dot(v_left.get_array(), v_right.get_array()) <= 0 <= dot(v_left.get_array(), v_right.get_array()) + epsilon):
+            vertices.append(Vertex(len(vertices), v.x, v.y))
+
+        """# Compute the cross product of vectors v1->v2 and v2->v3
         cross_product = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
         # If the cross product is 0, the points are collinear
         if not (-epsilon <= cross_product <= epsilon):
-            vertices.append(Vertex(len(vertices), v.x, v.y))
+            vertices.append(Vertex(len(vertices), v.x, v.y))"""
 
     return Polygon(vertices)
 
@@ -174,25 +265,24 @@ def cross(v1, v2):
     return np.cross(v1.flatten(), v2.flatten())
 
 def split_polygon(P, depth=0):
-
-    #if depth == 1:
-#        quit()
-
     # Compute the concave vertices
     P.concave_vertices = compute_concave_vertices(P)
     ncc = len(P.concave_vertices)
     n = len(P.vertices)
     #save_polygon(P, depth, n)
+
+    #P.plot(title=f'P, depth = {depth}')
+
     # Base case: if the polygon is convex, return it
     if ncc == 0:
-        #print(f'\treturning')
+        print(f'\treturning')
+        #save_polygon(P, depth, len(P.vertices))
         return [P]
-    #print(f'{depth=}')
+    print(f'{depth=}')
+    #print(f'{n=}, {ncc=}')
     #print(f'concave vertices = {P.concave_vertices}')
 
     # Initialize the width sum matrix
-    #print(f'{ncc=}')
-    #print(f'{n=}')
     D = np.empty((ncc, n))
     D_polygons = []
 
@@ -213,7 +303,6 @@ def split_polygon(P, depth=0):
 
             # Define a vector from the vertices in edge e
             vec = e.v_to.get_array() - e.v_from.get_array()
-            # vec = -vec
 
             # Go through each edge in the P
             for e2 in P.edges:
@@ -226,7 +315,7 @@ def split_polygon(P, depth=0):
                 # Compute intersection with edge e2 (if any)
                 ip, t = compute_intersection(vec, cv, e2)
                 if ip is not None:
-                    #print(f'\t\t\t intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
+                    #print(f'\t\t intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
 
                     intersection_points.append(ip)
                     intersection_edges.append(e2)
@@ -240,21 +329,16 @@ def split_polygon(P, depth=0):
                         intersection_legal.append(True)
             # Handle invalid intersections
 
-            """for i, ip in enumerate(intersection_points):
-                t_i = intersection_directions[i]
-                normal_i = intersection_normals[i]
-
-                # Vector direction and normal are opposite signs (illegal intersection, leaves polygon)
-                if t_i * normal_i < 0:"""
-
             # Get the index of the intersection with minimum distance
-
+            if len(intersection_directions) == 0:
+                D[i, j] = np.inf
+                split_polygons.append((None, None))
+                continue
             min_index = np.argmin(np.abs(intersection_directions))
             intersection_points = np.array(intersection_points)
             intersection_edges = np.array(intersection_edges)
             intersection_directions = np.array(intersection_directions)
             intersection_normals = np.array(intersection_normals)
-
 
             # Check if the intersection is legal
             if intersection_normals[min_index] * intersection_directions[min_index] >= 0:
@@ -265,10 +349,24 @@ def split_polygon(P, depth=0):
                 #P1 = remove_collinear_vertices(P1)
                 #P2 = remove_collinear_vertices(P2)
 
-                # Compute the width sum of P1 and P2
-                #D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
-                D[i, j] = min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
-                split_polygons.append((P1, P2))
+                if is_well_formed(P1)[0] and is_well_formed(P2)[0]:
+                    try:
+                        min_width_P1 = min_polygon_width(P1.vertices_matrix())
+                    except:
+                        print('error for P1')
+                        save_polygon(P, P1, P2, depth, n, -1, name='error_P1')
+                        continue
+
+                    try:
+                        min_width_P2 = min_polygon_width(P2.vertices_matrix())
+                    except:
+                        print('error for P2')
+                        save_polygon(P, P1, P2, depth, n, -1, name='error_P2')
+                        continue
+
+                    D[i, j] = min_width_P1 + min_width_P2 #min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
+                    split_polygons.append((P1, P2))
+                    continue
             else:
                 if intersection_directions[min_index] >= 0:
                     legal_mask = intersection_directions < 0
@@ -281,6 +379,10 @@ def split_polygon(P, depth=0):
                 intersection_directions_legal = intersection_directions[legal_mask]
                 intersection_normals_legal = intersection_normals[legal_mask]
 
+                if len(intersection_directions_legal) == 0:
+                    D[i, j] = np.inf
+                    split_polygons.append((None, None))
+                    continue
                 min_index = np.argmin(np.abs(intersection_directions_legal))
 
                 if intersection_normals_legal[min_index] * intersection_directions_legal[min_index] < 0:
@@ -292,27 +394,56 @@ def split_polygon(P, depth=0):
                     #P2 = remove_collinear_vertices(P2)
 
                     # Compute the width sum of P1 and P2
-                    # D[i, j] = compute_polygon_width(P1) + compute_polygon_width(P2)
-                    D[i, j] = min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
-                    split_polygons.append((P1, P2))
+                    if is_well_formed(P1)[0] and is_well_formed(P2)[0]:
+                        try:
+                            min_width_P1 = min_polygon_width(P1.vertices_matrix())
+                        except:
+                            print('error for P1')
+                            save_polygon(P, P1, P2, depth, n, -1, name='error_P1')
+                            continue
+
+                        try:
+                            min_width_P2 = min_polygon_width(P2.vertices_matrix())
+                        except:
+                            print('error for P2')
+                            save_polygon(P, P1, P2, depth, n, -1, name='error_P2')
+                            continue
+                        D[i, j] = min_width_P1 + min_width_P2#min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
+                        split_polygons.append((P1, P2))
+                        continue
+
+            D[i, j] = np.inf
+            split_polygons.append((None, None))
+            #print('did not append')
 
         #plot_results(split_polygons, cv.index, D[i, :])
         D_polygons.append(split_polygons)
 
     # Select the best split of the polygon (lowest width sum)
     D_ij, (cv, edge) = find_min_value_matrix(D)
+
+    #print(f'D shape = {D_polygons.shape}')
+    #print(f'{ncc=}')
+    #print(f'num_edges = {len(P.edges)}')
+    #print(f'D polygons shape = {len(D_polygons)}, {len(D_polygons[cv])}')
     P1, P2 = D_polygons[cv][edge]
 
-    #plot_results2(P, P1, P2, depth, cv, edge, D_ij)
+    #P1.plot(title=f'P1, d = {depth}')
+    #P2.plot(title=f'P2, d = {depth}')
+        #print('here')
+    save_polygon(P, P1, P2, depth, len(P.vertices), D_ij)
+        #plot_results2(P, P1, P2, depth, cv, edge, D_ij)
 
     # Recursively split both sub-polygons if the polygons are valid
     result1 = []
     result2 = []
-    if is_valid_polygon(P1):
-        result1 = split_polygon(P1, depth + 1)
+    #if is_well_formed(P1):
+    #        print('P1 is well-formed')
+    result1 = split_polygon(P1, depth + 1)
 
-    if is_valid_polygon(P2):
-        result2 = split_polygon(P2, depth + 1)
+    #if is_well_formed(P2):
+     #   print('P2 is well-formed')
+    result2 = split_polygon(P2, depth + 1)
 
     # Combine both lists into one and return it
     return result1 + result2
@@ -412,6 +543,34 @@ def find_shared_edge(P1, P2):
                         e.v_to.get_array(), e2.v_from.get_array())):
 
                 return e, e2
+
+            """# Define the vector for each edge
+            vec1 = e.v_to.get_array() - e.v_from.get_array()
+            vec2 = e2.v_to.get_array() - e2.v_from.get_array()
+
+            # Vectors are collinear if the determinant is zero
+            if np.linalg.det(np.hstack([vec1, vec2])) - epsilon < 0 < np.linalg.det(
+                    np.hstack([vec1, vec2])) + epsilon:
+                # Parametrize the line from vec1: l(t) = P + t v
+
+                # Compute the intersection with the y-axis for each line
+                t1 = - e.v_from.x / vec1[0]
+                e_intersects_y = e.v_from.y + t1 * vec1[1]
+
+                t2 = - e2.v_from.x / vec2[0]
+                e2_intersects_y = e2.v_from.y + t2 * vec2[1]
+
+                # Check if the two lines intersects y in the same point
+                if points_are_equal(e_intersects_y, e2_intersects_y):
+                    # Check for partial adjacency between the polygons (if the projected intervals overlap)
+                    t1 = 0
+                    t2 = dot(e.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+                    s1 = dot(e2.v_from.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+                    s2 = dot(e2.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+
+                    if max(t1, t2) > min(s1, s2) and max(s1, s2) > min(t1, t2):
+                        print(f'partial overlap between {i} and {j}')
+                        #return True"""
     return None
 
 # TODO handle partial edges as well
@@ -447,6 +606,9 @@ def optimize_polygons(sub_polygons):
                     P = Polygon(combined_polygon_vertices)
                     #P = remove_collinear_vertices(P)
 
+                    if not is_well_formed(P):
+                        break
+
                     if len(compute_concave_vertices(P)) == 0:
                         sub_polygons[i] = P
                         sub_polygons.pop(j)
@@ -454,6 +616,10 @@ def optimize_polygons(sub_polygons):
                     break
             if merged:
                 break
+
+    for i in range(len(sub_polygons)):
+        sub_polygons[i].set_index(i)
+
     return sub_polygons
 
 """ Temporary plot functions """
@@ -554,6 +720,7 @@ def plot_results3(sub_polygons):
 
         ax.plot(x_coords, y_coords, 'k-')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+
         ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
 
         ax.plot(x_coords, y_coords, 'k-')
@@ -568,7 +735,7 @@ def plot_graph(G):
     pos = nx.spring_layout(G)  # Layout for node positions
     nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
     ax.set_title('Undirected Graph')
-    #plt.show()
+    plt.show()
 
 def plot_polygons(P, sub_polygons, G):
     fig, ax = plt.subplots(1, 3)
@@ -639,19 +806,27 @@ def plot_polygons2(P, sub_polygons, optimized_sub_polygons):
         ax[i].set_aspect('equal')"""
     plt.show()
 
-def save_polygon(P, depth, n, color='k'):
-    x_coords = []
-    y_coords = []
-    fig, ax = plt.subplots(1, 1)
+def save_polygon(P, P1, P2, depth, n, D_ij, color='k', name='fig'):
+    fig, ax = plt.subplots(1, 3)
 
-    for v in P.vertices:
-        x_coords.append(v.x)
-        y_coords.append(v.y)
-        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+    x_coords, y_coords = P.get_coords()
+    ax[0].plot(x_coords, y_coords, f'{color}-', marker='o')
+    ax[0].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+    ax[0].set_title(f'{depth=}, {n=}, D_ij = {np.round(D_ij, 1)}')
+    ax[0].set_aspect('equal')
 
-    ax.plot(x_coords, y_coords, f'{color}-', marker='o')
-    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-    ax.set_title(f'{depth=}, {n=}')
-    ax.set_aspect('equal')
-    plt.savefig(f'./figs/fig{id(P)}.png')
+    x_coords, y_coords = P1.get_coords()
+    ax[1].plot(x_coords, y_coords, f'{color}-', marker='o')
+    ax[1].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+    ax[1].set_title(f'P1')
+    ax[1].set_aspect('equal')
+
+    x_coords, y_coords = P2.get_coords()
+    ax[2].plot(x_coords, y_coords, f'{color}-', marker='o')
+    ax[2].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+    ax[2].set_title(f'P2')
+    ax[1].set_title(f'P1')
+    ax[2].set_aspect('equal')
+
+    plt.savefig(f'./figs/{name}{id(P)}.png')
     plt.close()
