@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import math
 from Polygon import Polygon, Vertex
 from matplotlib.patches import Patch
+from global_variables import *
 
 def triangle_antipodal_edge_case(poly, mate_index, antipodal_index):
     """
@@ -80,17 +81,17 @@ def compute_boundary(poly):
                      np.min(coords[1, :]), np.max(coords[1, :]))
     return boundary
 
-def extend_vector_to_boundary(poly, v1, v2):
+def extend_vector_to_boundary(v1, v2, boundary):
     """ Extend the vector from v1 to v2 to intersect with the boundary box
 
-    :param poly: Polygon
     :param v1: NumPy array, the start point of the original vector
     :param v2: NumPy array, the end point of the original vector
+    :param boundary: List of polygon's boundaries
     :return extended_v1: NumPy array, the new start point of the extended vector
     :return extended_v2: NumPy array, the new end point of the extended vector
     """
     # Extract the boundary box values
-    min_x, max_x, min_y, max_y = compute_boundary(poly)
+    min_x, max_x, min_y, max_y = boundary
 
     # Calculate the direction vector from v1 to v2
     direction = create_vector(v1, v2)
@@ -196,16 +197,15 @@ def closest_vertex(poly1, poly2, a_index):
 
     return closest_point
 
-
-# Algorithm 1
-def get_path(poly, dx, b_index, b_mate_index, a_index):
-    """ GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
+def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
+    """ # Algorithm 1 - GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
 
     :param poly: Polygon P, using Polygon class
     :param dx: Path width (0.1 = 100 meters)
     :param b_index: Starting vertex index
     :param b_mate_index: b's counterclockwise neighbour index
     :param a_index: b's diametral antipodal point index
+    :param boundary: List of polygon's boundaries
     :return path: A path which fully covers P
     """
     # Getting the three vertices as points from the polygon
@@ -222,15 +222,15 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
     b_a_dist = distance_between_points(b, a)
     b_mate_a_dist = distance_between_points(b_mate, a)
 
+    # Find polygon smallest diameter
     if b_a_dist < b_mate_a_dist:
         diameter = b_a_dist
     else:
         diameter = b_mate_a_dist
 
-    #print(f'diameter = {diameter}')
-
+    # If path width is larger than the smallest diameter, then change path to half the diameter size
     if dx > diameter:
-        # In case of path width being too large to fit inside polygon, changed to fit using polygon diameter
+        # In case of path width being too large to fit inside polygon
         delta_init = diameter / 2
     else:
         delta_init = dx / 2
@@ -240,17 +240,17 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
     # Offsetting vector b to b_mate with delta_init towards point a
     L_flight = compute_offset_vector(b, b_mate, sweep_direction, delta_init)
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
-    L_flight = extend_vector_to_boundary(poly, L_flight[0], L_flight[1])
+    L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundary)
 
     # Fail-safe parameters for the while loop
     max_iterations = 10000
     counter = 0
-    go_to_edge = True
 
     # Loop until no intersections is found
     # TODO: Change loop such that last turn checks to create a closer path to poly edge
-    while not (Polygon.find_intersections(poly, L_flight[0], L_flight[1]) == []):  # Optimize by only calling function once?
+    while not (Polygon.find_intersections(poly, L_flight[0], L_flight[1]) == []):
         ip1, ip2 = Polygon.find_intersections(poly, L_flight[0], L_flight[1])
+
         # Add points to path in correct order
         path = check_and_connect(path, ip1, ip2, b)
 
@@ -267,9 +267,9 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
 
         # Computing next extended offset vector, offset with full path width dx
         L_flight = compute_offset_vector(L_flight[0], L_flight[1], sweep_direction, dx)
-        L_flight = extend_vector_to_boundary(poly, L_flight[0], L_flight[1])
+        L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundary)
 
-        # Avoid un-ending while loop
+        # Avoid infinite while loop
         if counter >= max_iterations:
             print(f"Max iterations of {max_iterations} reached.")
             break
@@ -277,10 +277,26 @@ def get_path(poly, dx, b_index, b_mate_index, a_index):
 
     return np.array(path)
 
-def best_path(polygons, current_polygon_index, dx, i, j, p_start, p_end):
-    """Compute the best path based on both distance and number of turns."""
+def best_path(polygons, current_polygon_index, path, dx, i, j):
+    """ Compute the best path based on both distance and number of turns.
+
+    :param path:
+    :param polygons: List of polygons
+    :param current_polygon_index:
+    :param dx:
+    :param i:
+    :param j:
+    :return:
+    """
     poly = polygons[current_polygon_index]
+    boundary = compute_boundary(poly)
     n = len(polygons)
+
+    # Setting start point as the current last point in the total path
+    if path.shape[0] > 0:  # if ext points included, ext_p_start will be the last (only) point in the path
+        path_start = path[path.shape[0]-1]
+    else:  # If first polygon and no ext points, then the first point in the first path will act as the start point
+        path_start = None
 
     # TODO: Use distance from b to a metric to avoid computing all 4 paths, might be difficult due to start and end points depends on other polygons
     # From b towards a
@@ -288,37 +304,23 @@ def best_path(polygons, current_polygon_index, dx, i, j, p_start, p_end):
     cw_b1 = i
     cw_b1_mate = poly.get_mate(cw_b1)
     cw_a1 = triangle_antipodal_edge_case(poly, cw_b1_mate, j)
-    #print(f'cw_b1: {cw_b1}')
-    #print(f'cw_b1_mate: {cw_b1_mate}')
-    #print(f'cw_a1: {cw_a1}')
+    cw_path1 = get_path(poly, dx, cw_b1, cw_b1_mate, cw_a1, boundary)
 
-    cw_path1 = get_path(poly, dx, cw_b1, cw_b1_mate, cw_a1)
-
+    # Finding the closest vertex in the next polygon from path aim point a
     if current_polygon_index < (n-1):
-        cw_p_end1 = closest_vertex(poly, polygons[current_polygon_index+1], cw_a1)  # Finding the closest vertex in next polygon from path endpoint a
+        cw_p_end1 = closest_vertex(poly, polygons[current_polygon_index+1], cw_a1)
     else:
         cw_p_end1 = poly.vertices[cw_a1].v  # Else last point will be point a
-    cw_dist1 = calculate_total_distance(cw_path1, p_start, cw_p_end1)
 
     # Counterclockwise
     ccw_b1 = cw_b1_mate
     ccw_b1_mate = i
     ccw_a1 = cw_a1  # Unchanged
-    ccw_path1 = get_path(poly, dx, ccw_b1, ccw_b1_mate, ccw_a1)
+    ccw_path1 = get_path(poly, dx, ccw_b1, ccw_b1_mate, ccw_a1, boundary)
     if current_polygon_index < (n-1):
         ccw_p_end1 = closest_vertex(poly, polygons[current_polygon_index+1], ccw_a1)  # Finding the closest vertex in next polygon from path endpoint a
     else:
         ccw_p_end1 = poly.vertices[ccw_a1].v  # Else last point will be point a
-    ccw_dist1 = calculate_total_distance(ccw_path1, p_start, ccw_p_end1)
-
-    # Select the optimal rotation from the shortest path distance
-    if cw_dist1 < ccw_dist1:
-        optimal_path1, optimal_dist1 = cw_path1, cw_dist1
-        b1_best, b1_mate_best, a1_best = cw_b1, cw_b1_mate, cw_a1
-    else:
-        optimal_path1, optimal_dist1 = ccw_path1, ccw_dist1
-        b1_best, b1_mate_best, a1_best = ccw_b1, ccw_b1_mate, ccw_a1
-
     #plot_paths_comparison(poly, p_start, poly.vertices[cw_b1].v, poly.vertices[cw_b1_mate].v, poly.vertices[cw_a1].v, cw_path1, poly.vertices[ccw_b1].v, poly.vertices[ccw_b1_mate].v, poly.vertices[ccw_a1].v, ccw_path1,dx,(optimal_path1, optimal_dist1, poly.vertices[b1_best].v, poly.vertices[b1_mate_best].v, poly.vertices[a1_best].v),cw_dist1, ccw_dist1)
 
     # From a towards b
@@ -326,84 +328,91 @@ def best_path(polygons, current_polygon_index, dx, i, j, p_start, p_end):
     cw_b2 = j
     cw_b2_mate = poly.get_mate(cw_b2)
     cw_a2 = triangle_antipodal_edge_case(poly, cw_b2_mate, i)
-    cw_path2 = get_path(poly, dx, cw_b2, cw_b2_mate, cw_a2)
+    cw_path2 = get_path(poly, dx, cw_b2, cw_b2_mate, cw_a2, boundary)
     if current_polygon_index < (n-1):
         cw_p_end2 = closest_vertex(poly, polygons[current_polygon_index+1], cw_a2)  # Finding the closest vertex in next polygon from path endpoint a
     else:
         cw_p_end2 = poly.vertices[cw_a2].v  # Else last point will be point a
-    cw_dist2 = calculate_total_distance(cw_path2, p_start, cw_p_end2)
 
     # Counterclockwise
     ccw_b2 = cw_b2_mate
     ccw_b2_mate = j
     ccw_a2 = cw_a2  # Unchanged
-    ccw_path2 = get_path(poly, dx, ccw_b2, ccw_b2_mate, ccw_a2)
+    ccw_path2 = get_path(poly, dx, ccw_b2, ccw_b2_mate, ccw_a2, boundary)
     if current_polygon_index < (n-1):
         ccw_p_end2 = closest_vertex(poly, polygons[current_polygon_index+1], ccw_a2)  # Finding the closest vertex in next polygon from path endpoint a
     else:
         ccw_p_end2 = poly.vertices[cw_a1].v  # Else last point will be point a
-    ccw_dist2 = calculate_total_distance(ccw_path2, p_start, ccw_p_end2)
 
-    # Select the optimal rotation from the shortest path distance
-    if cw_dist2 < ccw_dist2:
-        optimal_path2, optimal_dist2 = cw_path2, cw_dist2
+    # Calculating path scores
+    cw_score1 = calculate_path_score(cw_path1, path_start, cw_p_end1)
+    ccw_score1 = calculate_path_score(ccw_path1, path_start, ccw_p_end1)
+    cw_score2 = calculate_path_score(cw_path2, path_start, cw_p_end2)
+    ccw_score2 = calculate_path_score(ccw_path2, path_start, ccw_p_end2)
+
+    # Select the optimal rotation from the shortest path distance for path1
+    if cw_score1 < ccw_score1:
+        optimal_path1, optimal_score1 = cw_path1, cw_score1
+        b1_best, b1_mate_best, a1_best = cw_b1, cw_b1_mate, cw_a1
+    else:
+        optimal_path1, optimal_score1 = ccw_path1, ccw_score1
+        b1_best, b1_mate_best, a1_best = ccw_b1, ccw_b1_mate, ccw_a1
+
+    # Select the optimal rotation from the shortest path distance for path2
+    if cw_score2 < ccw_score2:
+        optimal_path2, optimal_score2 = cw_path2, cw_score2
         b2_best, b2_mate_best, a2_best = cw_b2, cw_b2_mate, cw_a2
     else:
-        optimal_path2, optimal_dist2 = ccw_path2, ccw_dist2
+        optimal_path2, optimal_score2 = ccw_path2, ccw_score2
         b2_best, b2_mate_best, a2_best = ccw_b2, ccw_b2_mate, ccw_a2
 
     #plot_paths_comparison(poly, p_start, poly.vertices[cw_b2].v, poly.vertices[cw_b2_mate].v, poly.vertices[cw_a2].v, cw_path2, poly.vertices[ccw_b2].v, poly.vertices[ccw_b2_mate].v, poly.vertices[ccw_a2].v, ccw_path2,dx,(optimal_path2, optimal_dist2, poly.vertices[b2_best].v, poly.vertices[b2_mate_best].v, poly.vertices[a2_best].v),cw_dist2, ccw_dist2)
 
-    score1 = optimal_dist1
-    score2 = optimal_dist2
-
-    # Select the optimal path
-    if score1 < score2:
-        optimal_path, optimal_score = optimal_path1, score1
-        b_best, b_mate_best, a_best = b1_best, b1_mate_best, a1_best
+    # Selecting the optimal path
+    if optimal_score1 < optimal_score2:
+        optimal_path, optimal_score = optimal_path1, optimal_score1
+        b_best, b_mate_best, a_best = b1_best, b1_mate_best, a1_best  # For plot
     else:
-        optimal_path, optimal_score = optimal_path2, score2
-        b_best, b_mate_best, a_best = b2_best, b2_mate_best, a2_best
+        optimal_path, optimal_score = optimal_path2, optimal_score2
+        b_best, b_mate_best, a_best = b2_best, b2_mate_best, a2_best  # For plot
 
     #plot_paths_comparison(poly, p_start, poly.vertices[b1_best].v, poly.vertices[b1_mate_best].v, poly.vertices[a1_best].v, optimal_path1, poly.vertices[b2_best].v, poly.vertices[b2_mate_best].v, poly.vertices[a2_best].v, optimal_path2,dx,(optimal_path, optimal_score, poly.vertices[b_best].v, poly.vertices[b_mate_best].v, poly.vertices[a_best].v),score1, score2)
 
     return optimal_path, optimal_score
 
-def calculate_total_distance(path, p_start, p_end, distance_weight = 1, turn_weight = 0.5):
+def calculate_path_score(path, path_start, path_end):
     """ Calculate the total cost of a given path, including the travel distance to
     the starting point and from the ending point.
 
-    :param distance_weight:
-    :param turn_weight:
     :param path: A list of points creating the given path
-    :param p_start:
-    :param p_end:
-    :return:
+    :param path_start:
+    :param path_end:
+    :return: Paths score
     """
     if path.size == 0:
         return 0
 
-    # 1. Calculate the distance from the start_point to the first point of the path
-    if not (p_start is None):
-        distance_to_start = np.linalg.norm(np.array(p_start) - np.array(path[0]))
-    else:
+    if path_start is None:
         distance_to_start = 0
+    else:
+        distance_to_start = distance_to_start_weight * np.linalg.norm(np.array(path_start) - np.array(path[0]))
 
     # 2. Calculate the distance for the entire back-and-forth path (sum of segment distances)
     path_distance = 0
     for k in range(1, len(path)):
         path_distance += np.linalg.norm(np.array(path[k]) - np.array(path[k - 1]))
+    path_distance *= distance_weight
 
     # 3. Calculate the distance from the last point of the path to the end_point
-    distance_to_end = 0 #np.linalg.norm(np.array(p_end) - np.array(path[-1]))  # TODO: Need next poly to get vertex closest to optimal end point of current poly
+    distance_to_end = distance_to_end_weight *  np.linalg.norm(np.array(path_end) - np.array(path[-1]))  # TODO: Need next poly to get vertex closest to optimal end point of current poly
 
-    # 3.1. Account for number of turns in path (points), less is better
-    turns = len(path) * turn_weight  # Weight to adjust how much turning is punished
+    # 3.1. Account for number of turns in path (points)
+    turns = turn_weight * len(path)
 
-    # 4. Total cost is the sum of all distances
-    total_cost = distance_to_start + path_distance + distance_to_end + turns
+    # 4. The final path score heuristic
+    score = distance_to_start + path_distance + distance_to_end + turns
 
-    return total_cost
+    return score
 
 def plot_path(poly, b, b_mate, a, dx, path):
     """
