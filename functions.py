@@ -492,7 +492,7 @@ def dot(v1, v2):
     """ Dot product between two vertical vectors """
     return v1.flatten() @ v2.flatten()
 
-def polygons_are_adjacent(P1, P2, i, j, epsilon=epsilon):
+def polygons_are_adjacent(P1, P2, i, j):
     """ Determine if two polygons share an edge either by complete or partial adjacency"""
     for e in P1.edges:
         for e2 in P2.edges:

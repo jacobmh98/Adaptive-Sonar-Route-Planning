@@ -6,13 +6,12 @@ import pickle
 import traceback
 from global_variables import *
 from functions import *
-from functions import *
 import pickle
 from global_variables import load_existing_data
 
 if not load_existing_data:
     # Reading the test data
-    f = open('test_data/antwerpen_full2.json')
+    f = open('test_data/complex_polygon.json')
 
     data = json.load(f)
     vertices_data = data['area']['coordinates']
@@ -33,17 +32,11 @@ if not load_existing_data:
     with open('C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen.pkl', 'wb') as file:
         pickle.dump(sub_polygons, file)
 else:
-    print('load')
-    with open('./test_data/antwerpen.pkl', 'rb') as file:
-        sub_polygons = pickle.load(file)
-
     f = open('test_data/antwerpen_full.json')
 
     print('loading')
     with open('./test_data/antwerpen.pkl', 'rb') as file:
         sub_polygons = pickle.load(file)
-
-    f = open('test_data/antwerpen_full2.json')
 
     data = json.load(f)
     vertices_data = data['area']['coordinates']
@@ -56,40 +49,52 @@ else:
 
     antwerp_poly = Polygon(vertices)
 
+print('optimizing')
 # Optimizing the sub-polygons (removing edges)
-optimize_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
+#optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
+
+# Save the optimized sub polygon objects
+#with open('C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen_optimized.pkl', 'wb') as file:
+#    pickle.dump(optimized_sub_polygons, file)
+
+with open('./test_data/antwerpen_optimized.pkl', 'rb') as file:
+    optimized_sub_polygons = pickle.load(file)
 
 # Plotting the sub-polygons
-#plot_results3(optimize_sub_polygons)
+plot_results3(optimized_sub_polygons)
 
 
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:
-    distance_matrix = traveling_salesman_variation.create_distance_matrix(optimize_sub_polygons)
+    distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)
     tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-    #traveling_salesman_variation.visualize_tsp_solution(sub_polygons, tsp_route)
+    traveling_salesman_variation.visualize_tsp_solution(optimized_sub_polygons, tsp_route)
     polygons = [sub_polygons[i] for i in tsp_route]
 
 elif dfs_sort:
     # Order the list of sub polygons
-    adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimize_sub_polygons)
+    adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
     start_node = next(iter(adjacency_graph.nodes()))
-    #functions.plot_graph(adjacency_graph)
-    polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimize_sub_polygons, start_node)
+    print(start_node)
+    plot_graph(adjacency_graph)
+
+    polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
 
 else:  # Unsorted polygons
-    polygons = optimize_sub_polygons
+    polygons = optimized_sub_polygons
 
 print(f'num_polygons = {len(polygons)}')
 
 complete_path = np.empty((0,2))
+
+plot_results3(polygons)
 
 # If chosen, parallel vertices are removed (Can cause edge case errors if they are not removed)
 if remove_parallel_vertices:
     for i,poly in enumerate(polygons):
         polygons[i] = multi_poly_planning.remove_unnecessary_vertices(poly)
 
-
+    plot_results3(polygons)
 total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
 multi_poly_planning.multi_poly_plot(antwerp_poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
 
