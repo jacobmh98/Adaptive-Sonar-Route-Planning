@@ -1,6 +1,11 @@
 scale = 1
-epsilon = 1e-6 # 1cm
-load_existing_data = False
+epsilon = 1e-2
+
+name_decomposition = 'antwerpen_epsilon_e6'
+name_optimized_decomposition = 'antwerpen_epsilon_e6_optimized_e2'
+
+load_existing_data = True
+load_existing_optimized_polygons = True
 
 # Start parameters
 dx = 10 # Path width (Must be >0) (1 is 1 meter)

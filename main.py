@@ -29,13 +29,13 @@ if not load_existing_data:
     sub_polygons = split_polygon(antwerp_poly)
 
     # Save the sub polygon objects
-    with open('C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen.pkl', 'wb') as file:
+    with open(f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_decomposition}.pkl', 'wb') as file:
         pickle.dump(sub_polygons, file)
 else:
     f = open('test_data/antwerpen_full.json')
 
     print('loading')
-    with open('./test_data/antwerpen.pkl', 'rb') as file:
+    with open(f'./test_data/{name_decomposition}.pkl', 'rb') as file:
         sub_polygons = pickle.load(file)
 
     data = json.load(f)
@@ -49,30 +49,94 @@ else:
 
     antwerp_poly = Polygon(vertices)
 
+antwerp_poly.plot()
+
+if not load_existing_optimized_polygons:
+    """# Removing collinear vertices from the sub-polygons
+    for i, p in enumerate(sub_polygons):
+        sub_polygons[i] = remove_collinear_vertices(p)"""
+
+    # Removing illegal sub-polygons from the unoptimized Antwerpen
+    i = 0
+    while i < len(sub_polygons):
+        p = sub_polygons[i]
+
+        if not is_well_formed(p)[0]:
+            sub_polygons.pop(i)
+            i -= 1
+        i += 1
+
+    # Optimizing the sub-polygons (removing edges)
+    optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
+
+    # Save the optimized sub polygon objects
+    with open(f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_optimized_decomposition}.pkl', 'wb') as file:
+        pickle.dump(optimized_sub_polygons, file)
+else:
+    """# Removing collinear vertices from the sub-polygons
+    for i, p in enumerate(sub_polygons):
+        sub_polygons[i] = remove_collinear_vertices(p)"""
+
+    # Removing illegal sub-polygons from the unoptimized Antwerpen
+    i = 0
+    while i < len(sub_polygons):
+        p = sub_polygons[i]
+
+        if not is_well_formed(p)[0]:
+            sub_polygons.pop(i)
+            i -= 1
+        i += 1
+
+    with open(f'./test_data/{name_optimized_decomposition}.pkl', 'rb') as file:
+        optimized_sub_polygons = pickle.load(file)
+
+plot_results3(sub_polygons)
+plot_results3(optimized_sub_polygons)
+
+"""collection = []
+for i, p in enumerate(sub_polygons):
+    if i == 179 or i == 180 or i == 196 or i == 197 or i == 198 or i == 199 or i == 200:
+        collection.append(p)
+
+optimized_collection = optimize_polygons(copy.deepcopy(collection))
+plot_results3(collection)
+plot_results3(optimized_collection)"""
+
+# TODO har ikke testet om den stadig laver den korrekte adjacent matrix. Men tror stadig det virker
+# Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
+m = len(optimized_sub_polygons)
+A = np.zeros((m, m))
+G = nx.Graph()
+
+# Go through each edge in p_i and compare with each edge in p_j
+for i, p_i in  enumerate(optimized_sub_polygons):
+    for j, p_j in enumerate(optimized_sub_polygons):
+        # Ignore if the two polygons are equal
+        if i == j:
+            A[i, j] = 0
+            continue
+
+        # Test if the two polygons p_i and p_j are adjacent (either complete or partial)
+        if polygons_are_adjacent(p_i, p_j, i, j):
+            # Update the adjacent matrix
+            A[i, j] = 1
+            A[j, i] = 1
+            G.add_edge(f'P{i}', f'P{j}')
+        else:
+            A[i, j] = np.inf
+
+plot_graph(G)
 quit()
-print('optimizing')
-# Optimizing the sub-polygons (removing edges)
-#optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
 
-# Save the optimized sub polygon objects
-#with open('C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen_optimized.pkl', 'wb') as file:
-#    pickle.dump(optimized_sub_polygons, file)
-
-with open('./test_data/antwerpen_optimized.pkl', 'rb') as file:
-    optimized_sub_polygons = pickle.load(file)
-
-
-collected_polygons = []
-for i in range(len(optimized_sub_polygons)):
-    if i == 2 or i == 20:
-        collected_polygons.append(optimized_sub_polygons[i])
-
-test = optimize_polygons(collected_polygons)
+#collected_polygons[0].plot()
+#collected_polygons[1].plot()
+#test = optimize_polygons(collected_polygons)
+#print(collected_polygons[0].vertices)
+#print(collected_polygons[1].vertices)
 # Plotting the sub-polygons
-plot_results3(test)
-#plot_results3(collected_polygons)
+#plot_results3(test)
+#plot_results3(test)
 
-quit()
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:
     distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)
@@ -84,7 +148,7 @@ elif dfs_sort:
     # Order the list of sub polygons
     adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
     start_node = next(iter(adjacency_graph.nodes()))
-    print(start_node)
+    #print(start_node)
     plot_graph(adjacency_graph)
 
     polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)

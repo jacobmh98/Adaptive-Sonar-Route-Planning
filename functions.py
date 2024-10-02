@@ -5,7 +5,7 @@ from Polygon import *
 from scipy.spatial import ConvexHull
 import pandas as pd
 
-from global_variables import epsilon
+from global_variables import epsilon#, optimizing_epsilon
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -48,7 +48,7 @@ def distance(v1, v2):
     """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
     return np.linalg.norm(v1 - v2)
 
-def points_are_equal(P1, P2, epsilon=epsilon):
+def points_are_equal(P1, P2):
     """ Checks if two points P1 and P2 are approximately equal within a tolerance epsilon. """
     # Check if the distance between the points is smaller than epsilon
     return np.all(np.abs(P1 - P2) < epsilon)
@@ -82,7 +82,8 @@ def split_polygon_single(e2, intersection_p, cv):
 
     P1 = Polygon(P1_vertices)
     P2 = Polygon(P2_vertices)
-    return P1, P2
+
+    return remove_collinear_vertices(P1), remove_collinear_vertices(P2)
 
 def compute_intersection(vec, cv, e2):
     """ Computes the points of intersection (if any) between a vector from a point cv and an edge e2 """
@@ -159,16 +160,18 @@ def remove_equal_points(P):
     return Polygon(vertices)
 
 def is_well_formed(polygon):
-    polygon = remove_collinear_vertices(polygon, 1e-3)
-
     # 1. Check if the polygon has at least 3 vertices
     if len(polygon.vertices) < 3:
         return False, "Polygon must have at least 3 vertices."
 
     # 2. Check if vertices are distinct
-    unique_vertices = set((v.x, v.y) for v in polygon.vertices)
-    if len(unique_vertices) != len(polygon.vertices):
-        return False, "Polygon has duplicate vertices."
+    for i, v in enumerate(polygon.vertices):
+        for j, v2 in enumerate(polygon.vertices):
+            if j <= i:
+                continue
+
+            if points_are_equal(v.get_array(), v2.get_array()):
+                return False, "Polygon has duplicate vertices."
 
     # 3. Check if the polygon is in counterclockwise order
     if not is_ccw(polygon):
@@ -231,7 +234,7 @@ def edges_intersect(e1, e2):
 
     return True"""
 
-def remove_collinear_vertices(P, epsilon=epsilon):
+def remove_collinear_vertices(P):
     """ Remove all collinear vertices in a polygon within some error """
     vertices = []
 
@@ -251,7 +254,6 @@ def remove_collinear_vertices(P, epsilon=epsilon):
             # print(f'\t\tcv = {i}, dot = {dot(vec1, vec2)}, mag = {- np.linalg.norm(vec1) * np.linalg.norm(vec2)}')
             # if not (dot(v_left.get_array(), v_right.get_array()) <= 0 <= dot(v_left.get_array(), v_right.get_array()) + epsilon):
             vertices.append(Vertex(len(vertices), v.x, v.y))
-
         """# Compute the cross product of vectors v1->v2 and v2->v3
         cross_product = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
         # If the cross product is 0, the points are collinear
@@ -350,19 +352,9 @@ def split_polygon(P, depth=0):
                 #P2 = remove_collinear_vertices(P2)
 
                 if is_well_formed(P1)[0] and is_well_formed(P2)[0]:
-                    try:
-                        min_width_P1 = min_polygon_width(P1.vertices_matrix())
-                    except:
-                        print('error for P1')
-                        save_polygon(P, P1, P2, depth, n, -1, name='error_P1')
-                        continue
 
-                    try:
-                        min_width_P2 = min_polygon_width(P2.vertices_matrix())
-                    except:
-                        print('error for P2')
-                        save_polygon(P, P1, P2, depth, n, -1, name='error_P2')
-                        continue
+                    min_width_P1 = min_polygon_width(P1.vertices_matrix())
+                    min_width_P2 = min_polygon_width(P2.vertices_matrix())
 
                     D[i, j] = min_width_P1 + min_width_P2 #min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
                     split_polygons.append((P1, P2))
@@ -395,19 +387,11 @@ def split_polygon(P, depth=0):
 
                     # Compute the width sum of P1 and P2
                     if is_well_formed(P1)[0] and is_well_formed(P2)[0]:
-                        try:
-                            min_width_P1 = min_polygon_width(P1.vertices_matrix())
-                        except:
-                            print('error for P1')
-                            save_polygon(P, P1, P2, depth, n, -1, name='error_P1')
-                            continue
 
-                        try:
-                            min_width_P2 = min_polygon_width(P2.vertices_matrix())
-                        except:
-                            print('error for P2')
-                            save_polygon(P, P1, P2, depth, n, -1, name='error_P2')
-                            continue
+                        min_width_P1 = min_polygon_width(P1.vertices_matrix())
+
+                        min_width_P2 = min_polygon_width(P2.vertices_matrix())
+
                         D[i, j] = min_width_P1 + min_width_P2#min_polygon_width(P1.vertices_matrix()) + min_polygon_width(P2.vertices_matrix())
                         split_polygons.append((P1, P2))
                         continue
@@ -542,6 +526,7 @@ def find_shared_edge(P1, P2):
                     (points_are_equal(e.v_from.get_array(), e2.v_to.get_array()) and points_are_equal(
                         e.v_to.get_array(), e2.v_from.get_array())):
 
+                #print(f'{e} and {e2}')
                 return e, e2
 
             """# Define the vector for each edge
@@ -592,7 +577,7 @@ def optimize_polygons(sub_polygons):
                 if shared_edges is not None:
                     combined_polygon_vertices = []
 
-                    #print(f'\t\tP_{i} and P_{j}, complete overlap between  {shared_edges[0]} and {shared_edges[1]}')
+                    #print(f'\t\tP_{i} and P_{j}')#, complete overlap between  {shared_edges[0]} and {shared_edges[1]}')
                     e, e2 = shared_edges
 
                     while e.next != shared_edges[0]:
