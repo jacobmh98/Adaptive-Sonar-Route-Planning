@@ -6,19 +6,28 @@ import pickle
 import traceback
 from global_variables import *
 from functions import *
+from functions import *
+import pickle
+from global_variables import load_existing_data
 
 if not load_existing_data:
     # Reading the test data
-    f = open('test_data/antwerpen_full.json')
+    f = open('test_data/antwerpen_full2.json')
+
     data = json.load(f)
     vertices_data = data['area']['coordinates']
 
-    # Defining the initial polygon and the boúnding box
+    # Defining the initial polygon
     vertices = []
+
+    for i in range(len(vertices_data)):
+        vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
+
+    antwerp_poly = Polygon(vertices)
 
     # Compute the split that gives the sub-polygons
     print('running')
-    sub_polygons = split_polygon(P)
+    sub_polygons = split_polygon(antwerp_poly)
 
     # Save the sub polygon objects
     with open('C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/antwerpen.pkl', 'wb') as file:
@@ -29,6 +38,13 @@ else:
         sub_polygons = pickle.load(file)
 
     f = open('test_data/antwerpen_full.json')
+
+    print('loading')
+    with open('./test_data/antwerpen.pkl', 'rb') as file:
+        sub_polygons = pickle.load(file)
+
+    f = open('test_data/antwerpen_full2.json')
+
     data = json.load(f)
     vertices_data = data['area']['coordinates']
 
@@ -95,6 +111,3 @@ for i, poly in enumerate(sorted_polygons):
         new_polygon[0].plot()
         break
 """
-
-
-

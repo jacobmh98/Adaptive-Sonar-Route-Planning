@@ -1,6 +1,5 @@
 scale = 1
-epsilon = 0.01 # 10cm
-
+epsilon = 1e-6 # 1cm
 load_existing_data = True
 
 # Start parameters

@@ -36,6 +36,7 @@ class Polygon:
         self.number_vertices = len(self.vertices)
         self.concave_vertices = []
         self.edges = []
+        self.i = None
 
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]
@@ -60,13 +61,19 @@ class Polygon:
 
         return x_coords, y_coords
 
+    def set_index(self, i):
+        self.i = i
+
+    def get_index(self):
+        return self.i
+
     def vertices_matrix(self):
         """ Function to get the vertices in the polygon in a 2xn list """
         x_coords, y_coords = self.get_coords()
 
         return np.array([x_coords, y_coords])
 
-    def plot(self, color='k'):
+    def plot(self, color='k', title=''):
         x_coords = []
         y_coords = []
         fig, ax = plt.subplots(1, 1)
@@ -78,6 +85,7 @@ class Polygon:
 
         ax.plot(x_coords, y_coords, f'{color}-', marker='o')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+        ax.set_title(f'{title}')
         ax.set_aspect('equal')
         plt.show()
 

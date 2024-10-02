@@ -160,7 +160,11 @@ def multi_path_planning(polygons, dx, include_external_start_end):
 
         total_path = np.vstack([total_path, shortest_path])
 
-    # Appending the external end point as last point in path
+        shortest_path = rotating_calipers_path_planner(polygons, i, dx, diametric_antipodal_pairs, new_p_start, new_p_end)
+
+        total_path = np.vstack([total_path, shortest_path])
+
+    # Appending the last point into path
     if include_external_start_end:
         total_path = np.append(total_path, [ext_p_end], axis=0)
 
@@ -179,6 +183,7 @@ def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, p
     :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
     """
     coverage = False
+
     plot_sub_polygons = True
 
     fig, ax = plt.subplots(1, 1)
@@ -202,6 +207,15 @@ def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, p
 
             # Label the polygon with its number (the order number)
             ax.text(centroid_x, centroid_y, f'{i}', fontsize=10, color='blue')
+
+    fig, ax = plt.subplots(1, 1)
+    color = "k"
+    # Plot the polygons
+    x_coords, y_coords = polygon.get_coords()
+
+    ax.plot(x_coords, y_coords, f'{color}-', marker='o')
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
+    ax.set_aspect('equal')
 
     # Plot the path
     if len(path) > 0:
