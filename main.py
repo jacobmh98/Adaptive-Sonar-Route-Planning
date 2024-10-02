@@ -11,7 +11,7 @@ from global_variables import load_existing_data
 
 if not load_existing_data:
     # Reading the test data
-    f = open('test_data/complex_polygon.json')
+    f = open('test_data/antwerpen_full.json')
 
     data = json.load(f)
     vertices_data = data['area']['coordinates']
@@ -49,6 +49,7 @@ else:
 
     antwerp_poly = Polygon(vertices)
 
+quit()
 print('optimizing')
 # Optimizing the sub-polygons (removing edges)
 #optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
@@ -60,10 +61,18 @@ print('optimizing')
 with open('./test_data/antwerpen_optimized.pkl', 'rb') as file:
     optimized_sub_polygons = pickle.load(file)
 
+
+collected_polygons = []
+for i in range(len(optimized_sub_polygons)):
+    if i == 2 or i == 20:
+        collected_polygons.append(optimized_sub_polygons[i])
+
+test = optimize_polygons(collected_polygons)
 # Plotting the sub-polygons
-plot_results3(optimized_sub_polygons)
+plot_results3(test)
+#plot_results3(collected_polygons)
 
-
+quit()
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:
     distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)

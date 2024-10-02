@@ -1,6 +1,6 @@
 scale = 1
 epsilon = 1e-6 # 1cm
-load_existing_data = True
+load_existing_data = False
 
 # Start parameters
 dx = 10 # Path width (Must be >0) (1 is 1 meter)
