@@ -121,7 +121,7 @@ elif dfs_sort:
     adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
     start_node = next(iter(adjacency_graph.nodes()))
     polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
-
+    plot_graph(adjacency_graph)
 else:  # Unsorted polygons
     polygons = optimized_sub_polygons
 
