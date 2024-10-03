@@ -4,8 +4,9 @@ import polygon_coverage_path
 import rotating_calipers_antipodal_pairs
 import matplotlib.pyplot as plt
 from functions import polygons_are_adjacent
-from global_variables import ext_p_start, ext_p_end
-from Polygon import Polygon
+from global_variables import ext_p_start, ext_p_end, optimize_epsilon
+from Polygon import Polygon, Vertex
+
 
 def get_nearest_neighbour_vertex(poly1, poly2):
     nearest_vertex = None
@@ -71,7 +72,7 @@ def sort_sub_polygons_using_dfs(G, polygons, start):
 
     return sorted_polys
 
-def remove_unnecessary_vertices(polygon, epsilon=1e-9):
+def remove_unnecessary_vertices(polygon):
     """Remove vertices that form a straight line with their neighbors.
 
     :param polygon: Polygon object
@@ -79,6 +80,8 @@ def remove_unnecessary_vertices(polygon, epsilon=1e-9):
     :return: A new polygon with unnecessary vertices removed
     """
     new_vertices = []
+    index = 0  # Start index for the new vertices
+
     for i in range(len(polygon.vertices)):
         v_prev = polygon.vertices[i - 1]
         v_curr = polygon.vertices[i]
@@ -93,12 +96,15 @@ def remove_unnecessary_vertices(polygon, epsilon=1e-9):
         cross_product = np.cross(vector1, vector2)[-1]
 
         # If cross product is not zero (within epsilon), the vertex is necessary
-        if abs(cross_product) > epsilon:
-            v_curr.index = len(new_vertices)
-            new_vertices.append(v_curr)
+        if abs(cross_product) > optimize_epsilon:
+            # Assign the new index to the vertex
+            new_vertex = Vertex(index, v_curr.x, v_curr.y)
+            new_vertices.append(new_vertex)
+            index += 1
 
     # Return a new polygon with filtered vertices
     return Polygon(new_vertices)
+
 
 def rotating_calipers_path_planner(polygons, current_polygon_index, path, dx, d_pq):
     """ Algorithm 2: Rotating Calipers Path Planner.
@@ -142,17 +148,14 @@ def multi_path_planning(polygons, dx, include_external_start_end):
         total_path = np.append(total_path, [ext_p_start], axis=0)
 
     for i, current_poly in enumerate(polygons):
-        b_index = 0  # Always start at first vertex in the current polygon
-
         # Computing current polygons antipodal points
         antipodal_vertices = rotating_calipers_antipodal_pairs.compute_antipodal_pairs(current_poly)
         # Removes neighbour pairs and double pairs, i.e. for [0,1] and [1,0] only 1 of them is necessary as both [1,0] and [0,1] is checked in best path algorithm
         filtered_antipodal_vertices = rotating_calipers_antipodal_pairs.filter_and_remove_redundant_pairs(current_poly, antipodal_vertices)
         # Computing the diametric antipodal pairs (Minimizing number of paths computed, as diametric pairs produce the shortest paths)
         diametric_antipodal_pairs = rotating_calipers_antipodal_pairs.filter_diametric_antipodal_pairs(current_poly, filtered_antipodal_vertices)
-        # Getting index of point a (the diametric antipodal point of b)
-        # diametric_antipode_index = rotating_calipers_antipodal_pairs.get_diametric_antipodal_point_index(diametric_antipodal_pairs, b_index)
 
+        # Getting the shortest path for the current poly
         shortest_path = rotating_calipers_path_planner(polygons, i, total_path, dx, diametric_antipodal_pairs)
 
         if shortest_path.size == 0:  # Probably not necessary
@@ -179,7 +182,7 @@ def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, p
     :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
     """
     coverage = False
-    plot_sub_polygons = True
+    plot_sub_polygons = False
 
     fig, ax = plt.subplots(1, 1)
     color = "k"

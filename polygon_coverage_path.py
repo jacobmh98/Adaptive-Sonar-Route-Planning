@@ -197,6 +197,58 @@ def closest_vertex(poly1, poly2, a_index):
 
     return closest_point
 
+
+def point_to_line_distance(p, v1, v2, epsilon=1e-9):
+    """Compute the perpendicular distance from point p to the line segment defined by v1 and v2."""
+    x0, y0 = p.x, p.y
+    x1, y1 = v1.x, v1.y
+    x2, y2 = v2.x, v2.y
+
+    # Line equation parameters
+    num = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1)
+    denom = np.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2)
+
+    # Check for zero division
+    if denom < epsilon:
+        return 0  # If the two points are the same, return 0 distance
+
+    return num / denom
+
+
+def get_smallest_diameter(polygon):
+    """Compute the smallest diameter of the polygon."""
+    n = len(polygon.vertices)
+
+    if n == 3:
+        # For a triangle, check both vertex-to-vertex and vertex-to-edge distances
+        v1, v2, v3 = polygon.vertices[0], polygon.vertices[1], polygon.vertices[2]
+
+        # Compute vertex-to-vertex distances
+        dist_v1_v2 = np.linalg.norm(v1.get_array() - v2.get_array())
+        dist_v2_v3 = np.linalg.norm(v2.get_array() - v3.get_array())
+        dist_v3_v1 = np.linalg.norm(v3.get_array() - v1.get_array())
+
+        # Compute vertex-to-edge distances
+        dist_v1_to_edge = point_to_line_distance(v1, v2, v3)
+        dist_v2_to_edge = point_to_line_distance(v2, v1, v3)
+        dist_v3_to_edge = point_to_line_distance(v3, v1, v2)
+
+        # Return the minimum of all the computed distances
+        return min(dist_v1_v2, dist_v2_v3, dist_v3_v1, dist_v1_to_edge, dist_v2_to_edge, dist_v3_to_edge)
+
+    else:
+        # For polygons with more than 3 vertices, find the smallest distance between any two vertices
+        min_distance = float('inf')
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                dist = np.linalg.norm(polygon.vertices[i].get_array() - polygon.vertices[j].get_array())
+                if dist < min_distance:
+                    min_distance = dist
+
+        return min_distance
+
+
 def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
     """ # Algorithm 1 - GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
 
@@ -219,19 +271,12 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
     sweep_direction = compute_sweep_direction(b, b_mate, a)
 
     # First pass is offset from polygon edge with half path width, unless path width is too large for the polygon
-    b_a_dist = distance_between_points(b, a)
-    b_mate_a_dist = distance_between_points(b_mate, a)
-
-    # Find polygon smallest diameter
-    if b_a_dist < b_mate_a_dist:
-        diameter = b_a_dist
-    else:
-        diameter = b_mate_a_dist
+    smallest_diameter = get_smallest_diameter(poly)
 
     # If path width is larger than the smallest diameter, then change path to half the diameter size
-    if dx > diameter:
+    if dx > smallest_diameter:
         # In case of path width being too large to fit inside polygon
-        delta_init = diameter / 2
+        delta_init = smallest_diameter / 2
     else:
         delta_init = dx / 2
 
@@ -321,7 +366,6 @@ def best_path(polygons, current_polygon_index, path, dx, i, j):
         ccw_p_end1 = closest_vertex(poly, polygons[current_polygon_index+1], ccw_a1)  # Finding the closest vertex in next polygon from path endpoint a
     else:
         ccw_p_end1 = poly.vertices[ccw_a1].v  # Else last point will be point a
-    #plot_paths_comparison(poly, p_start, poly.vertices[cw_b1].v, poly.vertices[cw_b1_mate].v, poly.vertices[cw_a1].v, cw_path1, poly.vertices[ccw_b1].v, poly.vertices[ccw_b1_mate].v, poly.vertices[ccw_a1].v, ccw_path1,dx,(optimal_path1, optimal_dist1, poly.vertices[b1_best].v, poly.vertices[b1_mate_best].v, poly.vertices[a1_best].v),cw_dist1, ccw_dist1)
 
     # From a towards b
     # Clockwise caliper
@@ -366,8 +410,6 @@ def best_path(polygons, current_polygon_index, path, dx, i, j):
         optimal_path2, optimal_score2 = ccw_path2, ccw_score2
         b2_best, b2_mate_best, a2_best = ccw_b2, ccw_b2_mate, ccw_a2
 
-    #plot_paths_comparison(poly, p_start, poly.vertices[cw_b2].v, poly.vertices[cw_b2_mate].v, poly.vertices[cw_a2].v, cw_path2, poly.vertices[ccw_b2].v, poly.vertices[ccw_b2_mate].v, poly.vertices[ccw_a2].v, ccw_path2,dx,(optimal_path2, optimal_dist2, poly.vertices[b2_best].v, poly.vertices[b2_mate_best].v, poly.vertices[a2_best].v),cw_dist2, ccw_dist2)
-
     # Selecting the optimal path
     if optimal_score1 < optimal_score2:
         optimal_path, optimal_score = optimal_path1, optimal_score1
@@ -375,6 +417,16 @@ def best_path(polygons, current_polygon_index, path, dx, i, j):
     else:
         optimal_path, optimal_score = optimal_path2, optimal_score2
         b_best, b_mate_best, a_best = b2_best, b2_mate_best, a2_best  # For plot
+    """
+    plot_paths_comparison(poly, ext_p_start, poly.vertices[cw_b1].v, poly.vertices[cw_b1_mate].v, poly.vertices[cw_a1].v,
+                          cw_path1, poly.vertices[ccw_b1].v, poly.vertices[ccw_b1_mate].v, poly.vertices[ccw_a1].v,
+                          ccw_path1,dx,(optimal_path1, optimal_score1, poly.vertices[b1_best].v,
+                                        poly.vertices[b1_mate_best].v, poly.vertices[a1_best].v),cw_score1, ccw_score1)
+    plot_paths_comparison(poly, ext_p_start, poly.vertices[cw_b2].v, poly.vertices[cw_b2_mate].v, poly.vertices[cw_a2].v,
+                          cw_path2, poly.vertices[ccw_b2].v, poly.vertices[ccw_b2_mate].v, poly.vertices[ccw_a2].v,
+                          ccw_path2,dx,(optimal_path2, optimal_score2, poly.vertices[b2_best].v,
+                                        poly.vertices[b2_mate_best].v, poly.vertices[a2_best].v),cw_score2, ccw_score2)
+    """
 
     #plot_paths_comparison(poly, p_start, poly.vertices[b1_best].v, poly.vertices[b1_mate_best].v, poly.vertices[a1_best].v, optimal_path1, poly.vertices[b2_best].v, poly.vertices[b2_mate_best].v, poly.vertices[a2_best].v, optimal_path2,dx,(optimal_path, optimal_score, poly.vertices[b_best].v, poly.vertices[b_mate_best].v, poly.vertices[a_best].v),score1, score2)
 
@@ -539,7 +591,7 @@ def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
     ax.set_title(title)
 
     # Plot the boundary box
-    min_x, max_x, min_y, max_y = poly.get_boundary()
+    min_x, max_x, min_y, max_y = compute_boundary(poly)
     ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box')
 
     # Plot the points b, b_mate, and a
