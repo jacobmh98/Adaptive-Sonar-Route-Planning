@@ -49,7 +49,7 @@ else:
 
     antwerp_poly = Polygon(vertices)
 
-antwerp_poly.plot()
+#antwerp_poly.plot()
 
 if not load_existing_optimized_polygons:
     """# Removing collinear vertices from the sub-polygons
@@ -91,16 +91,24 @@ else:
         optimized_sub_polygons = pickle.load(file)
 
 plot_results3(sub_polygons)
+
+# Remove collinear vertices in each sub-polygon
+for i, p in enumerate(optimized_sub_polygons):
+    p = remove_collinear_vertices(p)
+    optimized_sub_polygons[i] = p
 plot_results3(optimized_sub_polygons)
 
 """collection = []
-for i, p in enumerate(sub_polygons):
-    if i == 179 or i == 180 or i == 196 or i == 197 or i == 198 or i == 199 or i == 200:
+for i, p in enumerate(optimized_sub_polygons):
+    if i == 4 or i == 14 or i == 32 or i == 30 or i == 29:
         collection.append(p)
+        
 
-optimized_collection = optimize_polygons(copy.deepcopy(collection))
-plot_results3(collection)
-plot_results3(optimized_collection)"""
+plot_results3(collection, True)
+optimized_sub_polygons = collection
+"""
+
+
 
 # TODO har ikke testet om den stadig laver den korrekte adjacent matrix. Men tror stadig det virker
 # Creating adjacent matrix for the sub-polygons to tell which sub-polygons are connected
@@ -121,6 +129,7 @@ for i, p_i in  enumerate(optimized_sub_polygons):
             # Update the adjacent matrix
             A[i, j] = 1
             A[j, i] = 1
+            #print(f'P{i} and P{j} are adjacent')
             G.add_edge(f'P{i}', f'P{j}')
         else:
             A[i, j] = np.inf
