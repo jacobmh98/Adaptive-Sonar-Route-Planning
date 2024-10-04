@@ -88,18 +88,26 @@ else:
     with open(f'./test_data/{name_optimized_decomposition}.pkl', 'rb') as file:
         optimized_sub_polygons = pickle.load(file)
 
+plot_results3(sub_polygons)
+
+# Remove collinear vertices in each sub-polygon
+for i, p in enumerate(optimized_sub_polygons):
+    p = remove_collinear_vertices(p)
+    optimized_sub_polygons[i] = p
+plot_results3(optimized_sub_polygons)
+
 #plot_results3(sub_polygons)
 #plot_results3(optimized_sub_polygons)
 
 """collection = []
-for i, p in enumerate(sub_polygons):
-    if i == 179 or i == 180 or i == 196 or i == 197 or i == 198 or i == 199 or i == 200:
+for i, p in enumerate(optimized_sub_polygons):
+    if i == 4 or i == 14 or i == 32 or i == 30 or i == 29:
         collection.append(p)
+        
 
-optimized_collection = optimize_polygons(copy.deepcopy(collection))
-plot_results3(collection)
-plot_results3(optimized_collection)"""
-
+plot_results3(collection, True)
+optimized_sub_polygons = collection
+"""
 
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:  # Not working correctly
@@ -113,12 +121,12 @@ elif dfs_sort:
     adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
     start_node = next(iter(adjacency_graph.nodes()))
     polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
-
+    plot_graph(adjacency_graph)
 else:  # Unsorted polygons
     polygons = optimized_sub_polygons
 
 # If chosen, parallel vertices are removed (Can cause edge case errors if they are not removed)
-if remove_parallel_vertices:
+if False and remove_parallel_vertices:
     for i,poly in enumerate(polygons):
         polygons[i] = multi_poly_planning.remove_unnecessary_vertices(poly)
 
