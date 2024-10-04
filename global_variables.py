@@ -1,9 +1,6 @@
 scale = 1
-
-epsilon = 2e-2
-
+epsilon = 1e-2
 optimize_epsilon = 0.01
-
 
 name_decomposition = 'antwerpen_epsilon_e6'
 name_optimized_decomposition = 'antwerpen_epsilon_e6_optimized_e2'
