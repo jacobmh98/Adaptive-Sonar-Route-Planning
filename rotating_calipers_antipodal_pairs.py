@@ -13,7 +13,6 @@ def compute_antipodal_pairs(polygon):
     """ Computes antipodal pairs for a given polygon.
 
     :param polygon: Polygon object with a list of vertices.
-
     :return: List of tuples representing antipodal vertex pairs.
     """
     vertices = polygon.vertices
@@ -90,15 +89,12 @@ def get_diametric_antipodal_pair_index(polygon, antipodal_pairs, b):
 
 
 def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
-    """
-    Filter the antipodal pairs to keep only the diametric antipodal pairs for each vertex.
+    """ Filter the antipodal pairs to keep only the diametric antipodal pairs for each vertex.
 
-    Args:
-        polygon: Polygon object with vertices.
-        antipodal_pairs: List of tuples representing antipodal pairs.
+    :param polygon: Polygon object with vertices.
+    :param antipodal_pairs: List of tuples representing antipodal pairs.
 
-    Returns:
-        List of tuples representing only the diametric antipodal pairs.
+    :returns: List of tuples representing only the diametric antipodal pairs.
     """
     diametric_pairs = set()  # Using a set to avoid duplicates
 
@@ -112,20 +108,18 @@ def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
             sorted_pair = tuple(sorted([b, diametric_pair]))
             diametric_pairs.add(sorted_pair)
 
+    #plot_antipodal_points(polygon, antipodal_pairs)
+
     # Convert the set to a list for the final output
     return list(diametric_pairs)
 
 
 def get_diametric_antipodal_point_index(diametric_antipodal_pairs, b):
-    """
-    Given a point index b, find and return its diametric antipodal point a from the diametric antipodal pairs.
+    """ Given a point index b, find and return its diametric antipodal point a from the diametric antipodal pairs.
 
-    Args:
-        diametric_antipodal_pairs: List of tuples representing diametric antipodal pairs.
-        b: The index of the point for which to find the diametric antipodal pair.
-
-    Returns:
-        The index of the diametric antipodal point for b, or None if not found.
+    :param diametric_antipodal_pairs: List of tuples representing diametric antipodal pairs.
+    :param b: The index of the point for which to find the diametric antipodal pair.
+    :returns: The index of the diametric antipodal point for b, or None if not found.
     """
     for (i, j) in diametric_antipodal_pairs:
         if i == b:
@@ -146,11 +140,11 @@ def plot_antipodal_points(polygon, antipodal_vertices):
     x_coords, y_coords = polygon.get_coords()
 
     # Plot the polygon (ensure the polygon closes by connecting last and first point)
-    plt.plot(x_coords + [x_coords[0]], y_coords + [y_coords[0]], 'b-', marker='o')
+    plt.plot(x_coords + [x_coords[0]], y_coords + [y_coords[0]], 'k-', marker='o')
 
     # Plot vertex indices for reference
     for v in polygon.vertices:
-        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')
+        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='blue')
 
     # Plot the antipodal pairs
     for (i, j) in antipodal_vertices:

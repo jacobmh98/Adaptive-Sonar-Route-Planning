@@ -1,6 +1,9 @@
 scale = 1
-epsilon = 1e-2
+
+epsilon = 2e-2
+
 optimize_epsilon = 0.01
+
 
 name_decomposition = 'antwerpen_epsilon_e6'
 name_optimized_decomposition = 'antwerpen_epsilon_e6_optimized_e2'
@@ -9,7 +12,7 @@ load_existing_data = True
 load_existing_optimized_polygons = True
 
 # Start parameters
-dx = 30 # Path width (Must be >0) (1 is 1 meter)
+dx = 29 # Path width (Must be >0) (1 is 1 meter)
 remove_parallel_vertices = True  # Can cause issues in path coverage if not removed
 extern_start_end = False
 if extern_start_end:

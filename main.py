@@ -29,7 +29,8 @@ if not load_existing_data:
     sub_polygons = split_polygon(antwerp_poly)
 
     # Save the sub polygon objects
-    with open(f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_decomposition}.pkl', 'wb') as file:
+    with open(f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_decomposition}.pkl',
+              'wb') as file:
         pickle.dump(sub_polygons, file)
 else:
     f = open('test_data/antwerpen_full.json')
@@ -68,7 +69,9 @@ if not load_existing_optimized_polygons:
     optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
 
     # Save the optimized sub polygon objects
-    with open(f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_optimized_decomposition}.pkl', 'wb') as file:
+    with open(
+            f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_optimized_decomposition}.pkl',
+            'wb') as file:
         pickle.dump(optimized_sub_polygons, file)
 else:
     """# Removing collinear vertices from the sub-polygons
@@ -89,17 +92,25 @@ else:
         optimized_sub_polygons = pickle.load(file)
 
 #plot_results3(sub_polygons)
-#plot_results3(optimized_sub_polygons)
+
+# Remove collinear vertices in each sub-polygon
+for i, p in enumerate(optimized_sub_polygons):
+    p = remove_collinear_vertices(p)
+    optimized_sub_polygons[i] = p
+plot_results3(optimized_sub_polygons)
+
+# plot_results3(sub_polygons)
+# plot_results3(optimized_sub_polygons)
 
 """collection = []
-for i, p in enumerate(sub_polygons):
-    if i == 179 or i == 180 or i == 196 or i == 197 or i == 198 or i == 199 or i == 200:
+for i, p in enumerate(optimized_sub_polygons):
+    if i == 4 or i == 14 or i == 32 or i == 30 or i == 29:
         collection.append(p)
 
-optimized_collection = optimize_polygons(copy.deepcopy(collection))
-plot_results3(collection)
-plot_results3(optimized_collection)"""
 
+plot_results3(collection, True)
+optimized_sub_polygons = collection
+"""
 
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:  # Not working correctly
@@ -113,13 +124,13 @@ elif dfs_sort:
     adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
     start_node = next(iter(adjacency_graph.nodes()))
     polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
-
+    #plot_graph(adjacency_graph)
 else:  # Unsorted polygons
     polygons = optimized_sub_polygons
 
 # If chosen, parallel vertices are removed (Can cause edge case errors if they are not removed)
-if remove_parallel_vertices:
-    for i,poly in enumerate(polygons):
+if False and remove_parallel_vertices:
+    for i, poly in enumerate(polygons):
         polygons[i] = multi_poly_planning.remove_unnecessary_vertices(poly)
 
 print(f'Number of polygons = {len(polygons)}')
@@ -127,23 +138,21 @@ print(f'Number of polygons = {len(polygons)}')
 # Computing the total path
 total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
 multi_poly_planning.multi_poly_plot(antwerp_poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
-
-
 quit()
 # Below is for testing path planning for each polygon seperatly
-complete_path = np.empty((0,2))
+complete_path = np.empty((0, 2))
 for i, poly in enumerate(polygons):
     new_polygon = [polygons[i]]
 
     try:
         total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
         complete_path = np.vstack([complete_path, total_path])
-        #multi_poly_planning.multi_poly_plot(new_polygon, polygons, dx, extern_start_end, ext_p_start, ext_p_end, np.array(total_path))
+        # multi_poly_planning.multi_poly_plot(new_polygon, polygons, dx, extern_start_end, ext_p_start, ext_p_end, np.array(total_path))
         print(f'{i} is working')
 
     except Exception as e:
         print(f'not working on {i}')
         traceback.print_exc()
-        #new_polygon[0].plot()
+        new_polygon[0].plot()
 
 multi_poly_planning.multi_poly_plot(antwerp_poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, complete_path)

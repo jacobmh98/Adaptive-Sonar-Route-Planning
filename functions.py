@@ -490,8 +490,11 @@ def polygons_are_adjacent(P1, P2, i, j):
             vec1 = e.v_to.get_array() - e.v_from.get_array()
             vec2 = e2.v_to.get_array() - e2.v_from.get_array()
 
-            # Vectors are collinear if the determinant is zero
-            if np.linalg.det(np.hstack([vec1, vec2])) - epsilon < 0 < np.linalg.det(np.hstack([vec1, vec2])) + epsilon:
+            dot_product = dot(vec1, vec2)
+            neg_mag = -np.linalg.norm(vec1) * np.linalg.norm(vec2)
+
+            # Check if the vectors are collinear
+            if dot_product - epsilon <= neg_mag <= dot_product + epsilon:
                 # Parametrize the line from vec1: l(t) = P + t v
 
                 # Compute the intersection with the y-axis for each line
@@ -510,16 +513,14 @@ def polygons_are_adjacent(P1, P2, i, j):
                     s2 = dot(e2.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
 
                     if max(t1, t2) > min(s1, s2) and max(s1, s2) > min(t1, t2):
-                        #print(f'partial overlap between {i} and {j}')
                         return True
+
     return False
 
 def find_shared_edge(P1, P2):
     """ Return the shared edge for P1 and P2 if they have a complete adjacent edge """
     for e in P1.edges:
-
         for e2 in P2.edges:
-
             # Check if P_i and P_j share an edge completely
             if (points_are_equal(e.v_from.get_array(), e2.v_from.get_array()) and points_are_equal(
                     e.v_to.get_array(), e2.v_to.get_array())) or \
@@ -528,34 +529,6 @@ def find_shared_edge(P1, P2):
 
                 #print(f'{e} and {e2}')
                 return e, e2
-
-            """# Define the vector for each edge
-            vec1 = e.v_to.get_array() - e.v_from.get_array()
-            vec2 = e2.v_to.get_array() - e2.v_from.get_array()
-
-            # Vectors are collinear if the determinant is zero
-            if np.linalg.det(np.hstack([vec1, vec2])) - epsilon < 0 < np.linalg.det(
-                    np.hstack([vec1, vec2])) + epsilon:
-                # Parametrize the line from vec1: l(t) = P + t v
-
-                # Compute the intersection with the y-axis for each line
-                t1 = - e.v_from.x / vec1[0]
-                e_intersects_y = e.v_from.y + t1 * vec1[1]
-
-                t2 = - e2.v_from.x / vec2[0]
-                e2_intersects_y = e2.v_from.y + t2 * vec2[1]
-
-                # Check if the two lines intersects y in the same point
-                if points_are_equal(e_intersects_y, e2_intersects_y):
-                    # Check for partial adjacency between the polygons (if the projected intervals overlap)
-                    t1 = 0
-                    t2 = dot(e.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
-                    s1 = dot(e2.v_from.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
-                    s2 = dot(e2.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
-
-                    if max(t1, t2) > min(s1, s2) and max(s1, s2) > min(t1, t2):
-                        print(f'partial overlap between {i} and {j}')
-                        #return True"""
     return None
 
 # TODO handle partial edges as well
@@ -695,7 +668,7 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
 
     plt.show()
 
-def plot_results3(sub_polygons):
+def plot_results3(sub_polygons, include_points = False):
     fig, ax = plt.subplots(1,1)
 
     for i, poly in enumerate(sub_polygons):
@@ -703,13 +676,16 @@ def plot_results3(sub_polygons):
 
         c_x, c_y = get_center_of_polygon(poly)
 
-        ax.plot(x_coords, y_coords, 'k-')
+        if include_points:
+            ax.plot(x_coords, y_coords, 'k-o')
+        else:
+            ax.plot(x_coords, y_coords, 'k-')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
 
         ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
 
-        ax.plot(x_coords, y_coords, 'k-')
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+        #ax.plot(x_coords, y_coords, 'k-')
+        #ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-o')
         ax.set_aspect('equal')
         ax.set_title('Antwerpen Decomposition')
     plt.show()

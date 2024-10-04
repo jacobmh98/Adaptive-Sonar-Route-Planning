@@ -115,7 +115,7 @@ class Polygon:
         else:
             return b - 1
 
-    def line_intersection(self, p1, p2, q1, q2, epsilon=0.01):
+    def line_intersection(self, p1, p2, q1, q2, epsilon=1e-9):
         """ Find intersection between two line segments (p1, p2) and (q1, q2) with floating-point tolerance """
         r = np.array(p2) - np.array(p1)
         s = np.array(q2) - np.array(q1)
@@ -135,18 +135,6 @@ class Polygon:
             return intersection_point
         return None
 
-    def is_point_in_intersections(self, point, intersections, epsilon=1e-9):
-        """ Check if a point is already in the intersections array, using a tolerance (epsilon) to handle floating-point precision.
-        :param point: The intersection point to check (array-like)
-        :param intersections: The list of existing intersection points
-        :param epsilon: Tolerance for comparing floating-point numbers
-        :return: True if the point is already in the intersections array, False otherwise
-        """
-        for existing_point in intersections:
-            if np.linalg.norm(np.array(point) - np.array(existing_point)) < epsilon:
-                return True
-        return False
-
     def find_intersections(self, vector_start, vector_end):
         """ Find all intersections of a vector with the polygon edges """
         intersections = []
@@ -157,7 +145,7 @@ class Polygon:
                 [edge.v_from.x, edge.v_from.y],
                 [edge.v_to.x, edge.v_to.y]
             )
-            if intersection is not None and not self.is_point_in_intersections(intersection, intersections):
+            if intersection is not None:
                 intersections.append(intersection)
 
         # Edge case where vector just intersects 1 point, add the same point as intersection point
