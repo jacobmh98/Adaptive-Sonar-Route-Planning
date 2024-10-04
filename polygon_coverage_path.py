@@ -197,7 +197,6 @@ def closest_vertex(poly1, poly2, a_index):
 
     return closest_point
 
-
 def point_to_line_distance(p, v1, v2, epsilon=1e-9):
     """Compute the perpendicular distance from point p to the line segment defined by v1 and v2."""
     x0, y0 = p.x, p.y
@@ -213,7 +212,6 @@ def point_to_line_distance(p, v1, v2, epsilon=1e-9):
         return 0  # If the two points are the same, return 0 distance
 
     return num / denom
-
 
 def get_smallest_diameter(polygon):
     """Compute the smallest diameter of the polygon."""
@@ -267,7 +265,7 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
 
     path = []
 
-    # Finding direction from vector b, b_mate towards a (+1 or -1)
+    # Finding direction from vector b, b_mate towards a (+1 or -1 for perpendicular left or right of b, b_mate vector)
     sweep_direction = compute_sweep_direction(b, b_mate, a)
 
     # First pass is offset from polygon edge with half path width, unless path width is too large for the polygon
@@ -286,6 +284,8 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
     L_flight = compute_offset_vector(b, b_mate, sweep_direction, delta_init)
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
     L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundary)
+    plot_vectors_simple(poly, b, b_mate, a, L_flight, boundary)
+
 
     # Fail-safe parameters for the while loop
     max_iterations = 10000
@@ -321,6 +321,66 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
         counter += 1
 
     return np.array(path)
+
+def plot_vectors_simple(poly, b, b_mate, a, L_flight_ext, boundary, show_legend=True):
+    """
+    Plot the polygon, points b, b_mate, a, and the offset vectors for a convex polygon with an optional legend.
+    Adjust the arrows so that they don't extend beyond the target vertex or boundary.
+    """
+    fig, ax = plt.subplots()  # Create the figure and axis
+    ax.set_aspect('equal')
+    ax.set_title("Polygon and Offset Vector")
+
+    # Draw the grid first, so it appears behind everything else
+    ax.grid(True)
+
+    # Plot the boundary box (zorder=1 to draw below the vectors and points)
+    min_x, max_x, min_y, max_y = boundary
+    ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box', zorder=1)
+
+    # Plot the points b, b_mate, and a (zorder=3 to draw above the polygon)
+    ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', markersize=10, label='Points (b, b_mate, a)', zorder=3)
+    ax.text(b[0], b[1], 'b', fontsize=15, color='darkblue', zorder=4)
+    ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=15, color='darkblue', zorder=4)
+    ax.text(a[0], a[1], 'a', fontsize=15, color='darkblue', zorder=4)
+
+    # Plot the convex polygon (zorder=2 to draw below the vectors but above the boundary box)
+    x_coords, y_coords = poly.get_coords()
+    ax.plot(x_coords, y_coords, 'k-', marker='o', label='Polygon', zorder=2)
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-', zorder=2)
+
+    # Adjust arrow length by subtracting the arrow head size from the total length
+    def adjust_arrow(start, end, head_length=0.1):
+        vector = np.array(end) - np.array(start)
+        vector_length = np.linalg.norm(vector)
+        if vector_length > head_length:
+            # Shorten the arrow by the head length
+            adjusted_end = start + vector * ((vector_length - head_length) / vector_length)
+        else:
+            adjusted_end = end  # If the vector is very short, don't adjust
+        return adjusted_end
+
+    # Plot the vector from b to b_mate as an arrow (adjusted)
+    adjusted_b_mate = adjust_arrow(b, b_mate)
+    ax.arrow(b[0], b[1], adjusted_b_mate[0] - b[0], adjusted_b_mate[1] - b[1],
+             head_width=0.05, head_length=0.1, fc='green', ec='green', linewidth=2, label='Vector (b to b_mate)', zorder=4)
+
+    # Plot the extended vector (L_flight_ext) as another arrow (adjusted)
+    ext_start, ext_end = L_flight_ext
+    adjusted_ext_end = adjust_arrow(ext_start, ext_end)
+    ax.arrow(ext_start[0], ext_start[1], adjusted_ext_end[0] - ext_start[0], adjusted_ext_end[1] - ext_start[1],
+             head_width=0.05, head_length=0.1, fc='blue', ec='blue', linewidth=2, label='Extended Offset Vector (b to b_mate)', zorder=4)
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+
+    # Show the legend if the flag is True
+    if show_legend:
+        ax.legend(loc='best')
+
+    plt.show()  # Display the plot
+
+
 
 def best_path(polygons, current_polygon_index, path, dx, i, j):
     """ Compute the best path based on both distance and number of turns.
@@ -484,7 +544,7 @@ def plot_path(poly, b, b_mate, a, dx, path):
     ax.set_aspect('equal')
 
     # Plot the boundary box
-    min_x, max_x, min_y, max_y = poly.get_boundary()
+    min_x, max_x, min_y, max_y = compute_boundary(poly)
     ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box')
 
     # Plot the points b, b_mate, and a
