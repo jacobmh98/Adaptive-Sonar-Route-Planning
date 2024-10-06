@@ -4,12 +4,12 @@ epsilon = 2e-2
 
 optimize_epsilon = 0.01
 
+data_path = 'complex_polygon'
+name_decomposition = 'complex_polygon'
+name_optimized_decomposition = 'complex_polygon_optimized'
 
-name_decomposition = 'antwerpen_epsilon_e6'
-name_optimized_decomposition = 'antwerpen_epsilon_e6_optimized_e2'
-
-load_existing_data = True
-load_existing_optimized_polygons = True
+load_existing_data = False
+load_existing_optimized_polygons = False
 
 # Start parameters
 dx = 29 # Path width (Must be >0) (1 is 1 meter)

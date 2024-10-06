@@ -11,7 +11,7 @@ from global_variables import load_existing_data
 
 if not load_existing_data:
     # Reading the test data
-    f = open('test_data/antwerpen_full.json')
+    f = open(f'test_data/{data_path}.json')
 
     data = json.load(f)
     vertices_data = data['area']['coordinates']
