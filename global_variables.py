@@ -12,7 +12,7 @@ load_existing_data = False
 load_existing_optimized_polygons = False
 
 # Start parameters
-dx = 29 # Path width (Must be >0) (1 is 1 meter)
+dx = 20 # Path width (Must be >0) (1 is 1 meter)
 remove_parallel_vertices = True  # Can cause issues in path coverage if not removed
 extern_start_end = False
 if extern_start_end:

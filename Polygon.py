@@ -135,22 +135,37 @@ class Polygon:
             return intersection_point
         return None
 
-    def find_intersections(self, vector_start, vector_end):
+    def is_point_in_intersections(self, point, intersections, epsilon=1e-9):
+        """ Check if a point is already in the intersections array, using a tolerance (epsilon) to handle floating-point precision.
+        :param point: The intersection point to check (array-like)
+        :param intersections: The list of existing intersection points
+        :param epsilon: Tolerance for comparing floating-point numbers
+        :return: True if the point is already in the intersections array, False otherwise
+        """
+        for existing_point in intersections:
+            if np.linalg.norm(np.array(point) - np.array(existing_point)) < epsilon:
+                return True
+        return False
+
+
+    def find_intersections(self, vector):
         """ Find all intersections of a vector with the polygon edges """
         intersections = []
         for edge in self.edges:
             intersection = self.line_intersection(
-                [vector_start[0], vector_start[1]],
-                [vector_end[0], vector_end[1]],
+                [vector[0][0], vector[0][1]],
+                [vector[1][0], vector[1][1]],
                 [edge.v_from.x, edge.v_from.y],
                 [edge.v_to.x, edge.v_to.y]
             )
-            if intersection is not None:
+            if intersection is not None and not self.is_point_in_intersections(intersection, intersections):
                 intersections.append(intersection)
 
         # Edge case where vector just intersects 1 point, add the same point as intersection point
         if len(intersections) == 1:
             intersections.append(intersections[0])
+
+        # Edge case where multiple intersections found (Duplicates around vertices)
         elif len(intersections) > 2:
             unique_points = []
             seen = set()

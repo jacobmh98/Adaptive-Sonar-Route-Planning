@@ -1,22 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+
+from pandas.core.computation.expr import intersection
+
 from Polygon import Polygon, Vertex
 from matplotlib.patches import Patch
 from global_variables import *
 
-def triangle_antipodal_edge_case(poly, mate_index, antipodal_index):
-    """
-    :param poly: Polygon
-    :param mate_index: Index of point's mate in the polygon (b_mate)
-    :param antipodal_index: Index of points's antipodal point (a)
-    :return: index of a
-    """
-    # If b_mate index and a_index are the same point, change point a to last remaining vertex in the triangle polygon
-    if mate_index == antipodal_index:
-        return poly.get_mate(mate_index)
-    else:
-        return antipodal_index
 
 def create_vector(v1, v2):
     """ Computing a vector from vertex v1 to vertex v2
@@ -26,17 +17,18 @@ def create_vector(v1, v2):
     """
     return v2 - v1
 
-def compute_offset_vector(v1,v2, sweep_direction, d):
+def compute_offset_vector(vector, sweep_direction, d):
     """ Compute a vector parallel to the vector from v1 to v2, but offset perpendicularly
     in the direction specified by sweep_direction.
 
-    :param v1: NumPy array, the start point of the original vector
-    :param v2: NumPy array, the end point of the original vector
+    :
     :param sweep_direction: int, the direction to offset the vector (+1 or -1)
     :param d: float, the distance by which the vector should be offset
     :return new_v1: NumPy array, the new starting point of the offset vector
     :return new_v2: NumPy array, the new ending point of the offset vector
     """
+    v1 = vector[0]
+    v2 = vector[1]
     # Find the perpendicular direction to the vector from v1 to v2
     vector = create_vector(v1,v2)
     perp_vector = np.array([-vector[1], vector[0]])
@@ -81,17 +73,20 @@ def compute_boundary(poly):
                      np.min(coords[1, :]), np.max(coords[1, :]))
     return boundary
 
-def extend_vector_to_boundary(v1, v2, boundary):
+def extend_vector_to_boundary(vector, boundary):
     """ Extend the vector from v1 to v2 to intersect with the boundary box
 
-    :param v1: NumPy array, the start point of the original vector
-    :param v2: NumPy array, the end point of the original vector
+    :param vector: Numpy array of the vector
     :param boundary: List of polygon's boundaries
     :return extended_v1: NumPy array, the new start point of the extended vector
     :return extended_v2: NumPy array, the new end point of the extended vector
     """
     # Extract the boundary box values
     min_x, max_x, min_y, max_y = boundary
+
+    # Extract start and end point of input vector
+    v1 = vector[0]
+    v2 = vector[1]
 
     # Calculate the direction vector from v1 to v2
     direction = create_vector(v1, v2)
@@ -128,7 +123,7 @@ def extend_vector_to_boundary(v1, v2, boundary):
     else:
         extended_v2 = v1 + direction * t_max
 
-    return extended_v1, extended_v2
+    return np.array([extended_v1, extended_v2])
 
 def distance_between_points(v1, v2):
     """ Calculate the Euclidean distance between two 2D points.
@@ -139,35 +134,6 @@ def distance_between_points(v1, v2):
     """
     return math.sqrt((v2[0] - v1[0]) ** 2 + (v2[1] - v1[1]) ** 2)
 
-def check_and_connect(path, p1, p2, b):
-    """ Adds points to path in correct order
-
-    :param path: List of points, containing the current path
-    :param p1: Point one
-    :param p2: Point two
-    :param b: Point b, only used in case of empty path
-    :return path: List of points with p1 and p2 added in correct order
-    """
-    n = len(path)-1
-
-    if n < 0:
-        # Start path offset from start point b
-        if distance_between_points(b, p1) <= distance_between_points(b, p2):
-            path.append(p1)
-            path.append(p2)
-        else:
-            path.append(p2)
-            path.append(p1)
-    else:
-        # Continue path at next closest point
-        if distance_between_points(path[n], p1) <= distance_between_points(path[n], p2):
-            path.append(p1)
-            path.append(p2)
-        else:
-            path.append(p2)
-            path.append(p1)
-
-    return path
 
 def closest_vertex(poly1, poly2, a_index):
     """
@@ -197,7 +163,6 @@ def closest_vertex(poly1, poly2, a_index):
 
     return closest_point
 
-
 def point_to_line_distance(p, v1, v2, epsilon=1e-9):
     """Compute the perpendicular distance from point p to the line segment defined by v1 and v2."""
     x0, y0 = p.x, p.y
@@ -213,7 +178,6 @@ def point_to_line_distance(p, v1, v2, epsilon=1e-9):
         return 0  # If the two points are the same, return 0 distance
 
     return num / denom
-
 
 def get_smallest_diameter(polygon):
     """Compute the smallest diameter of the polygon."""
@@ -248,24 +212,52 @@ def get_smallest_diameter(polygon):
 
         return min_distance
 
+def check_and_connect(path, p1, p2, b):
+    """ Adds points to path in correct order
 
-def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
-    """ # Algorithm 1 - GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions
+    :param path: List of points, containing the current path
+    :param p1: Point one
+    :param p2: Point two
+    :param b: Point b, only used in case of empty path
+    :return path: List of points with p1 and p2 added in correct order
+    """
+    n = len(path)-1
+
+    if n < 0:
+        # Start path offset from start point b
+        if distance_between_points(b, p1) <= distance_between_points(b, p2):
+            path.append(p1)
+            path.append(p2)
+        else:
+            path.append(p2)
+            path.append(p1)
+    else:
+        # Continue path at next closest point
+        if distance_between_points(path[n], p1) <= distance_between_points(path[n], p2):
+            path.append(p1)
+            path.append(p2)
+        else:
+            path.append(p2)
+            path.append(p1)
+
+    return path
+
+
+def get_path_intersections(poly, b_index, b_mate_index, a_index, boundary):
+    """ Algorithm 1 - GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions,
+        Adjusted for multi polygons. Just returns the list of intersection pairs
 
     :param poly: Polygon P, using Polygon class
-    :param dx: Path width (0.1 = 100 meters)
     :param b_index: Starting vertex index
     :param b_mate_index: b's counterclockwise neighbour index
     :param a_index: b's diametral antipodal point index
     :param boundary: List of polygon's boundaries
-    :return path: A path which fully covers P
+    :return intersections: A multidim list of intersection points, as pairs
     """
     # Getting the three vertices as points from the polygon
     b = poly.vertices[b_index].v.flatten()
     b_mate = poly.vertices[b_mate_index].v.flatten()
     a = poly.vertices[a_index].v.flatten()
-
-    path = []
 
     # Finding direction from vector b, b_mate towards a (+1 or -1)
     sweep_direction = compute_sweep_direction(b, b_mate, a)
@@ -280,27 +272,42 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
     else:
         delta_init = dx / 2
 
-    # Computing vector b to b_mate
-    # L_flight = create_vector(b, b_mate)
+    # Creating a vector from vertex b to b_mate
+    v_initial = np.array([b, b_mate])
     # Offsetting vector b to b_mate with delta_init towards point a
-    L_flight = compute_offset_vector(b, b_mate, sweep_direction, delta_init)
+    v_offset = compute_offset_vector(v_initial, sweep_direction, delta_init)
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
-    L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundary)
+    v_extended = extend_vector_to_boundary(v_offset, boundary)
+
+    #L_flight2 = compute_offset_vector(L_flight1[0], L_flight1[1], sweep_direction, dx)
+    #L_flight2 = np.array(extend_vector_to_boundary(L_flight2[0], L_flight2[1], boundary))
+    #plot_vectors_simple(poly, b, b_mate, a, L_flight, L_flight1, L_flight2, boundary, dx)
+
+    #def plot_vectors_simple(poly, b, b_mate, a, L_flight_ext, boundary, show_legend=True):
 
     # Fail-safe parameters for the while loop
     max_iterations = 10000
     counter = 0
 
-    # Loop until no intersections is found
-    # TODO: Change loop such that last turn checks to create a closer path to poly edge
-    while not (Polygon.find_intersections(poly, L_flight[0], L_flight[1]) == []):
-        ip1, ip2 = Polygon.find_intersections(poly, L_flight[0], L_flight[1])
+    all_intersections = []
+
+    # Loop until no intersections are found
+    while True:
+
+        # Find the new intersections
+        new_intersections = Polygon.find_intersections(poly, v_extended)
+
+        # Check if no new intersections are found
+        if not new_intersections:
+            break
+        else:
+            # Assume new_intersections is a list of points in the form [[x1, y1], [x2, y2]]
+            for i in range(0, len(new_intersections), 2):
+                # Create tuples of two consecutive points and append to all_intersections
+                all_intersections.append((new_intersections[i], new_intersections[i + 1]))
 
         # Add points to path in correct order
-        path = check_and_connect(path, ip1, ip2, b)
-
-        # Plot for checking every iteration of the path
-        #plot_path(poly, b, b_mate, a, dx, np.array(path))
+        #path = check_and_connect(path, ip1, ip2, b)
 
         # Ensure coverage gets as close to polygon edge as needed for full coverage
         """  TODO: Need to create function to check full coverage, else best coverage path wont get chosen as it is longer than path without full coverage
@@ -311,8 +318,8 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
         """
 
         # Computing next extended offset vector, offset with full path width dx
-        L_flight = compute_offset_vector(L_flight[0], L_flight[1], sweep_direction, dx)
-        L_flight = extend_vector_to_boundary(L_flight[0], L_flight[1], boundary)
+        v_offset = compute_offset_vector(v_extended, sweep_direction, dx)
+        v_extended = extend_vector_to_boundary(v_offset, boundary)
 
         # Avoid infinite while loop
         if counter >= max_iterations:
@@ -320,7 +327,84 @@ def get_path(poly, dx, b_index, b_mate_index, a_index, boundary):
             break
         counter += 1
 
-    return np.array(path)
+    return all_intersections
+
+def compute_angle(i, j):
+    """
+    Compute the angle between two points in radians.
+
+    :param i: First point as a NumPy array or list [x1, y1]
+    :param j: Second point as a NumPy array or list [x2, y2]
+    :return: Angle in radians between the two points.
+    """
+    delta_x = j[0] - i[0]
+    delta_y = j[1] - i[1]
+    return np.arctan2(delta_y, delta_x)
+
+def triangle_antipodal_edge_case(poly, mate_index, antipodal_index):
+    """
+    :param poly: Polygon
+    :param mate_index: Index of point's mate in the polygon (b_mate)
+    :param antipodal_index: Index of points's antipodal point (a)
+    :return: index of a
+    """
+    # If b_mate index and a_index are the same point, change point a to last remaining vertex in the triangle polygon
+    if mate_index == antipodal_index:
+        return poly.get_mate(mate_index)
+    else:
+        return antipodal_index
+
+def best_path2(polygons, current_polygon_index, i, j):
+    """
+    :param polygons:
+    :param current_polygon_index:
+    :param i:
+    :param j:
+    :return:
+    """
+    poly = polygons[current_polygon_index]
+    boundary = compute_boundary(poly)
+
+    # Triangle edge case
+    if len(poly.vertices) == 3:
+        b_index = i
+        b_mate_index = j
+
+        if poly.get_mate(b_index) == b_mate_index:
+            a_index = poly.get_mate(b_mate_index)
+        else:
+            a_index = poly.get_mate(b_index)
+
+        intersections = get_path_intersections(poly, b_index, b_mate_index, a_index, boundary)
+
+    else:
+        # Rotating the caliper in clockwise direction
+        if (compute_angle(poly.vertices[i].v, poly.vertices[j].v) - math.pi) < 0:
+            b_index = j
+            a_index = i
+        else:
+            b_index = i
+            a_index = j
+
+        # Rotating the caliper in counterclockwise direction
+        phi = compute_angle(poly.vertices[b_index].v, poly.vertices[a_index].v) - math.pi
+        gamma_b = compute_angle(poly.vertices[b_index-1].v, poly.vertices[b_index].v)
+        gamma_a = compute_angle(poly.vertices[a_index-1].v, poly.vertices[a_index].v) - phi
+
+        if gamma_b < gamma_a:
+            b2_index = b_index - 1
+            a2_index = a_index
+        else:
+            b2_index = a_index - 1
+            a2_index = b_index
+
+        # Finding path that holds the least flight lines
+        if distance_between_points(poly.vertices[b_index].v, poly.vertices[a_index].v) < distance_between_points(poly.vertices[b2_index].v, poly.vertices[a2_index].v):
+            intersections = get_path_intersections(poly, b_index, poly.get_mate(b_index), a_index, boundary)
+        else:
+            intersections = get_path_intersections(poly, b2_index, poly.get_mate(b2_index), a2_index, boundary)
+
+    return intersections, len(intersections)
 
 def best_path(polygons, current_polygon_index, path, dx, i, j):
     """ Compute the best path based on both distance and number of turns.
@@ -465,6 +549,85 @@ def calculate_path_score(path, path_start, path_end):
     score = distance_to_start + path_distance + distance_to_end + turns
 
     return score
+
+def plot_vectors_simple(poly, b, b_mate, a, L_flight, L_flight_ext, L_flight_2, boundary, dx, show_legend=True):
+    """
+    Plot the polygon, points b, b_mate, a, and multiple vectors (L_flight, L_flight_ext, and L_flight_2 reversed) for a convex polygon with an optional legend.
+    Additionally, draw intersection points where vectors intersect polygon edges.
+    """
+    fig, ax = plt.subplots()  # Create the figure and axis
+    ax.set_aspect('equal')
+    ax.set_title("Polygon and Vectors with Intersection Points")
+
+    # Draw the grid first, so it appears behind everything else
+    #ax.grid(True)
+
+    # Plot the boundary box (zorder=1 to draw below the vectors and points)
+    min_x, max_x, min_y, max_y = boundary
+    ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box', zorder=1)
+
+    # Plot the points b, b_mate, and a (zorder=3 to draw above the polygon)
+    ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', markersize=10, label='Points (b, b_mate, a)', zorder=3)
+    ax.text(b[0], b[1], 'b', fontsize=12, color='darkblue', zorder=4)
+    ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=12, color='darkblue', zorder=4)
+    ax.text(a[0], a[1], 'a', fontsize=12, color='darkblue', zorder=4)
+
+    # Plot the convex polygon (zorder=2 to draw below the vectors)
+    x_coords, y_coords = poly.get_coords()
+    ax.plot(x_coords, y_coords, 'k-', marker='o', label='Polygon', zorder=2)
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-', zorder=2)
+
+    # Adjust arrow length by subtracting the arrow head size from the total length
+    def adjust_arrow(start, end, head_length=0.1):
+        vector = np.array(end) - np.array(start)
+        vector_length = np.linalg.norm(vector)
+        if vector_length > head_length:
+            # Shorten the arrow by the head length
+            adjusted_end = start + vector * ((vector_length - head_length) / vector_length)
+        else:
+            adjusted_end = end  # If the vector is very short, don't adjust
+        return adjusted_end
+
+    # Plot the vector from b to b_mate as an arrow (adjusted)
+    adjusted_b_mate = adjust_arrow(b, b_mate)
+    ax.arrow(b[0], b[1], adjusted_b_mate[0] - b[0], adjusted_b_mate[1] - b[1],
+             head_width=0.05, head_length=0.1, fc='green', ec='green', linewidth=2, label='Vector (b to b_mate)', zorder=4)
+
+    # Plot the extended vector (L_flight_ext) as another arrow (adjusted)
+    ext_start, ext_end = L_flight_ext
+    adjusted_ext_end = adjust_arrow(ext_start, ext_end)
+    ax.arrow(ext_start[0], ext_start[1], adjusted_ext_end[0] - ext_start[0], adjusted_ext_end[1] - ext_start[1],
+             head_width=0.05, head_length=0.1, fc='blue', ec='blue', linewidth=2, label='First Extended Offset Vector', zorder=4)
+
+    # Reverse the start and end of the additional vector (L_flight_2)
+    vector_2_start, vector_2_end = L_flight_2
+
+    # Plot the reversed additional vector (L_flight_2) as another arrow (adjusted)
+    adjusted_vector_2_end = adjust_arrow(vector_2_start, vector_2_end)
+    ax.arrow(vector_2_start[0], vector_2_start[1],
+             adjusted_vector_2_end[0] - vector_2_start[0], adjusted_vector_2_end[1] - vector_2_start[1],
+             head_width=0.05, head_length=0.1, fc='purple', ec='purple', linewidth=2, label='Second Extended Offset Vector', zorder=4)
+
+    #ip1, ip2 = Polygon.find_intersections(poly, L_flight[0], L_flight[1])
+
+    # Find intersection points for the first and second vectors
+    i1_1, i1_2 = Polygon.find_intersections(poly, L_flight_ext)  # First vector intersections
+    i2_1, i2_2 = Polygon.find_intersections(poly, L_flight_2)    # Second vector intersections
+
+    # Plot intersection points for the first vector
+    ax.plot([i1_1[0], i1_2[0]], [i1_1[1], i1_2[1]], 'rx', markersize=8, zorder=5)
+    # Plot intersection points for the second vector
+    ax.plot([i2_1[0], i2_2[0]], [i2_1[1], i2_2[1]], 'rx', markersize=8, label='Intersections', zorder=5)
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+
+    # Show the legend if the flag is True
+    if show_legend:
+        ax.legend(loc='best')
+
+    plt.show()  # Display the plot
+
 
 def plot_path(poly, b, b_mate, a, dx, path):
     """

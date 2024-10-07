@@ -106,68 +106,80 @@ def remove_unnecessary_vertices(polygon):
     return Polygon(new_vertices)
 
 
-def rotating_calipers_path_planner(polygons, current_polygon_index, path, dx, d_pq):
+def rotating_calipers_path_planner(polygons, current_polygon_index, d_pq):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
 
-    :param path:
     :param polygons: List Polygon
     :param current_polygon_index: index of current polygon
-    :param dx: float, the path width
     :param d_pq: List of tuples representing antipodal pairs (b, a).
     :return optimal_path: The best back-and-forth path (computed using best_path).
     """
     # Initialize variables to store the best path and the minimal cost
     min_cost = float('inf')
-    optimal_path = None
+    optimal_intersections = None
 
     # Iterate over all antipodal pairs (b, a)
     for (i, j) in d_pq:
         # Compute the best path for the current antipodal pair
-        current_path, current_cost = polygon_coverage_path.best_path(polygons, current_polygon_index, path, dx, i, j)
+        #current_path, current_cost = polygon_coverage_path.best_path(polygons, current_polygon_index, path, dx, i, j)
+        current_intersections, current_cost = polygon_coverage_path.best_path2(polygons, current_polygon_index, i, j)
 
         # Update the optimal path if the current path has a lower cost
         if current_cost < min_cost:
             min_cost = current_cost
-            optimal_path = current_path
+            optimal_intersections = current_intersections
 
-    return optimal_path
+    return optimal_intersections
 
-def multi_path_planning(polygons, dx, include_external_start_end):
+
+def multi_intersection_planning(polygons, include_external_start_end):
     """
     :param polygons: List of Polygons
-    :param dx: float, path width
     :param include_external_start_end: Bool, indicate if external start and end point included
-    :return:
+    :return: List of lists containing intersection points for each polygon.
     """
-    # Creating the np array to store the total path
-    total_path = np.empty((0,2))
+    # Creating the list to store intersections for each polygon
+    total_intersections = []
 
     if include_external_start_end:
-        # Appending external start point to path
-        total_path = np.append(total_path, [ext_p_start], axis=0)
+        # Including external start point
+        external_points = [[ext_p_start]]
+    else:
+        external_points = []
 
     for i, current_poly in enumerate(polygons):
-        # Computing current polygons antipodal points
+        # Creating a list to store intersections for the current polygon
+        polygon_intersections = []
+
+        # Computing current polygon's antipodal points
         antipodal_vertices = rotating_calipers_antipodal_pairs.compute_antipodal_pairs(current_poly)
-        # Removes neighbour pairs and double pairs, i.e. for [0,1] and [1,0] only 1 of them is necessary as both [1,0] and [0,1] is checked in best path algorithm
-        filtered_antipodal_vertices = rotating_calipers_antipodal_pairs.filter_and_remove_redundant_pairs(current_poly, antipodal_vertices)
-        # Computing the diametric antipodal pairs (Minimizing number of paths computed, as diametric pairs produce the shortest paths)
-        diametric_antipodal_pairs = rotating_calipers_antipodal_pairs.filter_diametric_antipodal_pairs(current_poly, filtered_antipodal_vertices)
 
-        # Getting the shortest path for the current poly
-        shortest_path = rotating_calipers_path_planner(polygons, i, total_path, dx, diametric_antipodal_pairs)
+        # Removing neighbor pairs and duplicate pairs
+        filtered_antipodal_vertices = rotating_calipers_antipodal_pairs.filter_and_remove_redundant_pairs(
+            current_poly, antipodal_vertices
+        )
 
-        if shortest_path.size == 0:  # Probably not necessary
-            shortest_path = np.empty((0, 2))  # Resetting shortest_path for total_path
+        # Computing the diametric antipodal pairs (minimizing number of paths)
+        diametric_antipodal_pairs = rotating_calipers_antipodal_pairs.filter_diametric_antipodal_pairs(
+            current_poly, filtered_antipodal_vertices
+        )
 
-        total_path = np.vstack([total_path, shortest_path])
+        # Computing the intersections for the current polygon
+        intersections = rotating_calipers_path_planner(polygons, i, diametric_antipodal_pairs)
 
-    # Appending the external end point as last point in path
+        # Check if intersections found, otherwise initialize an empty list
+        if not intersections:
+            intersections = []
+
+        total_intersections.append(intersections)
+
     if include_external_start_end:
-        total_path = np.append(total_path, [ext_p_end], axis=0)
+        # Append external end point to the last polygon's list of intersections
+        total_intersections[-1].append([ext_p_end])
 
-    return total_path
+    return total_intersections
+
 
 def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, path):
     """

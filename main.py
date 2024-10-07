@@ -1,7 +1,9 @@
 import copy
 import json
 import multi_poly_planning
+import polygon_coverage_path
 import traveling_salesman_variation
+import connecting_path
 import pickle
 import traceback
 from global_variables import *
@@ -9,6 +11,35 @@ from functions import *
 import pickle
 from global_variables import load_existing_data
 
+f = open('test_data/complex_polygon.json')
+data = json.load(f)
+vertices_data = data['area']['coordinates']
+
+vertices = []
+for i in range(len(vertices_data)):
+    vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
+poly = Polygon(vertices)
+polygons = split_polygon(poly)
+optimized_polygons = optimize_polygons(copy.deepcopy(polygons))
+
+adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_polygons)
+start_node = next(iter(adjacency_graph.nodes()))
+optimized_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_polygons, start_node)
+
+plot_results3(optimized_polygons)
+
+
+# Computing the total path
+total_intersections = multi_poly_planning.multi_intersection_planning(optimized_polygons, extern_start_end)
+#print(total_intersections)
+
+#multi_poly_planning.multi_poly_plot(poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
+total_path = connecting_path.connect_path(optimized_polygons, total_intersections)
+multi_poly_planning.multi_poly_plot(poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
+
+
+
+quit()
 if not load_existing_data:
     # Reading the test data
     f = open(f'test_data/{data_path}.json')

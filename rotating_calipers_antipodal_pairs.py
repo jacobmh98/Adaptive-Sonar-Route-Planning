@@ -40,20 +40,55 @@ def compute_antipodal_pairs(polygon):
 
 
 def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
-    """ Filter out neighboring antipodal pairs and remove redundant pairs (i, j) and (j, i).
+    """
+    Filter out neighboring antipodal pairs and remove redundant pairs (i, j) and (j, i).
 
-    :param antipodal_pairs: List of tuples representing antipodal pairs.
+    For a triangle (3 vertices), neighboring points along the hypotenuse are not removed.
+
     :param polygon: Polygon object to check neighboring vertices.
+    :param antipodal_pairs: List of tuples representing antipodal pairs.
     :return: Filtered list of unique and non-neighboring antipodal pairs.
     """
     n = polygon.number_vertices
     unique_pairs = set()
 
-    for i, j in antipodal_pairs:
-        if i == j:  # TODO: Ensure that a (1,1) dont get added as an antipodal point, this is a temp fix
-            continue
-        # Filter out neighboring pairs
-        if abs(i - j) % n != 1:
+    # Special case for triangles (3 vertices)
+    if n == 3:
+        # Get lengths of each edge to identify the hypotenuse
+        edges = [
+            (0, 1, np.linalg.norm(np.array(polygon.vertices[0].v) - np.array(polygon.vertices[1].v))),
+            (1, 2, np.linalg.norm(np.array(polygon.vertices[1].v) - np.array(polygon.vertices[2].v))),
+            (2, 0, np.linalg.norm(np.array(polygon.vertices[2].v) - np.array(polygon.vertices[0].v)))
+        ]
+        # Find the hypotenuse, the edge with the longest length
+        hypotenuse = max(edges, key=lambda edge: edge[2])
+        hypotenuse_indices = (hypotenuse[0], hypotenuse[1])
+
+        # Keep the hypotenuse neighbors, but continue filtering for others
+        for i, j in antipodal_pairs:
+            if i == j:  # Avoid adding pairs where both points are the same
+                continue
+
+            # Allow neighbors along the hypotenuse
+            if (i, j) == hypotenuse_indices or (j, i) == hypotenuse_indices:
+                unique_pairs.add((i, j))
+            else:
+                # Check if i and j are neighbors (for non-triangle cases)
+                if abs(i - j) != 1 and abs(i - j) != n - 1:
+                    # Add the pair if its reverse doesn't exist
+                    if (j, i) not in unique_pairs:
+                        unique_pairs.add((i, j))
+
+    # General case for polygons with more than 3 vertices
+    else:
+        for i, j in antipodal_pairs:
+            if i == j:  # Avoid adding pairs where both points are the same
+                continue
+
+            # Check if i and j are neighbors, including wrapping around the polygon
+            if abs(i - j) == 1 or abs(i - j) == n - 1:
+                continue  # Skip neighboring pairs
+
             # Add the pair if its reverse doesn't exist
             if (j, i) not in unique_pairs:
                 unique_pairs.add((i, j))
@@ -108,7 +143,7 @@ def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
             sorted_pair = tuple(sorted([b, diametric_pair]))
             diametric_pairs.add(sorted_pair)
 
-    #plot_antipodal_points(polygon, antipodal_pairs)
+    #plot_antipodal_points(polygon, diametric_pairs)
 
     # Convert the set to a list for the final output
     return list(diametric_pairs)
@@ -153,5 +188,5 @@ def plot_antipodal_points(polygon, antipodal_vertices):
         plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
 
     # Display the plot
-    plt.grid()
+    #plt.grid()
     plt.show()
