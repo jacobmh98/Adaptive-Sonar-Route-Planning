@@ -1,6 +1,8 @@
 scale = 1
 
-epsilon = 2e-2
+epsilon = 1e-6
+
+#small_epsilon = 1e-6
 
 optimize_epsilon = 0.01
 

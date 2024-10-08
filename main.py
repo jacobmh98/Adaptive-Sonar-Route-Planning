@@ -49,6 +49,9 @@ else:
         vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
 
     antwerp_poly = Polygon(vertices)
+antwerp_poly.plot()
+plot_results3(sub_polygons)
+
 
 if not load_existing_optimized_polygons:
     """# Removing collinear vertices from the sub-polygons
@@ -97,6 +100,8 @@ else:
 for i, p in enumerate(optimized_sub_polygons):
     p = remove_collinear_vertices(p)
     optimized_sub_polygons[i] = p
+
+#antwerp_poly.plot()
 plot_results3(optimized_sub_polygons)
 
 # plot_results3(sub_polygons)

@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 from Polygon import *
 from scipy.spatial import ConvexHull
 import pandas as pd
+from global_variables import *
 
-from global_variables import epsilon#, optimizing_epsilon
+#from global_variables import epsilon#, optimizing_epsilon
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -48,7 +50,10 @@ def distance(v1, v2):
     """ Computes the Euclidean distance between two numpy vectors v1 and v2 """
     return np.linalg.norm(v1 - v2)
 
-def points_are_equal(P1, P2):
+def float_equality(actual_v, desired_v):
+    return np.abs(actual_v - desired_v) < epsilon
+
+def points_are_equal(P1, P2, epsilon=epsilon):
     """ Checks if two points P1 and P2 are approximately equal within a tolerance epsilon. """
     # Check if the distance between the points is smaller than epsilon
     return np.all(np.abs(P1 - P2) < epsilon)
@@ -85,10 +90,81 @@ def split_polygon_single(e2, intersection_p, cv):
 
     return remove_collinear_vertices(P1), remove_collinear_vertices(P2)
 
-def compute_intersection(vec, cv, e2):
+def compute_intersection2(e, cv, e2):
+    #print(f'{cv=}, {e}, {e2}')
+    # (x, y) for the concave vertex
+    x0 = cv.x
+    y0 = cv.y
+
+    # Coordinates for edge 1 translated to the concave vertex
+    #vec = [x0, y0]
+    x1 = e.v_from.x
+    y1 = e.v_from.y
+
+    x2 = e.v_to.x
+    y2 = e.v_to.y
+
+    # Coordinates for edge 2
+    x3 = e2.v_from.x
+    y3 = e2.v_from.y
+
+    x4 = e2.v_to.x
+    y4 = e2.v_to.y
+
+    if (y1 - y2)*x3 + (y2 - y1)*x4 + (x1 - x2)*(y4 - y3) == 0:
+        return None, None
+
+    if (y4 - y3)*x1 + (-y4 + y3)*x2 + (y1 - y2)*(x3 - x4) == 0:
+        return None, None
+
+    t = (((-y4 + y0)*x3 + (-y0 + y3)*x4 + x0*(y4 - y3))/
+             ((y1 - y2)*x3 + (y2 - y1)*x4 + (x1 - x2)*(y4 - y3)))
+
+    u =  ((y0 - y3)*x1 + (-y0 + y3)*x2 - (y1 - y2)*(x0 - x3))/((y4 - y3)*x1 + (-y4 + y3)*x2 + (y1 - y2)*(x3 - x4))
+
+    ip = np.array([[x3], [y3]]) + u * np.array([[x4 - x3], [y4 - y3]])
+
+    """# Ignore the intersection that happens in the adjacent vertices
+    if points_are_equal(ip, cv.get_array()) or \
+            points_are_equal(ip, cv.prev.get_array()) or \
+            points_are_equal(ip, cv.next.get_array()):
+        return None, None
+
+    # Ignore perpendicular lines (intersection not possible)
+    vec = e.v_to.get_array() - e.v_from.get_array()
+    if points_are_equal(vec / np.linalg.norm(vec), (e2.v_to.get_array() - e2.v_from.get_array()) / np.linalg.norm(
+            e2.v_to.get_array() - e2.v_from.get_array())) or \
+            points_are_equal(-vec / np.linalg.norm(-vec),
+                             (e2.v_to.get_array() - e2.v_from.get_array()) / np.linalg.norm(
+                                 e2.v_to.get_array() - e2.v_from.get_array())):
+        return None, None"""
+
+    if e2.v_from.index == cv.prev.index and e2.v_to.index == cv.index:
+        return None, None
+
+    if e2.v_from.index == cv.index and e2.v_to.index == cv.next.index:
+        return None, None
+    #print(f'\t{t=}, {u=}')
+    #print(f'\t{ip=}')
+
+    if u == 0 or u ==1 and (e.prev == e2 or e.next == e2):
+        return None, None
+
+    if 0 <= u <= 1:
+        #print('ZERO ZERO')
+        # Returning the (x, y) coordinates of the intersection point
+        #print(f'intersection cv={cv.index}, {e}, t={np.round(t, 1)}, {e2}, u={np.round(u, 1)}')
+        return ip, t
+
+
+
+
+    return None, None
+
+def compute_intersection(vec, e, cv, e2):
     """ Computes the points of intersection (if any) between a vector from a point cv and an edge e2 """
     # Handle vertical or horizontal lines
-    epsilon2 = epsilon
+    epsilon2 = 0#epsilon
 
     vx = vec[0, 0] + epsilon2
     vy = vec[1, 0] + epsilon2
@@ -126,6 +202,7 @@ def compute_intersection(vec, cv, e2):
             cv.prev.index == e2.v_to.index or \
                 cv.next.index == e2.v_from.index:
             return None, None"""
+        #print(f'{cv=}, {e}, {e2}, {intersection_point[0]}, {intersection_point[1]}')
         return intersection_point, t
     return None, None
 
@@ -178,8 +255,8 @@ def is_well_formed(polygon):
         return False, "Vertices are not in counterclockwise order."
 
     # 4. Check for edge intersections (except consecutive edges)
-    #if has_self_intersections(polygon):
-    #        return False, "Polygon has self-intersecting edges."
+    if has_self_intersections(polygon):
+        return False, "Has self intersections"
 
     return True, "Polygon is well-formed."
 
@@ -196,15 +273,44 @@ def is_ccw(polygon):
 def has_self_intersections(polygon):
     edges = polygon.edges
     # Compare each edge with every other edge (ignoring consecutive edges)
-    for i, e1 in enumerate(edges):
+    for i, e in enumerate(edges):
         for j, e2 in enumerate(edges):
-            if i <= j:
+            if i == j:
                 break
 
-            if edges_intersect(e1, e2):
-                return True
-    return False
+            # Coordinates for edge 1
+            x1 = e.v_from.x
+            y1 = e.v_from.y
 
+            x2 = e.v_to.x
+            y2 = e.v_to.y
+
+            # Coordinates for edge 2
+            x3 = e2.v_from.x
+            y3 = e2.v_from.y
+
+            x4 = e2.v_to.x
+            y4 = e2.v_to.y
+
+            denominator = np.round(x1 * y3 - x1 * y4 - x2 * y3 + x2 * y4 - x3 * y1 + x3 * y2 + x4 * y1 - x4 * y2, 3)
+
+            if denominator == 0:
+                continue
+
+            t = np.round((x1*y3 - x1*y4 - x3*y1 + x3*y4 + x4*y1 - x4*y3) / denominator, 3)
+
+            u = np.round(-(x1*y2 - x1*y3 - x2*y1 + x2*y3 + x3*y1 - x3*y2) / denominator, 3)
+            if 0 < t< 1 and 0 < u< 1:
+                #print(f'{e} intersects {e2}')
+                #print(f"SELF INTERSECTING t={t}, u={u}")
+                return True
+
+            if ((t == 0 or t == 1) and 0 < u < 1) or ((u == 0 or u == 1) and 0 < t < 1):
+                #print(f"SELF INTERSECTING (EDGE CASE) {t=} {u=}")
+                #print(f'{e} and {e2}')
+                return True
+
+    return False
 def edges_intersect(e1, e2):
     # Extract the points of each edge
     p1, p2 = e1.v_from, e1.v_to
@@ -277,7 +383,7 @@ def split_polygon(P, depth=0):
 
     # Base case: if the polygon is convex, return it
     if ncc == 0:
-        print(f'\treturning')
+        print(f'\treturning from {depth - 1}')
         #save_polygon(P, depth, len(P.vertices))
         return [P]
     print(f'{depth=}')
@@ -315,7 +421,18 @@ def split_polygon(P, depth=0):
                 vec2 = e2.v_to.get_array() - e2.v_from.get_array()
 
                 # Compute intersection with edge e2 (if any)
-                ip, t = compute_intersection(vec, cv, e2)
+                #ip, t = compute_intersection(vec, e, cv, e2)
+                ip, t = compute_intersection2(e, cv, e2)
+
+                #if ip is None and ip2 is not None:
+                #    print(f'should not happen {cv} {e} {e2} ip={ip} ip2={ip2}')
+
+                #if ip is not None or ip2 is not None:
+                #    print(f'ip1 = {ip[0]}, {ip[1]}')
+                #    print(f'ip2 = {ip2[0]}, {ip2[1]}')
+                #if ip2 is not None:
+                #    print(f't2 = {t2}, ip2 = {ip2[0, 0], ip2[1, 0]}')
+                #print(f't2 = {t}, ip2 = {ip}')
                 if ip is not None:
                     #print(f'\t\t intersects {e2} at ({ip[0,0]}, {ip[1,0]})), {t=}, normal={cross(vec, vec2)}')
 
@@ -416,17 +533,13 @@ def split_polygon(P, depth=0):
     #P2.plot(title=f'P2, d = {depth}')
         #print('here')
     save_polygon(P, P1, P2, depth, len(P.vertices), D_ij)
-        #plot_results2(P, P1, P2, depth, cv, edge, D_ij)
 
     # Recursively split both sub-polygons if the polygons are valid
     result1 = []
     result2 = []
-    #if is_well_formed(P1):
-    #        print('P1 is well-formed')
+
     result1 = split_polygon(P1, depth + 1)
 
-    #if is_well_formed(P2):
-     #   print('P2 is well-formed')
     result2 = split_polygon(P2, depth + 1)
 
     # Combine both lists into one and return it
@@ -612,7 +725,8 @@ def plot_results(split_polygons, cv, Di):
             r += 1
             c = 0
     fig.tight_layout()
-    plt.show()
+    plt.savefig(f'./figs/cv{cv}.png')
+    plt.close()
 
 def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     fig, ax = plt.subplots(1, 4)
@@ -687,7 +801,7 @@ def plot_results3(sub_polygons, include_points = False):
         #ax.plot(x_coords, y_coords, 'k-')
         #ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-o')
         ax.set_aspect('equal')
-        ax.set_title('Antwerpen Decomposition')
+        #ax.set_title('Antwerpen Decomposition')
     plt.show()
 
 def plot_graph(G):
@@ -786,7 +900,6 @@ def save_polygon(P, P1, P2, depth, n, D_ij, color='k', name='fig'):
     ax[2].plot(x_coords, y_coords, f'{color}-', marker='o')
     ax[2].plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
     ax[2].set_title(f'P2')
-    ax[1].set_title(f'P1')
     ax[2].set_aspect('equal')
 
     plt.savefig(f'./figs/{name}{id(P)}.png')
