@@ -119,6 +119,8 @@ class Polygon:
         """ Find intersection between two line segments (p1, p2) and (q1, q2) with floating-point tolerance """
         r = np.array(p2) - np.array(p1)
         s = np.array(q2) - np.array(q1)
+        r = r.flatten()
+        s = s.flatten()
 
         r_cross_s = np.cross(r, s)
         if abs(r_cross_s) < epsilon:
@@ -127,6 +129,8 @@ class Polygon:
         p1_q1 = np.array(q1) - np.array(p1)
         t = np.cross(p1_q1, s) / r_cross_s
         u = np.cross(p1_q1, r) / r_cross_s
+        t = t.item()  # Converts single-element array to scalar
+        u = u.item()  # Converts single-element array to scalar
 
         # Check if the intersection is within the bounds of the line segments
         if (0 <= t <= 1 or abs(t) < epsilon or abs(t - 1) < epsilon) and \

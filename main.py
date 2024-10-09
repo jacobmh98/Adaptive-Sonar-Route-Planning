@@ -1,9 +1,9 @@
 import copy
 import json
 import multi_poly_planning
-import polygon_coverage_path
 import traveling_salesman_variation
 import connecting_path
+import coverage_plots
 import pickle
 import traceback
 from global_variables import *
@@ -11,7 +11,7 @@ from functions import *
 import pickle
 from global_variables import load_existing_data
 
-f = open('test_data/complex_polygon.json')
+"""f = open('test_data/complex_polygon.json')
 data = json.load(f)
 vertices_data = data['area']['coordinates']
 
@@ -25,9 +25,32 @@ optimized_polygons = optimize_polygons(copy.deepcopy(polygons))
 adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_polygons)
 start_node = next(iter(adjacency_graph.nodes()))
 optimized_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_polygons, start_node)
+"""
 
-plot_results3(optimized_polygons)
+f = open('test_data/antwerpen_full.json')
 
+with open('test_data/antwerpen_epsilon_e6_optimized_e2.pkl', 'rb') as file:
+    sub_polygons = pickle.load(file)
+
+data = json.load(f)
+vertices_data = data['area']['coordinates']
+
+# Defining the initial polygon
+vertices = []
+
+for i in range(len(vertices_data)):
+    vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
+poly = Polygon(vertices)
+optimized_polygons = sub_polygons
+
+# Remove collinear vertices in each sub-polygon
+for i, p in enumerate(optimized_polygons):
+    p = remove_collinear_vertices(p)
+    optimized_polygons[i] = p
+
+adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_polygons)
+start_node = next(iter(adjacency_graph.nodes()))
+optimized_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_polygons, start_node)
 
 # Computing the total path
 total_intersections = multi_poly_planning.multi_intersection_planning(optimized_polygons, extern_start_end)
@@ -35,7 +58,8 @@ total_intersections = multi_poly_planning.multi_intersection_planning(optimized_
 
 #multi_poly_planning.multi_poly_plot(poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
 total_path = connecting_path.connect_path(optimized_polygons, total_intersections)
-multi_poly_planning.multi_poly_plot(poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
+
+coverage_plots.multi_poly_plot(poly, optimized_polygons, total_path)
 
 
 

@@ -1,9 +1,9 @@
 import networkx as nx
 import numpy as np
-import polygon_coverage_path
+import polygon_coverage_intersections
 import rotating_calipers_antipodal_pairs
 import matplotlib.pyplot as plt
-from functions import polygons_are_adjacent
+from functions import polygons_are_adjacent, plot_results3
 from global_variables import ext_p_start, ext_p_end, optimize_epsilon
 from Polygon import Polygon, Vertex
 
@@ -106,11 +106,11 @@ def remove_unnecessary_vertices(polygon):
     return Polygon(new_vertices)
 
 
-def rotating_calipers_path_planner(polygons, current_polygon_index, d_pq):
+def rotating_calipers_path_planner(polygon, current_polygon_index, d_pq):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
 
-    :param polygons: List Polygon
+    :param polygon: Polygon
     :param current_polygon_index: index of current polygon
     :param d_pq: List of tuples representing antipodal pairs (b, a).
     :return optimal_path: The best back-and-forth path (computed using best_path).
@@ -121,9 +121,13 @@ def rotating_calipers_path_planner(polygons, current_polygon_index, d_pq):
 
     # Iterate over all antipodal pairs (b, a)
     for (i, j) in d_pq:
+        #print(f'({i,j}')
         # Compute the best path for the current antipodal pair
-        #current_path, current_cost = polygon_coverage_path.best_path(polygons, current_polygon_index, path, dx, i, j)
-        current_intersections, current_cost = polygon_coverage_path.best_path2(polygons, current_polygon_index, i, j)
+        current_intersections = polygon_coverage_intersections.best_intersection(polygon, i, j)
+        #print(f'current: {current_intersections}')
+
+        # TODO: Create a better cost function
+        current_cost = len(current_intersections)
 
         # Update the optimal path if the current path has a lower cost
         if current_cost < min_cost:
@@ -166,7 +170,7 @@ def multi_intersection_planning(polygons, include_external_start_end):
         )
 
         # Computing the intersections for the current polygon
-        intersections = rotating_calipers_path_planner(polygons, i, diametric_antipodal_pairs)
+        intersections = rotating_calipers_path_planner(current_poly, i, diametric_antipodal_pairs)
 
         # Check if intersections found, otherwise initialize an empty list
         if not intersections:
@@ -179,90 +183,3 @@ def multi_intersection_planning(polygons, include_external_start_end):
         total_intersections[-1].append([ext_p_end])
 
     return total_intersections
-
-
-def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, path):
-    """
-    Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
-
-    :param polygon: Polygon
-    :param polygons: List of the sub polygons
-    :param include_external_start_end: bool
-    :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
-    :param ps: Starting point of the mission
-    :param pe: Ending point of the mission
-    :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
-    """
-    coverage = False
-    plot_sub_polygons = False
-
-    fig, ax = plt.subplots(1, 1)
-    color = "k"
-    # Plot the polygon
-    if not plot_sub_polygons:
-        x_coords, y_coords = polygon.get_coords()
-        ax.plot(x_coords, y_coords, f'{color}-', marker='o')
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-        ax.set_aspect('equal')
-
-    if plot_sub_polygons:
-        for i, poly in enumerate(polygons):
-            x_coords, y_coords = poly.get_coords()
-            ax.plot(x_coords, y_coords, 'k-', marker='o',markersize=3, label='Polygon')
-            ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
-
-            # Find the center of the polygon to place the label
-            centroid_x = np.mean(x_coords)
-            centroid_y = np.mean(y_coords)
-
-            # Label the polygon with its number (the order number)
-            ax.text(centroid_x, centroid_y, f'{i}', fontsize=10, color='blue')
-
-    # Plot the path
-    if len(path) > 0:
-        path_x, path_y = path[:, 0], path[:, 1]
-        ax.plot(path_x, path_y, 'r-', label='Path', linewidth=1)
-
-        # Highlight the start and end points of the path
-        ax.plot(path_x[0], path_y[0], 'go', markersize=8, label='Start Point')  # Start point
-        ax.plot(path_x[-1], path_y[-1], 'yo', markersize=8, label='End Point')  # End point
-
-        # Compute and plot coverage area along the path
-        if coverage:
-            for i in range(len(path) - 1):
-                p1 = path[i]
-                p2 = path[i + 1]
-                # Vector along the path segment
-                segment_vector = p2 - p1
-                # Normalize the vector to get the perpendicular direction
-                perp_vector = np.array([-segment_vector[1], segment_vector[0]])
-                if np.linalg.norm(perp_vector) != 0:
-                    perp_vector = perp_vector / np.linalg.norm(perp_vector) * dx / 2
-
-                # Create four corners of the coverage area for this segment
-                corner1 = p1 + perp_vector
-                corner2 = p1 - perp_vector
-                corner3 = p2 - perp_vector
-                corner4 = p2 + perp_vector
-
-                # Plot the coverage area for this segment as a filled polygon
-                ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
-                        [corner1[1], corner2[1], corner3[1], corner4[1]],
-                        'orange', alpha=0.3, label='_nolegend_')
-
-    else:
-        print("Empty path")
-
-    # Plot the mission start and end points
-    if include_external_start_end:
-        ax.plot(ps[0], ps[1], 'bo', markersize=12, label='Mission Start Point')
-        ax.text(ps[0], ps[1], 'Start', fontsize=14, color='blue')
-
-        ax.plot(pe[0], pe[1], 'mo', markersize=12, label='Mission End Point')
-        ax.text(pe[0], pe[1], 'End', fontsize=14, color='magenta')
-
-    plt.grid(True)
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.show()
-

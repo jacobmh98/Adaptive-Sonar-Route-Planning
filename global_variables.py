@@ -4,6 +4,8 @@ epsilon = 2e-2
 
 optimize_epsilon = 0.01
 
+intersection_epsilon = 1e-9
+
 data_path = 'complex_polygon'
 name_decomposition = 'complex_polygon'
 name_optimized_decomposition = 'complex_polygon_optimized'
