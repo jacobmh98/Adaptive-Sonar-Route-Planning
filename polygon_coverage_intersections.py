@@ -185,7 +185,7 @@ def get_smallest_diameter(polygon):
 
         return min_distance
 
-def get_path_intersections(poly, b_index, b_mate_index, a_index, boundary):
+def get_path_intersections(poly, path_width, b_index, b_mate_index, a_index, boundary):
     """ Algorithm 1 - GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions,
         Adjusted for multi polygons. Just returns the list of intersection pairs
 
@@ -208,11 +208,11 @@ def get_path_intersections(poly, b_index, b_mate_index, a_index, boundary):
     smallest_diameter = get_smallest_diameter(poly)
 
     # If path width is larger than the smallest diameter, then change path to half the diameter size
-    if dx > smallest_diameter:
+    if path_width > smallest_diameter:
         # In case of path width being too large to fit inside polygon
         delta_init = smallest_diameter / 2
     else:
-        delta_init = dx / 2
+        delta_init = path_width / 2
 
     # Creating a vector from vertex b to b_mate
     v_initial = np.array([b, b_mate])
@@ -257,7 +257,7 @@ def get_path_intersections(poly, b_index, b_mate_index, a_index, boundary):
         """
 
         # Computing next extended offset vector, offset with full path width dx
-        v_offset = compute_offset_vector(v_extended, sweep_direction, dx)
+        v_offset = compute_offset_vector(v_extended, sweep_direction, path_width)
         v_extended = extend_vector_to_boundary(v_offset, boundary)
 
         # Avoid infinite while loop
@@ -281,7 +281,7 @@ def compute_angle(i, j):
     return np.arctan2(delta_y, delta_x)
 
 
-def best_intersection(poly, i, j):
+def best_intersection(poly, path_width, i, j):
     """
     :param poly: Polygon
     :param i: Index of first point in antipodal pair
@@ -300,7 +300,7 @@ def best_intersection(poly, i, j):
         else:
             a_index = poly.get_mate(b_index)
 
-        intersections = get_path_intersections(poly, b_index, b_mate_index, a_index, boundary)
+        intersections = get_path_intersections(poly, path_width, b_index, b_mate_index, a_index, boundary)
 
     else:
         # Rotating the caliper in clockwise direction
@@ -325,8 +325,8 @@ def best_intersection(poly, i, j):
 
         # Finding path that holds the least flight lines (smallest dist between point b and a creates longer and fewer lines)
         if distance_between_points(poly.vertices[b_index].v, poly.vertices[a_index].v) < distance_between_points(poly.vertices[b2_index].v, poly.vertices[a2_index].v):
-            intersections = get_path_intersections(poly, b_index, poly.get_mate(b_index), a_index, boundary)
+            intersections = get_path_intersections(poly, path_width, b_index, poly.get_mate(b_index), a_index, boundary)
         else:
-            intersections = get_path_intersections(poly, b2_index, poly.get_mate(b2_index), a2_index, boundary)
+            intersections = get_path_intersections(poly, path_width, b2_index, poly.get_mate(b2_index), a2_index, boundary)
 
     return intersections

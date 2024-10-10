@@ -14,7 +14,8 @@ load_existing_data = False
 load_existing_optimized_polygons = False
 
 # Start parameters
-dx = 15 # Path width (Must be >0) (1 is 1 meter)
+dx = 13 # Path width (Must be >0) (1 is 1 meter)
+check_reverse = True
 remove_parallel_vertices = True  # Can cause issues in path coverage if not removed
 extern_start_end = False
 if extern_start_end:
@@ -28,8 +29,7 @@ else:
 tsp_sort = False
 dfs_sort = True
 
-# Coverage path heuristic weights
-distance_weight = 1
-distance_to_start_weight = 1
-distance_to_end_weight = 1
-turn_weight = 10
+# Finding optimal path width, with tolerances
+use_optimal_dx = False
+tolerance = 1  # +- meters for path width
+iterations = 100 # Number of different path widths to check
