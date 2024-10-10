@@ -1,5 +1,5 @@
 import numpy as np
-import copy
+import coverage_plots
 
 def compute_total_distance(path):
     total_distance = 0.0
@@ -142,20 +142,25 @@ def connect_middle_path(polygons, total_intersections, i, path):
 
     # Finding path's start and end points
     start_point = last_path_point
-    end_point1 = find_nearest_vertex_to_point(middle_path[-1], polygons[i+1]).v
-    end_point2 = find_nearest_vertex_to_point(opposite_path[-1], polygons[i+1]).v
+    end_point1 = find_nearest_vertex_to_point(middle_path[-1], polygons[i+1]).v.flatten()
+    end_point2 = find_nearest_vertex_to_point(opposite_path[-1], polygons[i+1]).v.flatten()
 
     # Appending start and end points to both paths and calculating the total distances
     check_middle = [start_point] + middle_path + [end_point1]
     check_opposite = [start_point] + opposite_path + [end_point2]
+
+    #coverage_plots.multi_poly_plot(polygons[i], polygons, np.array(check_middle))
+    #coverage_plots.multi_poly_plot(polygons[i], polygons, np.array(check_opposite))
 
     # Checking total distances travelled in each path
     dist1 = compute_total_distance(check_middle)
     dist2 = compute_total_distance(check_opposite)
 
     if dist1 <= dist2:
+        #print("middle")
         return middle_path
     else:
+        #print("opposite")
         return opposite_path
 
 def connect_last_path(path, intersections):
@@ -199,10 +204,11 @@ def connect_path(polygons, total_intersections):
     for i, poly in enumerate(polygons):
         current_path = []
 
-        if len(polygons) == 1:  # In case of just 1 polygon, then the optimal intersections create optimal path
+        # In case of just 1 polygon, then the optimal intersections create the optimal path
+        if len(polygons) == 1:
             current_path = connect_solo_path(total_intersections[i])
 
-        # First poly edge case, has no start point, so start at closest point in next polygon intersection
+        # First poly edge case, has no start point, so start at closest point in next polygon intersection and reverse its path
         elif i == 0 and len(polygons) > 1:
             current_path = connect_first_path(polygons[i+1], total_intersections[i])
 
@@ -210,10 +216,11 @@ def connect_path(polygons, total_intersections):
         elif i < len(polygons) - 1:
             current_path = connect_middle_path(polygons, total_intersections, i, path)
 
-        # Last polygon is simple, start at end of path
+        # Last polygon is simple, just start at the end of the path so far
         elif i == len(polygons) - 1:
             current_path = connect_last_path(path, total_intersections[i])
 
+        # Should never be an empty path, but just in case check to avoid error
         if len(current_path) > 0:
             path = np.vstack([path, current_path])
 

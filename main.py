@@ -1,97 +1,57 @@
 import copy
 import json
+import os
+import pickle
+import time
+import traceback
 import multi_poly_planning
 import traveling_salesman_variation
 import connecting_path
 import coverage_plots
-import pickle
-import traceback
+import path_comparison_functions
 from global_variables import *
 from functions import *
-import pickle
-from global_variables import load_existing_data
 
-"""f = open('test_data/complex_polygon.json')
-data = json.load(f)
-vertices_data = data['area']['coordinates']
+antwerp = True
 
-vertices = []
-for i in range(len(vertices_data)):
-    vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
-poly = Polygon(vertices)
-polygons = split_polygon(poly)
-optimized_polygons = optimize_polygons(copy.deepcopy(polygons))
+if antwerp:
+    with open('test_data/antwerp_comparison.pkl', 'rb') as file:
+        optimized_polygons = pickle.load(file)
 
-adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_polygons)
-start_node = next(iter(adjacency_graph.nodes()))
-optimized_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_polygons, start_node)
-"""
-
-f = open('test_data/antwerpen_full.json')
-
-with open('test_data/antwerpen_epsilon_e6_optimized_e2.pkl', 'rb') as file:
-    sub_polygons = pickle.load(file)
-
-data = json.load(f)
-vertices_data = data['area']['coordinates']
-
-# Defining the initial polygon
-vertices = []
-
-for i in range(len(vertices_data)):
-    vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
-poly = Polygon(vertices)
-optimized_polygons = sub_polygons
-
-# Remove collinear vertices in each sub-polygon
-for i, p in enumerate(optimized_polygons):
-    p = remove_collinear_vertices(p)
-    optimized_polygons[i] = p
-
-adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_polygons)
-start_node = next(iter(adjacency_graph.nodes()))
-optimized_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_polygons, start_node)
+else:
+    with open('test_data/simple_complex_comparison.pkl', 'rb') as file:
+        optimized_polygons = pickle.load(file)
 
 # Computing the total path
+start_time = time.time()
 total_intersections = multi_poly_planning.multi_intersection_planning(optimized_polygons, extern_start_end)
-#print(total_intersections)
 
 #multi_poly_planning.multi_poly_plot(poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
 total_path = connecting_path.connect_path(optimized_polygons, total_intersections)
 
-coverage_plots.multi_poly_plot(poly, optimized_polygons, total_path)
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+# For comparisons
+distance = path_comparison_functions.compute_total_distance(total_path)
+total_turns, hard_turns, medium_turns, soft_turns = path_comparison_functions.calculate_turns_and_classify(total_path)
+
+print('Newest version:')
+print(f'Distance: {distance}')
+print(f'Total turns: {total_turns}')
+print(f'Hard turns: {hard_turns}')
+print(f'Medium turns: {medium_turns}')
+print(f'Soft turns: {soft_turns}')
+print(f'Elapsed time: {elapsed_time}')
+
+coverage_plots.multi_poly_plot(None, optimized_polygons, total_path)
 
 
 
 quit()
-if not load_existing_data:
-    # Reading the test data
-    f = open(f'test_data/{data_path}.json')
+"""f = open('test_data/antwerpen_full.json')
 
-    data = json.load(f)
-    vertices_data = data['area']['coordinates']
-
-    # Defining the initial polygon
-    vertices = []
-
-    for i in range(len(vertices_data)):
-        vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
-
-    antwerp_poly = Polygon(vertices)
-
-    # Compute the split that gives the sub-polygons
-    print('running')
-    sub_polygons = split_polygon(antwerp_poly)
-
-    # Save the sub polygon objects
-    with open(f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_decomposition}.pkl',
-              'wb') as file:
-        pickle.dump(sub_polygons, file)
-else:
-    f = open('test_data/antwerpen_full.json')
-
-    print('loading')
-    with open(f'./test_data/{name_decomposition}.pkl', 'rb') as file:
+    with open('test_data/antwerpen_epsilon_e6_optimized_e2.pkl', 'rb') as file:
         sub_polygons = pickle.load(file)
 
     data = json.load(f)
@@ -102,112 +62,15 @@ else:
 
     for i in range(len(vertices_data)):
         vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
+    poly = Polygon(vertices)
+    optimized_polygons = sub_polygons
 
-    antwerp_poly = Polygon(vertices)
+    # Remove collinear vertices in each sub-polygon
+    for i, p in enumerate(optimized_polygons):
+        p = remove_collinear_vertices(p)
+        optimized_polygons[i] = p
 
-if not load_existing_optimized_polygons:
-    """# Removing collinear vertices from the sub-polygons
-    for i, p in enumerate(sub_polygons):
-        sub_polygons[i] = remove_collinear_vertices(p)"""
-
-    # Removing illegal sub-polygons from the unoptimized Antwerpen
-    i = 0
-    while i < len(sub_polygons):
-        p = sub_polygons[i]
-
-        if not is_well_formed(p)[0]:
-            sub_polygons.pop(i)
-            i -= 1
-        i += 1
-
-    # Optimizing the sub-polygons (removing edges)
-    optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
-
-    # Save the optimized sub polygon objects
-    with open(
-            f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_optimized_decomposition}.pkl',
-            'wb') as file:
-        pickle.dump(optimized_sub_polygons, file)
-else:
-    """# Removing collinear vertices from the sub-polygons
-    for i, p in enumerate(sub_polygons):
-        sub_polygons[i] = remove_collinear_vertices(p)"""
-
-    # Removing illegal sub-polygons from the unoptimized Antwerpen
-    i = 0
-    while i < len(sub_polygons):
-        p = sub_polygons[i]
-
-        if not is_well_formed(p)[0]:
-            sub_polygons.pop(i)
-            i -= 1
-        i += 1
-
-    with open(f'./test_data/{name_optimized_decomposition}.pkl', 'rb') as file:
-        optimized_sub_polygons = pickle.load(file)
-
-#plot_results3(sub_polygons)
-
-# Remove collinear vertices in each sub-polygon
-for i, p in enumerate(optimized_sub_polygons):
-    p = remove_collinear_vertices(p)
-    optimized_sub_polygons[i] = p
-plot_results3(optimized_sub_polygons)
-
-# plot_results3(sub_polygons)
-# plot_results3(optimized_sub_polygons)
-
-"""collection = []
-for i, p in enumerate(optimized_sub_polygons):
-    if i == 4 or i == 14 or i == 32 or i == 30 or i == 29:
-        collection.append(p)
-
-
-plot_results3(collection, True)
-optimized_sub_polygons = collection
-"""
-
-# Choosing sorting method for the order of sub polygons
-if tsp_sort:  # Not working correctly
-    distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)
-    tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-    traveling_salesman_variation.visualize_tsp_solution(optimized_sub_polygons, tsp_route)
-    polygons = [sub_polygons[i] for i in tsp_route]
-
-elif dfs_sort:
-    # Order the list of sub polygons
-    adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
+    adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_polygons)
     start_node = next(iter(adjacency_graph.nodes()))
-    polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
-    #plot_graph(adjacency_graph)
-else:  # Unsorted polygons
-    polygons = optimized_sub_polygons
-
-# If chosen, parallel vertices are removed (Can cause edge case errors if they are not removed)
-if False and remove_parallel_vertices:
-    for i, poly in enumerate(polygons):
-        polygons[i] = multi_poly_planning.remove_unnecessary_vertices(poly)
-
-print(f'Number of polygons = {len(polygons)}')
-
-# Computing the total path
-total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
-multi_poly_planning.multi_poly_plot(antwerp_poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
-quit()
-# Below is for testing path planning for each polygon seperatly
-complete_path = np.empty((0, 2))
-for i, poly in enumerate(polygons):
-    new_polygon = [polygons[i]]
-
-    try:
-        total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
-        complete_path = np.vstack([complete_path, total_path])
-        # multi_poly_planning.multi_poly_plot(new_polygon, polygons, dx, extern_start_end, ext_p_start, ext_p_end, np.array(total_path))
-        print(f'{i} is working')
-
-    except Exception as e:
-        print(f'not working on {i}')
-        traceback.print_exc()
-        new_polygon[0].plot()
-
-multi_poly_planning.multi_poly_plot(antwerp_poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, complete_path)
+    optimized_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_polygons, start_node)
+"""

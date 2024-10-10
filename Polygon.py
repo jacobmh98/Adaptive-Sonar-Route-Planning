@@ -126,11 +126,10 @@ class Polygon:
         if abs(r_cross_s) < epsilon:
             return None  # Lines are parallel or collinear
 
+
         p1_q1 = np.array(q1) - np.array(p1)
         t = np.cross(p1_q1, s) / r_cross_s
         u = np.cross(p1_q1, r) / r_cross_s
-        t = t.item()  # Converts single-element array to scalar
-        u = u.item()  # Converts single-element array to scalar
 
         # Check if the intersection is within the bounds of the line segments
         if (0 <= t <= 1 or abs(t) < epsilon or abs(t - 1) < epsilon) and \
