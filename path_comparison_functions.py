@@ -7,7 +7,6 @@ def compute_total_distance(path):
         total_distance += np.linalg.norm(path[i + 1] - path[i])
     return total_distance
 
-
 def calculate_turns_and_classify(path):
     hard_turns = 0
     medium_turns = 0
@@ -24,6 +23,7 @@ def calculate_turns_and_classify(path):
 
         # Compute the dot product and find the angle between vectors
         dot_product = np.dot(unit_vector1, unit_vector2)
+        dot_product = np.clip(dot_product, -1.0, 1.0)  # Account for floating point precision error
         angle_rad = np.arccos(dot_product)  # Angle in radians
         angle_deg = np.degrees(angle_rad)  # Convert to degrees
 

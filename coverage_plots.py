@@ -4,16 +4,16 @@ from global_variables import *
 from Polygon import Polygon
 
 
-def multi_poly_plot(polygon, polygons, path):
+def multi_poly_plot(polygon, current_path_width, polygons, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
 
     :param polygon: Polygon
+    :param current_path_width:
     :param polygons: List of the sub polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
-    :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
     """
-    coverage = False
+    coverage = True
     plot_sub_polygons = True
 
     fig, ax = plt.subplots(1, 1)
@@ -57,7 +57,7 @@ def multi_poly_plot(polygon, polygons, path):
                 # Normalize the vector to get the perpendicular direction
                 perp_vector = np.array([-segment_vector[1], segment_vector[0]])
                 if np.linalg.norm(perp_vector) != 0:
-                    perp_vector = perp_vector / np.linalg.norm(perp_vector) * dx / 2
+                    perp_vector = perp_vector / np.linalg.norm(perp_vector) * current_path_width / 2
 
                 # Create four corners of the coverage area for this segment
                 corner1 = p1 + perp_vector
@@ -78,7 +78,7 @@ def multi_poly_plot(polygon, polygons, path):
     plt.ylabel('Y')
     plt.show()
 
-def plot_vectors_simple(poly, b, b_mate, a, L_flight_ext, L_flight_2, boundary, show_legend=True):
+def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, boundary, show_legend=True):
     """
     Plot the polygon, points b, b_mate, a, and multiple vectors (L_flight, L_flight_ext, and L_flight_2 reversed) for a convex polygon with an optional legend.
     Additionally, draw intersection points where vectors intersect polygon edges.
@@ -122,13 +122,13 @@ def plot_vectors_simple(poly, b, b_mate, a, L_flight_ext, L_flight_2, boundary, 
              head_width=0.05, head_length=0.1, fc='green', ec='green', linewidth=2, label='Vector (b to b_mate)', zorder=4)
 
     # Plot the extended vector (L_flight_ext) as another arrow (adjusted)
-    ext_start, ext_end = L_flight_ext
+    ext_start, ext_end = v_extended
     adjusted_ext_end = adjust_arrow(ext_start, ext_end)
     ax.arrow(ext_start[0], ext_start[1], adjusted_ext_end[0] - ext_start[0], adjusted_ext_end[1] - ext_start[1],
              head_width=0.05, head_length=0.1, fc='blue', ec='blue', linewidth=2, label='First Extended Offset Vector', zorder=4)
 
-    # Reverse the start and end of the additional vector (L_flight_2)
-    vector_2_start, vector_2_end = L_flight_2
+    # Reverse the start and end of the additional vector v_extended2
+    vector_2_start, vector_2_end = v_extended2
 
     # Plot the reversed additional vector (L_flight_2) as another arrow (adjusted)
     adjusted_vector_2_end = adjust_arrow(vector_2_start, vector_2_end)
@@ -136,11 +136,9 @@ def plot_vectors_simple(poly, b, b_mate, a, L_flight_ext, L_flight_2, boundary, 
              adjusted_vector_2_end[0] - vector_2_start[0], adjusted_vector_2_end[1] - vector_2_start[1],
              head_width=0.05, head_length=0.1, fc='purple', ec='purple', linewidth=2, label='Second Extended Offset Vector', zorder=4)
 
-    #ip1, ip2 = Polygon.find_intersections(poly, L_flight[0], L_flight[1])
-
     # Find intersection points for the first and second vectors
-    i1_1, i1_2 = Polygon.find_intersections(poly, L_flight_ext)  # First vector intersections
-    i2_1, i2_2 = Polygon.find_intersections(poly, L_flight_2)    # Second vector intersections
+    i1_1, i1_2 = Polygon.find_intersections(poly, v_extended)  # First vector intersections
+    i2_1, i2_2 = Polygon.find_intersections(poly, v_extended2)    # Second vector intersections
 
     # Plot intersection points for the first vector
     ax.plot([i1_1[0], i1_2[0]], [i1_1[1], i1_2[1]], 'rx', markersize=8, zorder=5)

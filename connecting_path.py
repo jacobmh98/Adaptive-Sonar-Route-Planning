@@ -8,7 +8,7 @@ def compute_total_distance(path):
         total_distance += np.linalg.norm(path[i + 1] - path[i])
     return total_distance
 
-def find_nearest_vertex_to_point(point, poly):
+def find_nearest_vertex_to_point(poly, point):
     nearest_vertex = None
     min_distance = float('inf')
 
@@ -142,8 +142,8 @@ def connect_middle_path(polygons, total_intersections, i, path):
 
     # Finding path's start and end points
     start_point = last_path_point
-    end_point1 = find_nearest_vertex_to_point(middle_path[-1], polygons[i+1]).v.flatten()
-    end_point2 = find_nearest_vertex_to_point(opposite_path[-1], polygons[i+1]).v.flatten()
+    end_point1 = find_nearest_vertex_to_point(polygons[i+1], middle_path[-1]).v.flatten()
+    end_point2 = find_nearest_vertex_to_point(polygons[i+1], opposite_path[-1]).v.flatten()
 
     # Appending start and end points to both paths and calculating the total distances
     check_middle = [start_point] + middle_path + [end_point1]
