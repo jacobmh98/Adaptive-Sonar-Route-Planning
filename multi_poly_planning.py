@@ -1,12 +1,10 @@
 import networkx as nx
 import numpy as np
-import polygon_coverage_path
-import rotating_calipers_antipodal_pairs
-import matplotlib.pyplot as plt
+import polygon_coverage_intersections
+import antipodal_pairs
 from functions import polygons_are_adjacent
-from global_variables import ext_p_start, ext_p_end, optimize_epsilon
+from global_variables import *
 from Polygon import Polygon, Vertex
-
 
 def get_nearest_neighbour_vertex(poly1, poly2):
     nearest_vertex = None
@@ -106,151 +104,66 @@ def remove_unnecessary_vertices(polygon):
     return Polygon(new_vertices)
 
 
-def rotating_calipers_path_planner(polygons, current_polygon_index, path, dx, d_pq):
+def rotating_calipers_path_planner(polygon, current_path_width, current_polygon_index, d_pq):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
 
-    :param path:
-    :param polygons: List Polygon
+    :param polygon: Polygon
+    :param current_path_width: Float path width for the current polygon
     :param current_polygon_index: index of current polygon
-    :param dx: float, the path width
     :param d_pq: List of tuples representing antipodal pairs (b, a).
     :return optimal_path: The best back-and-forth path (computed using best_path).
     """
     # Initialize variables to store the best path and the minimal cost
     min_cost = float('inf')
-    optimal_path = None
+    optimal_intersections = None
 
     # Iterate over all antipodal pairs (b, a)
     for (i, j) in d_pq:
         # Compute the best path for the current antipodal pair
-        current_path, current_cost = polygon_coverage_path.best_path(polygons, current_polygon_index, path, dx, i, j)
+        current_intersections = polygon_coverage_intersections.best_intersection(polygon, current_path_width, i, j)
+
+        # TODO: Create a better cost function
+        current_cost = len(current_intersections)
 
         # Update the optimal path if the current path has a lower cost
         if current_cost < min_cost:
             min_cost = current_cost
-            optimal_path = current_path
+            optimal_intersections = current_intersections
 
-    return optimal_path
+    return optimal_intersections
 
-def multi_path_planning(polygons, dx, include_external_start_end):
+
+def multi_intersection_planning(polygons, current_path_width):
     """
     :param polygons: List of Polygons
-    :param dx: float, path width
-    :param include_external_start_end: Bool, indicate if external start and end point included
-    :return:
+    :param current_path_width: Width of the planned path
+    :return: List of lists containing intersection points for each polygon.
     """
-    # Creating the np array to store the total path
-    total_path = np.empty((0,2))
-
-    if include_external_start_end:
-        # Appending external start point to path
-        total_path = np.append(total_path, [ext_p_start], axis=0)
+    # Creating the list to store intersections for each polygon
+    total_intersections = []
 
     for i, current_poly in enumerate(polygons):
-        # Computing current polygons antipodal points
-        antipodal_vertices = rotating_calipers_antipodal_pairs.compute_antipodal_pairs(current_poly)
-        # Removes neighbour pairs and double pairs, i.e. for [0,1] and [1,0] only 1 of them is necessary as both [1,0] and [0,1] is checked in best path algorithm
-        filtered_antipodal_vertices = rotating_calipers_antipodal_pairs.filter_and_remove_redundant_pairs(current_poly, antipodal_vertices)
-        # Computing the diametric antipodal pairs (Minimizing number of paths computed, as diametric pairs produce the shortest paths)
-        diametric_antipodal_pairs = rotating_calipers_antipodal_pairs.filter_diametric_antipodal_pairs(current_poly, filtered_antipodal_vertices)
+        # Computing current polygon's antipodal points
+        antipodal_vertices = antipodal_pairs.compute_antipodal_pairs(current_poly)
 
-        # Getting the shortest path for the current poly
-        shortest_path = rotating_calipers_path_planner(polygons, i, total_path, dx, diametric_antipodal_pairs)
+        # Removing neighbor pairs and duplicate pairs
+        filtered_antipodal_vertices = antipodal_pairs.filter_and_remove_redundant_pairs(
+            current_poly, antipodal_vertices
+        )
 
-        if shortest_path.size == 0:  # Probably not necessary
-            shortest_path = np.empty((0, 2))  # Resetting shortest_path for total_path
+        # Computing the diametric antipodal pairs (minimizing number of paths)
+        diametric_antipodal_pairs = antipodal_pairs.filter_diametric_antipodal_pairs(
+            current_poly, filtered_antipodal_vertices
+        )
 
-        total_path = np.vstack([total_path, shortest_path])
+        # Computing the intersections for the current polygon
+        intersections = rotating_calipers_path_planner(current_poly, current_path_width, i, diametric_antipodal_pairs)
 
-    # Appending the external end point as last point in path
-    if include_external_start_end:
-        total_path = np.append(total_path, [ext_p_end], axis=0)
+        # Check if intersections found, otherwise initialize an empty list
+        if not intersections:
+            intersections = []
 
-    return total_path
+        total_intersections.append(intersections)
 
-def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, path):
-    """
-    Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
-
-    :param polygon: Polygon
-    :param polygons: List of the sub polygons
-    :param include_external_start_end: bool
-    :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
-    :param ps: Starting point of the mission
-    :param pe: Ending point of the mission
-    :param dx: float, the distance by which the vector should be offset (this defines the width of coverage)
-    """
-    coverage = False
-    plot_sub_polygons = False
-
-    fig, ax = plt.subplots(1, 1)
-    color = "k"
-    # Plot the polygon
-    if not plot_sub_polygons:
-        x_coords, y_coords = polygon.get_coords()
-        ax.plot(x_coords, y_coords, f'{color}-', marker='o')
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-        ax.set_aspect('equal')
-
-    if plot_sub_polygons:
-        for i, poly in enumerate(polygons):
-            x_coords, y_coords = poly.get_coords()
-            ax.plot(x_coords, y_coords, 'k-', marker='o',markersize=3, label='Polygon')
-            ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
-
-            # Find the center of the polygon to place the label
-            centroid_x = np.mean(x_coords)
-            centroid_y = np.mean(y_coords)
-
-            # Label the polygon with its number (the order number)
-            ax.text(centroid_x, centroid_y, f'{i}', fontsize=10, color='blue')
-
-    # Plot the path
-    if len(path) > 0:
-        path_x, path_y = path[:, 0], path[:, 1]
-        ax.plot(path_x, path_y, 'r-', label='Path', linewidth=1)
-
-        # Highlight the start and end points of the path
-        ax.plot(path_x[0], path_y[0], 'go', markersize=8, label='Start Point')  # Start point
-        ax.plot(path_x[-1], path_y[-1], 'yo', markersize=8, label='End Point')  # End point
-
-        # Compute and plot coverage area along the path
-        if coverage:
-            for i in range(len(path) - 1):
-                p1 = path[i]
-                p2 = path[i + 1]
-                # Vector along the path segment
-                segment_vector = p2 - p1
-                # Normalize the vector to get the perpendicular direction
-                perp_vector = np.array([-segment_vector[1], segment_vector[0]])
-                if np.linalg.norm(perp_vector) != 0:
-                    perp_vector = perp_vector / np.linalg.norm(perp_vector) * dx / 2
-
-                # Create four corners of the coverage area for this segment
-                corner1 = p1 + perp_vector
-                corner2 = p1 - perp_vector
-                corner3 = p2 - perp_vector
-                corner4 = p2 + perp_vector
-
-                # Plot the coverage area for this segment as a filled polygon
-                ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
-                        [corner1[1], corner2[1], corner3[1], corner4[1]],
-                        'orange', alpha=0.3, label='_nolegend_')
-
-    else:
-        print("Empty path")
-
-    # Plot the mission start and end points
-    if include_external_start_end:
-        ax.plot(ps[0], ps[1], 'bo', markersize=12, label='Mission Start Point')
-        ax.text(ps[0], ps[1], 'Start', fontsize=14, color='blue')
-
-        ax.plot(pe[0], pe[1], 'mo', markersize=12, label='Mission End Point')
-        ax.text(pe[0], pe[1], 'End', fontsize=14, color='magenta')
-
-    plt.grid(True)
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.show()
-
+    return total_intersections

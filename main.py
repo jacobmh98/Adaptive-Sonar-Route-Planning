@@ -1,6 +1,11 @@
 import copy
 import json
+
+import connecting_path
+import coverage_plots
 import multi_poly_planning
+import optimal_path
+import path_comparison_functions
 import traveling_salesman_variation
 import pickle
 import traceback
@@ -52,7 +57,7 @@ else:
 #antwerp_poly.plot()
 #plot_results3(sub_polygons)
 
-if not load_existing_optimized_polygons:
+if not load_existing_optimized_sub_polygons:
     """# Removing collinear vertices from the sub-polygons
     for i, p in enumerate(sub_polygons):
         sub_polygons[i] = remove_collinear_vertices(p)"""
@@ -117,31 +122,35 @@ elif dfs_sort:
 else:  # Unsorted polygons
     polygons = optimized_sub_polygons
 
-# If chosen, parallel vertices are removed (Can cause edge case errors if they are not removed)
-if False and remove_parallel_vertices:
-    for i, poly in enumerate(polygons):
-        polygons[i] = multi_poly_planning.remove_unnecessary_vertices(poly)
-
 print(f'Number of polygons = {len(polygons)}')
 
-# Computing the total path
-total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
-multi_poly_planning.multi_poly_plot(antwerp_poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)
-quit()
-# Below is for testing path planning for each polygon seperatly
-complete_path = np.empty((0, 2))
-for i, poly in enumerate(polygons):
-    new_polygon = [polygons[i]]
+# Computing optimal path width given start path width and a tolerance (+- to path width)
+if find_optimal_path_width:
+    print(f'Optimal path:')
+    path, distance, path_width = optimal_path.compute_optimal_path_width(optimized_sub_polygons, path_width, tolerance, iterations)
+    print(f'Found optimal path width: {path_width}')
 
-    try:
-        total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
-        complete_path = np.vstack([complete_path, total_path])
-        # multi_poly_planning.multi_poly_plot(new_polygon, polygons, dx, extern_start_end, ext_p_start, ext_p_end, np.array(total_path))
-        print(f'{i} is working')
+    if check_reverse:
+        path, distance = optimal_path.compute_reverse(optimized_sub_polygons, path_width)
 
-    except Exception as e:
-        print(f'not working on {i}')
-        traceback.print_exc()
-        new_polygon[0].plot()
+# Check if computing path using reversed sorted polygon list provides a better result
+elif check_reverse:
+    path, distance = optimal_path.compute_reverse(optimized_sub_polygons, path_width)
 
-multi_poly_planning.multi_poly_plot(antwerp_poly, polygons, dx, extern_start_end, ext_p_start, ext_p_end, complete_path)
+# Baseline path
+else:
+    print('Baseline path:')
+    intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
+    path = connecting_path.connect_path(optimized_sub_polygons, intersections)
+    distance = path_comparison_functions.compute_total_distance(path)
+
+# Computing turns in the path
+total_turns, hard_turns, medium_turns, soft_turns = path_comparison_functions.calculate_turns_and_classify(path)
+
+print(f'Distance: {distance}')
+print(f'Total turns: {total_turns}')
+print(f'Hard turns (<45): {hard_turns}')
+print(f'Medium turns (45-90): {medium_turns}')
+print(f'Soft turns (>90): {soft_turns}')
+
+coverage_plots.multi_poly_plot(None, path_width, optimized_sub_polygons, path)
