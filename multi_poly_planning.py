@@ -6,7 +6,6 @@ from functions import polygons_are_adjacent
 from global_variables import *
 from Polygon import Polygon, Vertex
 
-
 def get_nearest_neighbour_vertex(poly1, poly2):
     nearest_vertex = None
     min_distance = float('inf')
@@ -135,26 +134,16 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_polygon_
     return optimal_intersections
 
 
-def multi_intersection_planning(polygons, current_path_width, include_external_start_end):
+def multi_intersection_planning(polygons, current_path_width):
     """
     :param polygons: List of Polygons
     :param current_path_width: Width of the planned path
-    :param include_external_start_end: Bool, indicate if external start and end point included
     :return: List of lists containing intersection points for each polygon.
     """
     # Creating the list to store intersections for each polygon
     total_intersections = []
 
-    if include_external_start_end:
-        # Including external start point
-        external_points = [[ext_p_start]]
-    else:
-        external_points = []
-
     for i, current_poly in enumerate(polygons):
-        # Creating a list to store intersections for the current polygon
-        polygon_intersections = []
-
         # Computing current polygon's antipodal points
         antipodal_vertices = antipodal_pairs.compute_antipodal_pairs(current_poly)
 
@@ -176,9 +165,5 @@ def multi_intersection_planning(polygons, current_path_width, include_external_s
             intersections = []
 
         total_intersections.append(intersections)
-
-    if include_external_start_end:
-        # Append external end point to the last polygon's list of intersections
-        total_intersections[-1].append([ext_p_end])
 
     return total_intersections

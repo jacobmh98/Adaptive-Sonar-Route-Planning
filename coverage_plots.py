@@ -7,13 +7,12 @@ from Polygon import Polygon
 def multi_poly_plot(polygon, current_path_width, polygons, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
-
     :param polygon: Polygon
     :param current_path_width:
     :param polygons: List of the sub polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
     """
-    coverage = True
+    coverage = False
     plot_sub_polygons = True
 
     fig, ax = plt.subplots(1, 1)
@@ -45,7 +44,7 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
 
         # Highlight the start and end points of the path
         ax.plot(path_x[0], path_y[0], 'go', markersize=8, label='Start Point')  # Start point
-        ax.plot(path_x[-1], path_y[-1], 'yo', markersize=8, label='End Point')  # End point
+        ax.plot(path_x[-1], path_y[-1], 'ro', markersize=8, label='End Point')  # End point
 
         # Compute and plot coverage area along the path
         if coverage:
