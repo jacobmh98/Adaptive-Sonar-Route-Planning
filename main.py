@@ -49,9 +49,8 @@ else:
         vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
 
     antwerp_poly = Polygon(vertices)
-antwerp_poly.plot()
-plot_results3(sub_polygons)
-
+#antwerp_poly.plot()
+#plot_results3(sub_polygons)
 
 if not load_existing_optimized_polygons:
     """# Removing collinear vertices from the sub-polygons
@@ -94,28 +93,13 @@ else:
     with open(f'./test_data/{name_optimized_decomposition}.pkl', 'rb') as file:
         optimized_sub_polygons = pickle.load(file)
 
-#plot_results3(sub_polygons)
-
 # Remove collinear vertices in each sub-polygon
 for i, p in enumerate(optimized_sub_polygons):
     p = remove_collinear_vertices(p)
     optimized_sub_polygons[i] = p
 
-#antwerp_poly.plot()
 plot_results3(optimized_sub_polygons)
-
-# plot_results3(sub_polygons)
-# plot_results3(optimized_sub_polygons)
-
-"""collection = []
-for i, p in enumerate(optimized_sub_polygons):
-    if i == 4 or i == 14 or i == 32 or i == 30 or i == 29:
-        collection.append(p)
-
-
-plot_results3(collection, True)
-optimized_sub_polygons = collection
-"""
+plot_graph(optimized_sub_polygons)
 
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:  # Not working correctly

@@ -532,7 +532,7 @@ def split_polygon(P, depth=0):
     #P1.plot(title=f'P1, d = {depth}')
     #P2.plot(title=f'P2, d = {depth}')
         #print('here')
-    save_polygon(P, P1, P2, depth, len(P.vertices), D_ij)
+    #save_polygon(P, P1, P2, depth, len(P.vertices), D_ij)
 
     # Recursively split both sub-polygons if the polygons are valid
     result1 = []
@@ -600,14 +600,14 @@ def polygons_are_adjacent(P1, P2, i, j):
                 return True
 
             # Define the vector for each edge
-            vec1 = e.v_to.get_array() - e.v_from.get_array()
-            vec2 = e2.v_to.get_array() - e2.v_from.get_array()
+            vec1 = e.v_to.get_array() - e.v_from.get_array()+1e-6
+            vec2 = e2.v_to.get_array() - e2.v_from.get_array()+1e-6
 
             dot_product = dot(vec1, vec2)
             neg_mag = -np.linalg.norm(vec1) * np.linalg.norm(vec2)
 
             # Check if the vectors are collinear
-            if dot_product - epsilon <= neg_mag <= dot_product + epsilon:
+            if dot_product - epsilon_xl <= neg_mag <= dot_product + epsilon_xl:
                 # Parametrize the line from vec1: l(t) = P + t v
 
                 # Compute the intersection with the y-axis for each line
@@ -618,7 +618,7 @@ def polygons_are_adjacent(P1, P2, i, j):
                 e2_intersects_y = e2.v_from.y + t2 * vec2[1]
 
                 # Check if the two lines intersects y in the same point
-                if points_are_equal(e_intersects_y, e2_intersects_y):
+                if points_are_equal(e_intersects_y, e2_intersects_y, epsilon_xl):
                     # Check for partial adjacency between the polygons (if the projected intervals overlap)
                     t1 = 0
                     t2 = dot(e.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
@@ -626,6 +626,49 @@ def polygons_are_adjacent(P1, P2, i, j):
                     s2 = dot(e2.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
 
                     if max(t1, t2) > min(s1, s2) and max(s1, s2) > min(t1, t2):
+                        return True
+
+    return False
+
+def polygons_are_adjacent2(P1, P2, i, j):
+    for e in P1.edges:
+        vec1 = e.v_to.get_array() - e.v_from.get_array()
+
+        for e2 in P2.edges:
+            if (points_are_equal(e.v_from.get_array(), e2.v_from.get_array(), epsilon_large) and points_are_equal(e.v_to.get_array(), e2.v_to.get_array()), epsilon_large) or \
+                    (points_are_equal(e.v_from.get_array(), e2.v_to.get_array(), epsilon_large) and points_are_equal(e.v_to.get_array(), e2.v_from.get_array(), epsilon_large)):
+                # print(f'complete overlap between {i} and {j}')
+                return True
+
+            vec2 = e2.v_to.get_array() - e2.v_from.get_array()
+
+            #print(f'cross {i2} x {j2} = {np.abs(cross(vec1, vec2))}')
+            # Test if the edges are collinear
+            if np.abs(cross(vec1, vec2)) < epsilon_xl:
+                #print(f'P{i} edge {i2} collinear with P{j} edge {j2}')
+
+                # Projecting the endpoints onto the common line form between the edges
+                proj_1 = dot(e.v_from.get_array(), vec1 ) / dot(vec1, vec1)
+                proj_2 = dot(e.v_to.get_array(), vec1) / dot(vec1, vec1)
+                proj_3 = dot(e2.v_from.get_array(), vec1) / dot(vec1, vec1)
+                proj_4 = dot(e2.v_to.get_array(), vec1) / dot(vec1, vec1)
+
+                if max(proj_1, proj_2) > min(proj_3, proj_4) and max(proj_3, proj_4) > min(proj_1, proj_2):
+                    # Compute the intersection with the y-axis for each line
+                    t1 = - e.v_from.x / (vec1[0] + epsilon)
+                    e_intersects_y = e.v_from.y + t1 * vec1[1]
+
+                    t2 = - e2.v_from.x / (vec2[0] + epsilon)
+                    e2_intersects_y = e2.v_from.y + t2 * vec2[1]
+
+                    # Check if the two lines intersects y in the same point
+                    if points_are_equal(e_intersects_y, e2_intersects_y, epsilon_xl):
+                        print(f'adjacent between P{i} and P{j}')
+
+                        #print(f'{proj_1=}')
+                        #print(f'{proj_2=}')
+                        #print(f'{proj_3=}')
+                        #print(f'{proj_4=}')
                         return True
 
     return False
@@ -792,6 +835,10 @@ def plot_results3(sub_polygons, include_points = False):
 
         if include_points:
             ax.plot(x_coords, y_coords, 'k-o')
+
+            for c in range(len(x_coords)):
+                ax.text(x_coords[c], y_coords[c], f'{c}')
+
         else:
             ax.plot(x_coords, y_coords, 'k-')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
@@ -804,12 +851,27 @@ def plot_results3(sub_polygons, include_points = False):
         #ax.set_title('Antwerpen Decomposition')
     plt.show()
 
-def plot_graph(G):
+def plot_graph(sub_polygons):
     fig, ax = plt.subplots(1)
+    G = nx.Graph()
+
+    # Go through each edge in p_i and compare with each edge in p_j
+    for i, p_i in enumerate(sub_polygons):
+        G.add_node(f'P{i}')
+        for j, p_j in enumerate(sub_polygons):
+            # Ignore if the two polygons are equal
+            if i >= j:
+                continue
+
+            # Test if the two polygons p_i and p_j are adjacent (either complete or partial)
+            if polygons_are_adjacent(p_i, p_j, i, j):
+                # Update the adjacent matrix
+                G.add_edge(f'P{i}', f'P{j}')
+
 
     pos = nx.spring_layout(G)  # Layout for node positions
     nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
-    ax.set_title('Undirected Graph')
+    #ax.set_title('Undirected Graph')
     plt.show()
 
 def plot_polygons(P, sub_polygons, G):

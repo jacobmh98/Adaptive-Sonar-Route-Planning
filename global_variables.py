@@ -1,10 +1,13 @@
 scale = 1
 
 epsilon = 1e-6
+epsilon_medium = 1e-3
+epsilon_large = 1e-2
+epsilon_xl = 0.2
 
 #small_epsilon = 1e-6
 
-optimize_epsilon = 0.01
+optimize_epsilon = 0.
 
 data_path = 'complex_polygon'
 name_decomposition = 'complex_polygon'
