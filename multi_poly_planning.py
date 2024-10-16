@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 import polygon_coverage_intersections
 import antipodal_pairs
-from functions import polygons_are_adjacent
+from decomposition import polygons_are_adjacent
 from global_variables import *
 from Polygon import Polygon, Vertex
 

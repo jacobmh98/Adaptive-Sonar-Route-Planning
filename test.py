@@ -2,34 +2,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from Polygon import Polygon, Vertex
-from functions import polygons_are_adjacent2
-def plot1():
+from decomposition import polygons_are_adjacent2
+def plot1(x_coords, y_coords, l1_x, l1_y):
     """ plot intersections """
-    x_coords =[0.4, 0.1, 0.5, 0.9, 0.8, 0.2]
-    y_coords = [0.4, 0.7, 0.9, 0.2, 0.1, 0.1]
-    l1_x = [0, 1]
-    l1_y = [0, 1]
-
-    x_coords2 =[0.4, 0.1, 0.5, 0.9, 0.9, 0.8, 0.2]
-    y_coords2 = [0.4, 0.7, 0.9, 0.3,0.2, 0.1, 0.1]
-    l2_x = [0.4, 0.4]
-    l2_y = [0, 1]
-
-    x_coords3 =[0.45, 0.5, 0.3, 0.1, 0.5, 0.9, 0.9, 0.8, 0.2]
-    y_coords3 = [0.35, 0.5, 0.5, 0.7, 0.9, 0.3,0.2, 0.1, 0.1]
-    l3_x = [0.45, 0.45]
-    l3_y = [0, 1]
-
     fig, ax = plt.subplots(1, 1)
 
-    """for v in self.vertices:
-                x_coords.append(v.x)
-                y_coords.append(v.y)
-                plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
-    """
-    ax.plot(x_coords3, y_coords3, f'k-', marker='o')
-    ax.plot([x_coords3[-1], x_coords3[0]], [y_coords3[-1], y_coords3[0]], f'k-')
-    ax.plot(l3_x, l3_y, linestyle='dotted', color='red')
+    for i in range(len(x_coords)):
+        plt.text(x_coords[i], y_coords[i], f'{i}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+
+    ax.plot(x_coords, y_coords, f'k-', marker='o')
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
+    ax.plot(l1_x, l1_y, f'-', linestyle='dotted', color='red')
     ax.set_aspect('equal')
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -124,5 +107,25 @@ def plot2():
     return P1, P2, P3, P4
 
 P1, P2, P3, P4 = plot2()
+P1.plot()
+P2.plot()
+P3.plot()
+P4.plot()
 
-polygons_are_adjacent2(P3, P4, 3, 4)
+polygons_are_adjacent2(P4, P3, 4, 3)
+"""x_coords =[0.45, 0.5, 0.3, 0.1, 0.6, 0.9, 0.9, 0.8, 0.2]
+y_coords = [0.35, 0.5, 0.5, 0.7, 0.9, 0.3,0.2, 0.1, 0.1]
+x_coords.reverse()
+y_coords.reverse()
+l1_x = [0, 1]
+l1_y = [0, 1]
+
+l2_x = [0.5, 0.5]
+l2_y = [0, 1]
+
+l3_x = [0.45, 0.45]
+l3_y = [0, 1]
+
+plot1(x_coords, y_coords, l1_x, l1_y)
+plot1(x_coords, y_coords, l2_x, l2_y)
+plot1(x_coords, y_coords, l3_x, l3_y)"""

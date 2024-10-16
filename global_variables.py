@@ -27,7 +27,7 @@ tsp_sort = False
 dfs_sort = True
 
 # Finding optimal path width, with tolerances
-find_optimal_path_width = True
+find_optimal_path_width = False
 tolerance = 0.5  # +- meters for path width
 iterations = 100 # Number of different path widths to check
 

@@ -10,7 +10,8 @@ import traveling_salesman_variation
 import pickle
 import traceback
 from global_variables import *
-from functions import *
+from decomposition import *
+from plot_functions import *
 import pickle
 from global_variables import load_existing_data
 
@@ -57,7 +58,7 @@ else:
 #antwerp_poly.plot()
 #plot_results3(sub_polygons)
 
-if not load_existing_optimized_sub_polygons:
+if not load_existing_optimized_polygons:
     """# Removing collinear vertices from the sub-polygons
     for i, p in enumerate(sub_polygons):
         sub_polygons[i] = remove_collinear_vertices(p)"""
@@ -111,18 +112,16 @@ if tsp_sort:  # Not working correctly
     distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)
     tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
     traveling_salesman_variation.visualize_tsp_solution(optimized_sub_polygons, tsp_route)
-    polygons = [sub_polygons[i] for i in tsp_route]
+    optimized_sub_polygons = [sub_polygons[i] for i in tsp_route]
 
 elif dfs_sort:
     # Order the list of sub polygons
     adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
     start_node = next(iter(adjacency_graph.nodes()))
-    polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
+    optimized_sub_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
     #plot_graph(adjacency_graph)
-else:  # Unsorted polygons
-    polygons = optimized_sub_polygons
 
-print(f'Number of polygons = {len(polygons)}')
+print(f'Number of polygons = {len(optimized_sub_polygons)}')
 
 # Computing optimal path width given start path width and a tolerance (+- to path width)
 if find_optimal_path_width:
