@@ -107,6 +107,7 @@ for i, p in enumerate(optimized_sub_polygons):
 plot_results3(optimized_sub_polygons)
 plot_graph(optimized_sub_polygons)
 
+quit()
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:  # Not working correctly
     distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)
