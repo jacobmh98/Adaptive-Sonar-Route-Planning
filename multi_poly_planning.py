@@ -104,14 +104,14 @@ def remove_unnecessary_vertices(polygon):
     return Polygon(new_vertices)
 
 
-def rotating_calipers_path_planner(polygon, current_path_width, current_polygon_index, d_pq):
+def rotating_calipers_path_planner(polygon, current_path_width, d_pq, previous_intersections):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
 
     :param polygon: Polygon
     :param current_path_width: Float path width for the current polygon
-    :param current_polygon_index: index of current polygon
     :param d_pq: List of tuples representing antipodal pairs (b, a).
+    :param previous_intersections: List of found intersections so far
     :return optimal_path: The best back-and-forth path (computed using best_path).
     """
     # Initialize variables to store the best path and the minimal cost
@@ -121,7 +121,7 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_polygon_
     # Iterate over all antipodal pairs (b, a)
     for (i, j) in d_pq:
         # Compute the best path for the current antipodal pair
-        current_intersections = polygon_coverage_intersections.best_intersection(polygon, current_path_width, i, j)
+        current_intersections = polygon_coverage_intersections.best_intersection(polygon, current_path_width, i, j, previous_intersections)
 
         # TODO: Create a better cost function
         current_cost = len(current_intersections)
@@ -158,8 +158,7 @@ def multi_intersection_planning(polygons, current_path_width):
         )
 
         # Computing the intersections for the current polygon
-        intersections = rotating_calipers_path_planner(current_poly, current_path_width, i, diametric_antipodal_pairs)
-
+        intersections = rotating_calipers_path_planner(current_poly, current_path_width, diametric_antipodal_pairs, total_intersections)
         # Check if intersections found, otherwise initialize an empty list
         if not intersections:
             intersections = []

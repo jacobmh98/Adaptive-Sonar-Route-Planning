@@ -1,4 +1,4 @@
-from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+"""from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -97,3 +97,4 @@ def visualize_tsp_solution(polygons, tsp_route):
 
     plt.title("TSP Optimal Path Visiting Polygons")
     plt.show()
+"""

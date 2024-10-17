@@ -16,7 +16,7 @@ name_decomposition = 'complex_polygon'
 name_optimized_decomposition = 'complex_polygon_optimized'
 
 load_existing_data = False
-load_existing_optimized_polygons = False
+load_existing_optimized_sub_polygons = False
 
 # Start parameters
 path_width = 14 # Path width (Must be >0) (1 is 1 meter)
@@ -27,9 +27,9 @@ tsp_sort = False
 dfs_sort = True
 
 # Finding optimal path width, with tolerances
-find_optimal_path_width = True
+find_optimal_path_width = False
 tolerance = 0.5  # +- meters for path width
 iterations = 100 # Number of different path widths to check
 
 # Check path in opposite direction, can give better path
-check_reverse = True
+check_reverse = False
