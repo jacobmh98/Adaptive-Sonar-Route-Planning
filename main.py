@@ -14,98 +14,22 @@ from decomposition import *
 from plot_functions import *
 import pickle
 from global_variables import load_existing_data
+from obstacles import *
+from load_data import *
 
-if not load_existing_data:
-    # Reading the test data
-    f = open(f'test_data/{data_path}.json')
+data_path = 'single_obstacle'
+region, obstacles = get_region(data_path)
+sub_polygons = generate_new_data(region)
+optimized_sub_polygons = compute_optimized_data(sub_polygons)
 
-    data = json.load(f)
-    vertices_data = data['area']['coordinates']
+plot_obstacles(sub_polygons, obstacles)
+asd(sub_polygons[0], obstacles[0])
+# TODO obstruction starts here
+#plot_results4(optimized_sub_polygons, obstructions)
+#plot_results3(optimized_sub_polygons)
+#plot_graph(optimized_sub_polygons)
 
-    # Defining the initial polygon
-    vertices = []
 
-    for i in range(len(vertices_data)):
-        vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
-
-    antwerp_poly = Polygon(vertices)
-
-    # Compute the split that gives the sub-polygons
-    print('running')
-    sub_polygons = split_polygon(antwerp_poly)
-
-    # Save the sub polygon objects
-    with open(f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_decomposition}.pkl',
-              'wb') as file:
-        pickle.dump(sub_polygons, file)
-else:
-    f = open('test_data/antwerpen_full.json')
-
-    print('loading')
-    with open(f'./test_data/{name_decomposition}.pkl', 'rb') as file:
-        sub_polygons = pickle.load(file)
-
-    data = json.load(f)
-    vertices_data = data['area']['coordinates']
-
-    # Defining the initial polygon
-    vertices = []
-
-    for i in range(len(vertices_data)):
-        vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
-
-    antwerp_poly = Polygon(vertices)
-#antwerp_poly.plot()
-#plot_results3(sub_polygons)
-
-if not load_existing_optimized_polygons:
-    """# Removing collinear vertices from the sub-polygons
-    for i, p in enumerate(sub_polygons):
-        sub_polygons[i] = remove_collinear_vertices(p)"""
-
-    # Removing illegal sub-polygons from the unoptimized Antwerpen
-    i = 0
-    while i < len(sub_polygons):
-        p = sub_polygons[i]
-
-        if not is_well_formed(p)[0]:
-            sub_polygons.pop(i)
-            i -= 1
-        i += 1
-
-    # Optimizing the sub-polygons (removing edges)
-    optimized_sub_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
-
-    # Save the optimized sub polygon objects
-    with open(
-            f'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/{name_optimized_decomposition}.pkl',
-            'wb') as file:
-        pickle.dump(optimized_sub_polygons, file)
-else:
-    """# Removing collinear vertices from the sub-polygons
-    for i, p in enumerate(sub_polygons):
-        sub_polygons[i] = remove_collinear_vertices(p)"""
-
-    # Removing illegal sub-polygons from the unoptimized Antwerpen
-    i = 0
-    while i < len(sub_polygons):
-        p = sub_polygons[i]
-
-        if not is_well_formed(p)[0]:
-            sub_polygons.pop(i)
-            i -= 1
-        i += 1
-
-    with open(f'./test_data/{name_optimized_decomposition}.pkl', 'rb') as file:
-        optimized_sub_polygons = pickle.load(file)
-
-# Remove collinear vertices in each sub-polygon
-for i, p in enumerate(optimized_sub_polygons):
-    p = remove_collinear_vertices(p)
-    optimized_sub_polygons[i] = p
-
-plot_results3(optimized_sub_polygons)
-plot_graph(optimized_sub_polygons)
 
 quit()
 # Choosing sorting method for the order of sub polygons

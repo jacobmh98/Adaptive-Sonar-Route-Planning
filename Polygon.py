@@ -22,7 +22,7 @@ class Edge:
         self.v_to = v2
         self.prev = None
         self.next = None
-        if (v2.x - v1.x) == 0:
+        if (v2.x - v1.x) == 0 or (v2.y - v1.y) == 0:
             self.slope = 0
         else:
             self.slope = (v2.y - v1.y) / (v2.x - v1.x)
@@ -31,12 +31,14 @@ class Edge:
         return f"Edge({self.v_from.index}, {self.v_to.index}, {self.slope})"
 
 class Polygon:
-    def __init__(self, v):
+    def __init__(self, v, is_obstacle=False):
         self.vertices = v
         self.number_vertices = len(self.vertices)
         self.concave_vertices = []
         self.edges = []
         self.i = None
+        self.is_obstacle = is_obstacle
+
 
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]
@@ -180,3 +182,4 @@ class Polygon:
             intersections = unique_points
 
         return intersections
+

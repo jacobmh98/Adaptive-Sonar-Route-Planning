@@ -11,12 +11,13 @@ optimize_epsilon = 0.
 
 intersection_epsilon = 1e-9
 
-data_path = 'complex_polygon'
-name_decomposition = 'complex_polygon'
-name_optimized_decomposition = 'complex_polygon_optimized'
+data_path = 'single_obstacle'
+name_decomposition = ''
+name_optimized_decomposition = ''
 
 load_existing_data = False
 load_existing_optimized_polygons = False
+save_data = False
 
 # Start parameters
 path_width = 14 # Path width (Must be >0) (1 is 1 meter)
