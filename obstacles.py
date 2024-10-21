@@ -4,15 +4,17 @@ from Polygon import Polygon
 
 
 def asd(polygon, obstacle):
-    # Go through each vertex in the obstacle
-    # Sort each vertex by its x-value
+    # Combining the vertices of the polygon and obstacle
+    combined_vertices = polygon.vertices
 
-    # Insertion Sort
+    # Go through each vertex in the obstacle and define it as an event
+
+    # Insertion Sort for the events based on x-axis in ascending order
     sorted_obstacle_vertices = []
 
     for i, v in enumerate(obstacle.vertices):
         if i == 0:
-            sorted_obstacle_vertices.index(v)
+            sorted_obstacle_vertices.append(v)
             continue
 
         for j, v2 in enumerate(sorted_obstacle_vertices):
@@ -22,6 +24,8 @@ def asd(polygon, obstacle):
 
             if j == len(sorted_obstacle_vertices) - 1:
                 sorted_obstacle_vertices.append(v)
+
+    # Get the open event
 
     obstacle.plot()
     polygon.plot()

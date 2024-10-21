@@ -9,6 +9,7 @@ class Vertex:
         self.v = np.array([[x], [y]])
         self.prev = None
         self.next = None
+        self.event = None
 
     def get_array(self):
         return np.array([[self.x], [self.y]])
