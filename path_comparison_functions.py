@@ -1,13 +1,29 @@
 import numpy as np
+from global_variables import *
+from shapely.ops import unary_union
+from shapely.geometry import Polygon, LineString
 
 def compute_total_distance(path):
+    """ Function to compute the length of the path
+
+    :param path: List of points
+    :return: Total distance between all the points in the path
+    """
     total_distance = 0.0
     # Loop through each consecutive pair of points and compute the distance
     for i in range(len(path) - 1):
         total_distance += np.linalg.norm(path[i + 1] - path[i])
     return total_distance
 
-def calculate_turns_and_classify(path):
+def compute_turns(path):
+    """ Function to compute the number of turns in the path, and classify them as three different turn types
+
+    :param path: List of points
+    :return total_turns: The total number of turns as int
+    :return hard_turns: The total number of hard turns (<45) as int
+    :return medium_turns: The total number of medium turns (45-90) as int
+    :return soft_turns: The total number of soft turns (>90) as int
+    """
     hard_turns = 0
     medium_turns = 0
     soft_turns = 0
@@ -23,7 +39,7 @@ def calculate_turns_and_classify(path):
 
         # Compute the dot product and find the angle between vectors
         dot_product = np.dot(unit_vector1, unit_vector2)
-        dot_product = np.clip(dot_product, -1.0, 1.0)  # Account for floating point precision error
+        dot_product = np.clip(dot_product, -1.0, 1.0)  # Account for floating point precision error, using clip instead of epsilon value
         angle_rad = np.arccos(dot_product)  # Angle in radians
         angle_deg = np.degrees(angle_rad)  # Convert to degrees
 
@@ -38,3 +54,81 @@ def calculate_turns_and_classify(path):
     total_turns = hard_turns + medium_turns + soft_turns
 
     return total_turns, hard_turns, medium_turns, soft_turns
+
+
+# Coverage functions
+def compute_covered_area(polygon, path):
+    """ Function to compute the coverage of the path inside the given polygon, and
+        return this as an area and the percentage it covers the polygon
+
+    :param polygon: Polygon
+    :param path: List of points
+    :return: Covered area as shapely Polygon area and a float percentage
+    """
+    path = LineString(path)
+    buffered_path = path.buffer(path_width / 2.0)
+
+    # Convert your Polygon class to a Shapely Polygon
+    poly_coords = [(v.x, v.y) for v in polygon.vertices]
+    poly_shape = Polygon(poly_coords)
+
+    # Find the intersection of the buffered path and the polygon (covered area)
+    covered_area = poly_shape.intersection(buffered_path)
+
+    # Calculate the percentage of the polygon that is covered
+    coverage_percentage = (covered_area.area / poly_shape.area) * 100
+
+    return covered_area, coverage_percentage
+
+def compute_outlier_area(polygon, path):
+    """ Computes the path area outside the polygon
+
+    :param polygon: Polygon
+    :param path: List of points
+    :return outlying_area: Shapely Polygon that lies outside the given polygon
+    """
+    path = LineString(path)
+    buffered_path = path.buffer(path_width / 2.0)
+
+    # Convert your Polygon class to a Shapely Polygon
+    poly_coords = [(v.x, v.y) for v in polygon.vertices]
+    poly_shape = Polygon(poly_coords)
+
+    # Calculate the wasted area outside the polygon
+    outlying_area = buffered_path.difference(poly_shape)
+
+    return outlying_area
+
+def compute_overlap_area(polygon, path):
+    """ Computes the path overlap area inside the polygon
+
+    :param polygon: Polygon
+    :param path: List of points
+    :return overlap_area: Shapely Polygon of the path overlap inside the polygon
+    """
+    # Convert the list of path points to a LineString object
+    path_segments = [LineString([path[i], path[i + 1]]) for i in range(len(path) - 1)]
+    buffered_segments = [seg.buffer(path_width / 2.0) for seg in path_segments]
+
+    # Convert your Polygon class to a Shapely Polygon
+    poly_coords = [(v.x, v.y) for v in polygon.vertices]
+    poly_shape = Polygon(poly_coords)
+
+    overlap_areas = []
+    for i in range(len(buffered_segments)):
+        for j in range(i + 1, len(buffered_segments)):
+            # Detect overlaps between buffered segments
+            segment_overlap = buffered_segments[i].intersection(buffered_segments[j])
+            if not segment_overlap.is_empty:
+                # Only count overlap areas that are strictly within the polygon
+                actual_overlap_within_polygon = segment_overlap.intersection(poly_shape)
+                if not actual_overlap_within_polygon.is_empty and actual_overlap_within_polygon.area > 0:
+                    overlap_areas.append(actual_overlap_within_polygon)
+
+    # Combine all detected overlaps into a single area
+    if overlap_areas:
+        overlap_area = unary_union(overlap_areas).buffer(0)
+    else:
+        overlap_area = Polygon()  # Empty if no overlaps
+
+    return overlap_area

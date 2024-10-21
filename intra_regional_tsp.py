@@ -111,7 +111,7 @@ def compute_centroid(polygon):
     centroid_y = sum(y_coords) / len(y_coords)
     return (centroid_x, centroid_y)
 
-def visualize_tsp_solution(polygons, tsp_route, total_intersections):
+def visualize_tsp_solution(polygons, tsp_route):
     plt.figure(figsize=(8, 8))
 
     # Plot each polygon with its intersections
@@ -121,13 +121,14 @@ def visualize_tsp_solution(polygons, tsp_route, total_intersections):
         y_coords.append(y_coords[0])
         plt.plot(x_coords, y_coords, 'r-', lw=2, marker='o')  # Plot the polygon edges
 
-
         # Add label to the centroid of the polygon
         centroid = compute_centroid(polygon)
         plt.text(centroid[0], centroid[1], f'{i}', fontsize=12, ha='center', color='blue')
 
     # Plot the TSP path between centroids of polygons
     for i in range(len(tsp_route) - 1):
+        if i == 0:
+            continue
         start_polygon = polygons[tsp_route[i]]
         end_polygon = polygons[tsp_route[i + 1]]
 
@@ -144,6 +145,13 @@ def visualize_tsp_solution(polygons, tsp_route, total_intersections):
 
     plt.plot(centroid_start[0], centroid_start[1], 'ro', markersize=10, label='Start')  # Red dot for start
     plt.plot(centroid_end[0], centroid_end[1], 'bo', markersize=10, label='End')  # Blue dot for end
+
+    # Draw a line from start node (0) to last node (1)
+    first_node = polygons[0]
+    last_node = polygons[1]
+    first_centroid = compute_centroid(first_node)
+    last_centroid = compute_centroid(last_node)
+    plt.plot([first_centroid[0], last_centroid[0]], [first_centroid[1], last_centroid[1]], 'b--', lw=2)
 
     plt.title("TSP Optimal Path Visiting Polygons and Intersections")
     plt.legend()

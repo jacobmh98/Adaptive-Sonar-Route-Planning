@@ -296,19 +296,19 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
     # Loop until no intersections are found
     while True:
         # Find the new intersections
-        new_intersections = Polygon.find_intersections(poly, v_extended)
+        new_intersections = (poly.find_intersections(v_extended))
 
         # Check if no new intersections are found
         if not new_intersections:
             # Create new vector with half current path width distance, to ensure complete coverage near the far edge
             v_offset = compute_offset_vector(v_extended, -sweep_direction, current_path_width/2-overlap_distance)  # Offset vector backwards
             v_extended = extend_vector_to_boundary(v_offset, boundary)
-            check_near_edge_intersections = Polygon.find_intersections(poly, v_extended)
+            check_near_edge_intersections = poly.find_intersections(v_extended)
             if not check_near_edge_intersections:
                 break
-            else:
+            #else:
                 # Create tuples of two consecutive points and append to all_intersections
-                all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
+             #   all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
         else:
             # Create tuples of two consecutive points and append to all_intersections
             all_intersections.append((new_intersections[0], new_intersections[1]))

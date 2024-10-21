@@ -150,7 +150,6 @@ class Polygon:
                 return True
         return False
 
-
     def find_intersections(self, vector):
         """ Find all intersections of a vector with the polygon edges """
         intersections = []
