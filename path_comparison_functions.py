@@ -1,5 +1,4 @@
 import numpy as np
-
 import coverage_plots
 from global_variables import *
 from shapely.ops import unary_union
@@ -68,7 +67,7 @@ def compute_covered_area(polygon, path):
     :return: Covered area as shapely Polygon area and a float percentage
     """
     path = LineString(path)
-    buffered_path = path.buffer(path_width / 2.0)
+    buffered_path = path.buffer((path_width + overlap_distance)/ 2.0)
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
@@ -90,7 +89,7 @@ def compute_outlier_area(polygon, path):
     :return outlying_area: Shapely Polygon that lies outside the given polygon
     """
     path = LineString(path)
-    buffered_path = path.buffer(path_width / 2.0)
+    buffered_path = path.buffer((path_width + overlap_distance) / 2.0)
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
@@ -110,7 +109,7 @@ def compute_overlap_area(polygon, path):
     """
     # Convert the list of path points to a LineString object
     path_segments = [LineString([path[i], path[i + 1]]) for i in range(len(path) - 1)]
-    buffered_segments = [seg.buffer(path_width / 2.0) for seg in path_segments]
+    buffered_segments = [seg.buffer((path_width + overlap_distance) / 2.0) for seg in path_segments]
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]

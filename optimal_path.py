@@ -2,6 +2,7 @@ import multi_poly_planning
 import connecting_path
 import coverage_plots
 import path_comparison_functions
+from global_variables import *
 
 def compute_optimal_path_width(polygons, start_path_width, start_tolerance, start_iterations):  # TODO: Problem is it usually takes largest path width, so need to check more parameters (polygon coverage)
     start_width = start_path_width - start_tolerance
@@ -22,6 +23,13 @@ def compute_optimal_path_width(polygons, start_path_width, start_tolerance, star
             min_distance = current_distance
             optimal_path = current_path
             optimal_path_width = current_path_width
+
+    if check_reverse:
+        optimal_path, min_distance = compute_reverse(polygons, optimal_path_width)
+
+    print(f'Optimal path:')
+    print(f'Found optimal path width: {path_width}')
+    print()
 
     return optimal_path, min_distance, optimal_path_width
 

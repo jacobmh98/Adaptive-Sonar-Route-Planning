@@ -11,10 +11,6 @@ optimize_epsilon = 0.
 
 intersection_epsilon = 1e-9
 
-data_path = 'single_obstacle'
-name_decomposition = ''
-name_optimized_decomposition = ''
-
 load_existing_data = False
 load_existing_optimized_polygons = False
 save_data = False
@@ -28,8 +24,8 @@ get_path_data = True
 store_data = True
 
 # Choose sub-polygon sorting method
-tsp_sorting = True
-dfs_sort = True
+tsp_sorting = False
+dfs_sorting = True
 
 # Finding optimal path width, with tolerances
 find_optimal_path_width = False
