@@ -120,16 +120,6 @@ def extend_vector_to_boundary(vector, boundary):
 
     return np.array([extended_v1, extended_v2])
 
-def distance_between_points(v1, v2):
-    """ Calculate the Euclidean distance between two 2D points.
-
-    :param v1: NumPy array (2D point)
-    :param v2: NumPy array (2D point)
-    :return distance: float, the distance between the two points.
-    """
-    return math.sqrt((v2[0] - v1[0]) ** 2 + (v2[1] - v1[1]) ** 2)
-
-
 def point_to_line_distance(p, v1, v2):
     """Compute the perpendicular distance from point p to the line segment defined by v1 and v2."""
     x0, y0 = p.x, p.y
@@ -179,7 +169,74 @@ def get_smallest_diameter(polygon):
 
         return min_distance
 
-def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_index, boundary):
+def plot_lines(v_initial, last_intersection,title):
+    # Extract points from the data
+    p1, p2 = v_initial[0], v_initial[1]  # Line from v_initial
+    q1, q2 = last_intersection  # Line from last_intersection
+
+    # Create a new figure
+    plt.figure()
+
+    # Plot the first line
+    plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', label="v_initial Line", linewidth=2)
+
+    # Plot the second line
+    plt.plot([q1[0], q2[0]], [q1[1], q2[1]], 'b-', label="last_intersection Line", linewidth=2)
+
+    # Add labels and title
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title(title)
+    plt.legend()
+
+    # Set equal scaling for both axes
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    # Show grid
+    plt.grid(True)
+
+    # Show the plot
+    plt.show()
+
+
+# Function to check if two lines are parallel in 2D
+def are_lines_parallel_2d(p1, p2, q1, q2, epsilon=1e-9):
+    determinant = (p2[0] - p1[0]) * (q2[1] - q1[1]) - (p2[1] - p1[1]) * (q2[0] - q1[0])
+    return abs(determinant) < epsilon
+
+# Function to calculate the distance between two points
+def distance_between_points(p1, p2):
+    return np.linalg.norm(np.array(p1) - np.array(p2))
+
+
+# Function to check for parallel lines and return the closest one to v_initial
+def find_closest_parallel_intersection(v_initial, intersections, epsilon=1e-9):
+    # Extract points from v_initial
+    p1, p2 = v_initial[0], v_initial[1]
+    min_distance = float('inf')
+    closest_intersection = None
+
+    # Loop through each set of intersections
+    for polygon_intersections in intersections:
+        for intersection_pair in polygon_intersections:
+            # Each intersection_pair contains two points, check if they are parallel to v_initial
+            q1, q2 = intersection_pair
+
+            # Check if the lines are parallel
+            if are_lines_parallel_2d(p1, p2, q1, q2, epsilon):
+                # Compute the distance between the midpoints of the two lines to determine proximity
+                midpoint_q = (q1 + q2) / 2
+                midpoint_p = (p1 + p2) / 2
+                distance = distance_between_points(midpoint_p, midpoint_q)
+
+                # If this distance is smaller than the current minimum, update the closest intersection
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_intersection = intersection_pair
+
+    return closest_intersection
+
+def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_index, boundary, previous_intersections):
     """ Algorithm 1 - GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions,
         Adjusted for multi polygons. Just returns the list of intersection pairs
 
@@ -211,6 +268,15 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
 
     # Creating a vector from vertex b to b_mate
     v_initial = np.array([b, b_mate])
+
+    # Checking if v_initial is parallel to previous polygon's intersection lines, not needed for first polygon
+    if not previous_intersections == [] and 1 == 0: # TODO: Look into after good tsp implementation
+        last_intersection = previous_intersections[-1][-1]  # Getting last intersection pair in the last intersection
+        closest_parallel_intersection = find_closest_parallel_intersection(v_initial, previous_intersections)
+        if closest_parallel_intersection is not None:
+            a = 1
+
+    # else:
     # Offsetting vector b to b_mate with delta_init towards point a
     v_offset = compute_offset_vector(v_initial, sweep_direction, delta_init)
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
@@ -226,25 +292,23 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
     counter = 0
 
     all_intersections = []
-    check_near_edge = []
 
     # Loop until no intersections are found
     while True:
         # Find the new intersections
-        new_intersections = Polygon.find_intersections(poly, v_extended)
+        new_intersections = (poly.find_intersections(v_extended))
 
         # Check if no new intersections are found
         if not new_intersections:
-
             # Create new vector with half current path width distance, to ensure complete coverage near the far edge
             v_offset = compute_offset_vector(v_extended, -sweep_direction, current_path_width/2-overlap_distance)  # Offset vector backwards
             v_extended = extend_vector_to_boundary(v_offset, boundary)
-            check_near_edge_intersections = Polygon.find_intersections(poly, v_extended)
+            check_near_edge_intersections = poly.find_intersections(v_extended)
             if not check_near_edge_intersections:
                 break
-            else:
+            #else:
                 # Create tuples of two consecutive points and append to all_intersections
-                all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
+             #   all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
         else:
             # Create tuples of two consecutive points and append to all_intersections
             all_intersections.append((new_intersections[0], new_intersections[1]))
@@ -274,7 +338,7 @@ def compute_angle(i, j):
     return np.arctan2(delta_y, delta_x)
 
 
-def best_intersection(poly, current_path_width, i, j):
+def best_intersection(poly, current_path_width, i, j, previous_intersections):
     """
     :param poly: Polygon
     :param current_path_width:
@@ -294,7 +358,7 @@ def best_intersection(poly, current_path_width, i, j):
         else:
             a_index = poly.get_mate(b_index)
 
-        intersections = get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_index, boundary)
+        intersections = get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_index, boundary, previous_intersections)
 
     else:
         # Rotating the caliper in clockwise direction
@@ -319,8 +383,8 @@ def best_intersection(poly, current_path_width, i, j):
 
         # Finding path that holds the least flight lines (smallest dist between point b and a creates longer and fewer lines)
         if distance_between_points(poly.vertices[b_index].v, poly.vertices[a_index].v) < distance_between_points(poly.vertices[b2_index].v, poly.vertices[a2_index].v):
-            intersections = get_path_intersections(poly, current_path_width, b_index, poly.get_mate(b_index), a_index, boundary)
+            intersections = get_path_intersections(poly, current_path_width, b_index, poly.get_mate(b_index), a_index, boundary, previous_intersections)
         else:
-            intersections = get_path_intersections(poly, current_path_width, b2_index, poly.get_mate(b2_index), a2_index, boundary)
+            intersections = get_path_intersections(poly, current_path_width, b2_index, poly.get_mate(b2_index), a2_index, boundary, previous_intersections)
 
     return intersections

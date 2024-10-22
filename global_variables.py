@@ -20,17 +20,21 @@ load_existing_optimized_polygons = False
 save_data = False
 
 # Start parameters
-path_width = 14 # Path width (Must be >0) (1 is 1 meter)
+path_width = 20 # Path width (Must be >0) (1 is 1 meter)
 overlap_distance = 0 # Set to 0 for no overlap, should not be >path_width/2
 
+# Path data
+get_path_data = True
+store_data = True
+
 # Choose sub-polygon sorting method
-tsp_sort = False
+tsp_sorting = True
 dfs_sort = True
 
 # Finding optimal path width, with tolerances
 find_optimal_path_width = False
 tolerance = 0.5  # +- meters for path width
-iterations = 100 # Number of different path widths to check
+iterations = 50 # Number of different path widths to check
 
 # Check path in opposite direction, can give better path
-check_reverse = True
+check_reverse = False

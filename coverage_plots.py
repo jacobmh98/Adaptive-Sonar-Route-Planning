@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from global_variables import *
 from Polygon import Polygon
+from shapely.geometry import Polygon
 
 
 def multi_poly_plot(polygon, current_path_width, polygons, path):
@@ -12,7 +13,7 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     :param polygons: List of the sub polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
     """
-    coverage = False
+    coverage = True
     plot_sub_polygons = True
 
     fig, ax = plt.subplots(1, 1)
@@ -333,3 +334,59 @@ def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
     ax.grid(True)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
+
+
+def visualize_coverage_wasted_and_overlap(polygon, path_points, covered_area, wasted_area, overlap_area):
+    # Create the plot
+    fig, ax = plt.subplots()
+
+    # Convert your Polygon class to a Shapely Polygon
+    poly_coords = [(v.x, v.y) for v in polygon.vertices]
+    poly_shape = Polygon(poly_coords)
+
+    # Plot the original polygon
+    x_poly, y_poly = poly_shape.exterior.xy
+    ax.plot(x_poly, y_poly, 'k-', label='Polygon Boundary')
+
+    # Plot the path as a line
+    path_x, path_y = zip(*path_points)
+    ax.plot(path_x, path_y, 'b-', linewidth=2, label='Path')
+
+    # Plot the covered area inside the polygon
+    if not covered_area.is_empty:
+        if covered_area.geom_type == 'Polygon':
+            x, y = covered_area.exterior.xy
+            ax.fill(x, y, color='green', alpha=0.5, label='Covered Area')
+        elif covered_area.geom_type == 'MultiPolygon':
+            for sub_polygon in covered_area.geoms:
+                x, y = sub_polygon.exterior.xy
+                ax.fill(x, y, color='green', alpha=0.5)
+
+    # Plot the wasted area outside the polygon, with label only once
+    if not wasted_area.is_empty:
+        labeled = False
+        if wasted_area.geom_type == 'Polygon':
+            x, y = wasted_area.exterior.xy
+            ax.fill(x, y, color='red', alpha=0.5, label='Wasted Area')
+        elif wasted_area.geom_type == 'MultiPolygon':
+            for i, sub_polygon in enumerate(wasted_area.geoms):
+                x, y = sub_polygon.exterior.xy
+                ax.fill(x, y, color='red', alpha=0.5, label='Wasted Area' if not labeled else None)
+                labeled = True
+
+    # Plot the overlap area, with label only once
+    if not overlap_area.is_empty:
+        labeled = False
+        if overlap_area.geom_type == 'Polygon':
+            x, y = overlap_area.exterior.xy
+            ax.fill(x, y, color='orange', alpha=0.5, label='Overlap Area')
+        elif overlap_area.geom_type == 'MultiPolygon':
+            for i, sub_polygon in enumerate(overlap_area.geoms):
+                x, y = sub_polygon.exterior.xy
+                ax.fill(x, y, color='orange', alpha=0.5, label='Overlap Area' if not labeled else None)
+                labeled = True
+
+    # Ensure proper aspect ratio and add legend
+    ax.set_aspect('equal', 'box')
+    ax.legend()
+    plt.show()
