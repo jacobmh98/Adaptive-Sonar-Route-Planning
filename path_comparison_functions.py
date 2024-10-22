@@ -1,4 +1,6 @@
 import numpy as np
+
+import coverage_plots
 from global_variables import *
 from shapely.ops import unary_union
 from shapely.geometry import Polygon, LineString
@@ -132,3 +134,41 @@ def compute_overlap_area(polygon, path):
         overlap_area = Polygon()  # Empty if no overlaps
 
     return overlap_area
+
+def compute_path_data(poly, path, time):
+    covered_area, coverage_percentage = compute_covered_area(poly, path)
+    outlier_area = compute_outlier_area(poly, path)
+    overlap_area = compute_overlap_area(poly, path)
+
+    print(f'Execution time: {time}')
+    print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
+    print(f'Covered area: {covered_area.area}')
+    print(f'Outlier area: {outlier_area.area}')
+    print(f'Overlap area: {overlap_area.area}')
+    coverage_plots.visualize_coverage_wasted_and_overlap(poly, path, covered_area, outlier_area, overlap_area)
+    print()
+
+    # Computing turns in the path
+    distance = compute_total_distance(path)
+    total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
+
+    print(f'Distance: {distance}')
+    print(f'Total turns: {total_turns}')
+    print(f'Hard turns (<45): {hard_turns}')
+    print(f'Medium turns (45-90): {medium_turns}')
+    print(f'Soft turns (>90): {soft_turns}')
+
+    if store_data:
+        output_file = "coverage_results.txt"
+
+        with open(output_file, 'w') as file:
+            file.write(f"Execution time: {time}\n")
+            file.write(f"Coverage percentage: {round(coverage_percentage, 2)}%\n")
+            file.write(f"Covered area: {covered_area.area}\n")
+            file.write(f"Wasted area: {outlier_area.area}\n")
+            file.write(f"Overlap area: {overlap_area.area}\n\n")
+            file.write(f"Distance: {distance}\n")
+            file.write(f"Total turns: {total_turns}\n")
+            file.write(f"Hard turns (<45): {hard_turns}\n")
+            file.write(f"Medium turns (45-90): {medium_turns}\n")
+            file.write(f"Soft turns (>90): {soft_turns}\n")

@@ -111,6 +111,44 @@ def compute_centroid(polygon):
     centroid_y = sum(y_coords) / len(y_coords)
     return (centroid_x, centroid_y)
 
+
+def start_tsp(polygons, intersections):
+
+    """
+    # Pairing each polygon with its corresponding intersections using a dictionary, to keep track of which intersection list is for which sub polygon
+    polygon_intersections = {
+        poly.i: {"polygon": poly, "intersections": inters}
+        for poly, inters in zip(optimized_sub_polygons, intersections)
+    }
+
+    # Create sorted lists of polygons and intersections, such that poly[0] and intersections[0] are for the same poly
+    sorted_polygons = [polygon_intersections[poly.i]["polygon"] for poly in optimized_sub_polygons]
+    sorted_intersections = [polygon_intersections[poly.i]["intersections"] for poly in optimized_sub_polygons]
+
+    # Creating the expanded distance matrix to consider start/end combinations
+    expanded_distance_matrix = create_expanded_distance_matrix(sorted_polygons, sorted_intersections)
+
+    # Solve the TSP with start/end combinations
+    tsp_route_with_combinations = tsp_solver_with_combinations(expanded_distance_matrix, len(sorted_polygons))
+
+    # Use the chosen combination indices to retrieve the optimal start/end points for each polygon
+    optimal_path = []
+    for polygon_index, combination_index in tsp_route_with_combinations:
+        polygon = sorted_polygons[polygon_index]
+        intersections = sorted_intersections[polygon_index]
+
+        # Get the optimal start and end points for the polygon using the selected combination
+        start, end = get_start_end_combinations(intersections)[combination_index]
+
+        optimal_path.append((start, end))
+
+    tsp_polygon_indices = [polygon_index for polygon_index, _ in tsp_route_with_combinations]
+    #visualize_tsp_solution(sorted_polygons, tsp_polygon_indices)
+    """
+
+    return 0
+
+
 def visualize_tsp_solution(polygons, tsp_route):
     plt.figure(figsize=(8, 8))
 
