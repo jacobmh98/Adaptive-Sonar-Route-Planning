@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
+
+import decomposition
 from decomposition import *
 
 """ Temporary plot functions """
-def plot_results(split_polygons, cv, Di):
+def plot_results(split_polygons, depth, cv, Di):
     """ Create a figure with a grid of sub-plots """
     cols = 5
     rows = int(np.ceil(len(split_polygons) / cols))
@@ -34,8 +36,7 @@ def plot_results(split_polygons, cv, Di):
             r += 1
             c = 0
     fig.tight_layout()
-    plt.savefig(f'./figs/cv{cv}.png')
-    plt.close()
+    plt.show()
 
 def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     fig, ax = plt.subplots(1, 4)
@@ -97,7 +98,7 @@ def plot_results3(sub_polygons, include_points = False):
     for i, poly in enumerate(sub_polygons):
         x_coords, y_coords = poly.get_coords()
 
-        c_x, c_y = get_center_of_polygon(poly)
+        c_x, c_y = decomposition.get_center_of_polygon(poly)
 
         if include_points:
             ax.plot(x_coords, y_coords, 'k-o')

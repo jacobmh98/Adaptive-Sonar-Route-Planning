@@ -17,21 +17,21 @@ from global_variables import load_existing_data
 from obstacles import *
 from load_data import *
 
-data_path = 'single_obstacle'
+data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
 sub_polygons = generate_new_data(region)
 optimized_sub_polygons = compute_optimized_data(sub_polygons)
 
-plot_obstacles(sub_polygons, obstacles)
-asd(sub_polygons[0], obstacles[0])
+#plot_obstacles(sub_polygons, obstacles)
+#asd(sub_polygons[0], obstacles[0])
 # TODO obstruction starts here
 #plot_results4(optimized_sub_polygons, obstructions)
-#plot_results3(optimized_sub_polygons)
+plot_results3(optimized_sub_polygons)
 #plot_graph(optimized_sub_polygons)
 
 
 
-quit()
+
 # Choosing sorting method for the order of sub polygons
 if tsp_sort:  # Not working correctly
     distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)

@@ -6,6 +6,8 @@ from Polygon import *
 from scipy.spatial import ConvexHull
 import pandas as pd
 from global_variables import *
+from plot_functions import plot_results
+
 
 #from global_variables import epsilon#, optimizing_epsilon
 
@@ -517,7 +519,7 @@ def split_polygon(P, depth=0):
             split_polygons.append((None, None))
             #print('did not append')
 
-        #plot_results(split_polygons, cv.index, D[i, :])
+        #plot_results(split_polygons, depth, cv.index, D[i, :])
         D_polygons.append(split_polygons)
 
     # Select the best split of the polygon (lowest width sum)
