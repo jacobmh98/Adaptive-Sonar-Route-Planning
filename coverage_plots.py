@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from global_variables import *
 from Polygon import Polygon
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon as ShapelyPolygon
 
 
 def multi_poly_plot(polygon, current_path_width, polygons, path):
@@ -342,7 +342,7 @@ def visualize_coverage_wasted_and_overlap(polygon, path_points, covered_area, wa
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = Polygon(poly_coords)
+    poly_shape = ShapelyPolygon(poly_coords)
 
     # Plot the original polygon
     x_poly, y_poly = poly_shape.exterior.xy

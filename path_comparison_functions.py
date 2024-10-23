@@ -2,7 +2,7 @@ import numpy as np
 import coverage_plots
 from global_variables import *
 from shapely.ops import unary_union
-from shapely.geometry import Polygon, LineString
+from shapely.geometry import Polygon as ShapelyPolygon, LineString
 
 def compute_total_distance(path):
     """ Function to compute the length of the path
@@ -71,7 +71,7 @@ def compute_covered_area(polygon, path):
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = Polygon(poly_coords)
+    poly_shape = ShapelyPolygon(poly_coords)
 
     # Find the intersection of the buffered path and the polygon (covered area)
     covered_area = poly_shape.intersection(buffered_path)
@@ -93,7 +93,7 @@ def compute_outlier_area(polygon, path):
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = Polygon(poly_coords)
+    poly_shape = ShapelyPolygon(poly_coords)
 
     # Calculate the wasted area outside the polygon
     outlying_area = buffered_path.difference(poly_shape)
@@ -113,7 +113,7 @@ def compute_overlap_area(polygon, path):
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = Polygon(poly_coords)
+    poly_shape = ShapelyPolygon(poly_coords)
 
     overlap_areas = []
     for i in range(len(buffered_segments)):
@@ -130,7 +130,7 @@ def compute_overlap_area(polygon, path):
     if overlap_areas:
         overlap_area = unary_union(overlap_areas).buffer(0)
     else:
-        overlap_area = Polygon()  # Empty if no overlaps
+        overlap_area = ShapelyPolygon()  # Empty if no overlaps
 
     return overlap_area
 

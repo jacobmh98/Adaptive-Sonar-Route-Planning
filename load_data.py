@@ -5,7 +5,7 @@ import pickle
 from Polygon import *
 from decomposition import split_polygon, is_well_formed, optimize_polygons, remove_collinear_vertices
 
-def get_region(data_path, include_obstacles=True):
+def get_region(data_path):
     # Reading the test data
     f = open(f'test_data/{data_path}.json')
 
@@ -27,7 +27,7 @@ def get_region(data_path, include_obstacles=True):
         obs = data['obstacles'][f'obstacle{i + 1}']
 
         for j in range(len(obs)):
-            vertices.append(Vertex(j, obs[j][0], obs[j][1]))
+            vertices.append(Vertex(j, obs[j][0], obs[j][1], True))
 
         obstacles.append(Polygon(vertices, True))
     return region, obstacles

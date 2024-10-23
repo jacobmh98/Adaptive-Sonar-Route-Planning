@@ -1,21 +1,34 @@
+from enum import Enum
+
 import numpy as np
 import matplotlib.pyplot as plt
 
+class VertexType(Enum):
+    FLOOR_CONVEX = 1
+    CEIL_CONVEX = 2
+    FLOOR_CONCAVE = 3
+    CEIL_CONCAVE = 4
+    OPEN = 5
+    SPLIT = 6
+    MERGE = 7
+    CLOSE = 8
+
 class Vertex:
-    def __init__(self, i, x, y):
+    def __init__(self, i, x, y, is_obstacle = False):
         self.index = i
         self.x = x
         self.y = y
         self.v = np.array([[x], [y]])
         self.prev = None
         self.next = None
-        self.event = None
+        self.is_obstacle = is_obstacle
+        self.type = None
 
     def get_array(self):
         return np.array([[self.x], [self.y]])
 
     def __repr__(self):
-        return f"Vertex({self.index}, {self.x}, {self.y})"
+        return f"Vertex({self.index}, {self.x}, {self.y}, obs={self.is_obstacle})"
 
 class Edge:
     def __init__(self, v1, v2):
@@ -29,7 +42,7 @@ class Edge:
             self.slope = (v2.y - v1.y) / (v2.x - v1.x)
 
     def __repr__(self):
-        return f"Edge({self.v_from.index}, {self.v_to.index}, {self.slope})"
+        return f"Edge({self.v_from.index}, {self.v_to.index}, {self.slope}, obs={self.v_from.is_obstacle})"
 
 class Polygon:
     def __init__(self, v, is_obstacle=False):
@@ -39,7 +52,6 @@ class Polygon:
         self.edges = []
         self.i = None
         self.is_obstacle = is_obstacle
-
 
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]

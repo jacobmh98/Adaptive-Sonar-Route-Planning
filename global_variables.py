@@ -1,3 +1,5 @@
+from Polygon import VertexType as VT
+
 scale = 1
 
 epsilon = 1e-6
@@ -34,3 +36,12 @@ iterations = 50 # Number of different path widths to check
 
 # Check path in opposite direction, can give better path
 check_reverse = False
+
+OPEN = VT.OPEN
+CLOSE = VT.CLOSE
+SPLIT = VT.SPLIT
+MERGE = VT.MERGE
+FLOOR_CONVEX = VT.FLOOR_CONVEX
+FLOOR_CONCAVE = VT.FLOOR_CONCAVE
+CEIL_CONVEX = VT.CEIL_CONVEX
+CEIL_CONCAVE = VT.CEIL_CONCAVE

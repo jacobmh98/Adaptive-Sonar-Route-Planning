@@ -19,11 +19,15 @@ from global_variables import load_existing_data
 from obstacles import *
 from load_data import *
 
-data_path = 'complex_polygon'
+data_path = 'single_obstacle'
 region, obstacles = get_region(data_path)
 sub_polygons = generate_new_data(region)
 optimized_sub_polygons = compute_optimized_data(sub_polygons)
+plot_obstacles(optimized_sub_polygons, obstacles)
 
+asd(optimized_sub_polygons[0], obstacles[0])
+
+quit()
 #plot_obstacles(sub_polygons, obstacles)
 #asd(sub_polygons[0], obstacles[0])
 # TODO obstruction starts here
