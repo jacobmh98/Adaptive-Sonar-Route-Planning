@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from global_variables import *
 from Polygon import Polygon
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon as ShapelyPolygon
 
 
 def multi_poly_plot(polygon, current_path_width, polygons, path):
@@ -336,13 +336,13 @@ def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
     ax.set_ylabel('Y')
 
 
-def visualize_coverage_wasted_and_overlap(polygon, path_points, covered_area, wasted_area, overlap_area):
+def visualize_coverage_wasted_and_overlap(polygon, path_points, covered_area, outlier_area, overlap_area):
     # Create the plot
     fig, ax = plt.subplots()
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = Polygon(poly_coords)
+    poly_shape = ShapelyPolygon(poly_coords)
 
     # Plot the original polygon
     x_poly, y_poly = poly_shape.exterior.xy
@@ -363,15 +363,15 @@ def visualize_coverage_wasted_and_overlap(polygon, path_points, covered_area, wa
                 ax.fill(x, y, color='green', alpha=0.5)
 
     # Plot the wasted area outside the polygon, with label only once
-    if not wasted_area.is_empty:
+    if not outlier_area.is_empty:
         labeled = False
-        if wasted_area.geom_type == 'Polygon':
-            x, y = wasted_area.exterior.xy
-            ax.fill(x, y, color='red', alpha=0.5, label='Wasted Area')
-        elif wasted_area.geom_type == 'MultiPolygon':
-            for i, sub_polygon in enumerate(wasted_area.geoms):
+        if outlier_area.geom_type == 'Polygon':
+            x, y = outlier_area.exterior.xy
+            ax.fill(x, y, color='red', alpha=0.5, label='Outlying Area')
+        elif outlier_area.geom_type == 'MultiPolygon':
+            for i, sub_polygon in enumerate(outlier_area.geoms):
                 x, y = sub_polygon.exterior.xy
-                ax.fill(x, y, color='red', alpha=0.5, label='Wasted Area' if not labeled else None)
+                ax.fill(x, y, color='red', alpha=0.5, label='Outlying Area' if not labeled else None)
                 labeled = True
 
     # Plot the overlap area, with label only once

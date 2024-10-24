@@ -186,7 +186,7 @@ def connect_last_path(path, intersections):
 
     return last_path
 
-def connect_solo_path(intersections):
+def connect_solo_path(intersections):  # Any point can be used as first point for the optimal path in solo paths
     solo_path = [intersections[0][0],intersections[0][1]] # Manually adding first intersection
     for intersection in intersections[1:]:  # Iterate through remaining intersections and add to the first path
         solo_path = add_intersection_points_to_path(solo_path, intersection)

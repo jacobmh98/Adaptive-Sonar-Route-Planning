@@ -1,196 +1,274 @@
+import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
+import connecting_path
+import coverage_plots
+from global_variables import *
+from scipy.spatial.distance import euclidean
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
-import matplotlib.pyplot as plt
+from scipy.spatial.distance import euclidean
 
+def add_intersection_points_to_path(path, intersection):
+    last_point = path[-1]  # The last point in the current path
+
+    # Unpack the intersection
+    p1, p2 = intersection
+
+    # Calculate the distance between the last point and each point in the intersection
+    dist_to_p1 = np.linalg.norm(last_point - p1)
+    dist_to_p2 = np.linalg.norm(last_point - p2)
+
+    # Add the points in the correct order based on their distance to the last point
+    if dist_to_p1 <= dist_to_p2:
+        path.append(p1)
+        path.append(p2)
+    else:
+        path.append(p2)
+        path.append(p1)
+
+    return path
+
+def connect_path_for_tsp(start_pair, intersections):
+    path = [start_pair[0], start_pair[1]]
+
+    for intersection in intersections[1:]:
+        path = connecting_path.add_intersection_points_to_path(path, intersection)
+
+    return path
 
 def get_start_end_combinations(intersections):
-    first_intersection = intersections[0]
-    last_intersection = intersections[-1]
+    # Getting first pair used to create the path from the intersections
+    first_pair = (intersections[0][0], intersections[0][1])
 
-    # All possible combinations of start and end points
-    start_end_combinations = [
-        (first_intersection[0], last_intersection[0]),  # First point to first point
-        (first_intersection[0], last_intersection[1]),  # First point to second point
-        (first_intersection[1], last_intersection[0]),  # Second point to first point
-        (first_intersection[1], last_intersection[1])   # Second point to second point
-    ]
+    # Generating the path
+    path = connect_path_for_tsp(first_pair, intersections)
+
+    # Extracting the 4 different start/end combinations from the path
+    first_start = path[0]
+    first_end = path[-1]
+    second_start = path[1]
+    second_end = path[-2]
+    third_start = path[-2]
+    third_end = path[1]
+    fourth_start = path[-1]
+    fourth_end = path[0]
+
+    # Creating list of tuples of the start and end pairs
+    start_end_combinations = [(first_start, first_end), (second_start, second_end), (third_start, third_end),
+                              (fourth_start, fourth_end)]
+
     return start_end_combinations
 
+def euclidean_distance(point1, point2):
+    return np.linalg.norm(np.array(point1) - np.array(point2))
 
-def create_expanded_distance_matrix(polygons, total_intersections):
-    # Each polygon has 4 potential start/end combinations, so the matrix is 4x larger
-    num_combinations = len(polygons) * 4
-    distance_matrix = np.zeros((num_combinations, num_combinations))
+def compute_distance_matrix(start_end_combinations):
+    num_supernodes = len(start_end_combinations)
+    num_pairs = 4  # Each supernode has 4 start/end pairs
+    matrix_size = num_supernodes * num_pairs
 
-    # Loop through each pair of polygons and compute the distance between each combination
-    for i, poly1 in enumerate(polygons):
-        combinations1 = get_start_end_combinations(total_intersections[i])
+    # Initialize the distance matrix
+    distance_matrix = np.zeros((matrix_size, matrix_size))
 
-        for j, poly2 in enumerate(polygons):
-            if i != j:  # Skip self-connections
-                combinations2 = get_start_end_combinations(total_intersections[j])
+    # Loop through each supernode and its pairs
+    for i, current_pairs in enumerate(start_end_combinations):
+        for pair_idx, (start_i, end_i) in enumerate(current_pairs):
+            end_index = i * num_pairs + pair_idx
 
-                # Calculate distances for each combination pair
-                for k, (start1, end1) in enumerate(combinations1):
-                    for l, (start2, end2) in enumerate(combinations2):
-                        # Compute the distance from the end of polygon i's combination to the start of polygon j's combination
-                        distance_matrix[i*4 + k][j*4 + l] = np.linalg.norm(end1 - start2)
+            # Compare this end node to all start nodes in other supernodes
+            for j, other_pairs in enumerate(start_end_combinations):
+                for other_pair_idx, (start_j, _) in enumerate(other_pairs):
+                    start_index = j * num_pairs + other_pair_idx
+
+                    # Ensure we calculate distances between different supernodes
+                    if i != j:
+                        distance = euclidean_distance(end_i, start_j)
+                        distance_matrix[end_index, start_index] = distance
+                        distance_matrix[start_index, end_index] = distance  # Ensure symmetry
 
     return distance_matrix
 
+def is_symmetric(matrix, tol=1e-9):
+    """Check if the matrix is symmetric within a given tolerance."""
+    rows, cols = matrix.shape
+    if rows != cols:
+        return False  # It must be a square matrix to be symmetric
 
-def tsp_solver_with_combinations(distance_matrix, num_polygons):
-    # Create the TSP manager for the expanded matrix (4x nodes)
-    manager = pywrapcp.RoutingIndexManager(len(distance_matrix), 1, 0)  # 1 vehicle, start at index 0
+    # Compare each element with its transpose, allowing for small differences
+    for i in range(rows):
+        for j in range(cols):
+            if abs(matrix[i][j] - matrix[j][i]) > tol:
+                print(matrix[i][j])
+                print(matrix[j][i])
+                return False
+    return True
 
+def solve_vrp_with_supernodes(distance_matrix, start_end_combinations):
+    num_supernodes = len(start_end_combinations)
+    num_pairs = 4  # Each supernode has 4 start/end pairs
+
+    # Create data model for OR-Tools
+    data = {
+        'distance_matrix': distance_matrix,
+        'num_vehicles': 1,  # Single path/vehicle
+        'depot': 0  # Starting point, can adjust as needed
+    }
+
+    # Create the routing index manager with multiple choices per supernode
+    manager = pywrapcp.RoutingIndexManager(len(distance_matrix), data['num_vehicles'], data['depot'])
     routing = pywrapcp.RoutingModel(manager)
 
-    # Define cost of each arc using the expanded distance matrix
+    # Create a callback for distances
     def distance_callback(from_index, to_index):
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
-        return distance_matrix[from_node][to_node]
+        return data['distance_matrix'][from_node][to_node]
 
     transit_callback_index = routing.RegisterTransitCallback(distance_callback)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
-    # Add constraint to ensure only one node per polygon is selected
-    for i in range(num_polygons):
-        routing.AddDisjunction([manager.NodeToIndex(i * 4 + k) for k in range(4)], 0)  # Each polygon has 4 nodes
+    # Add disjunctions to ensure only one start/end pair is chosen per supernode
+    for i in range(num_supernodes):
+        indices = [i * num_pairs + j for j in range(num_pairs)]  # All 4 pairs for supernode `i`
+        routing.AddDisjunction(indices)
 
     # Define search parameters
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
 
-    # Solve the TSP
+    # Solve the VRP
     solution = routing.SolveWithParameters(search_parameters)
 
+    # Extract the TSP order from the solution
+    tsp_order = []
+    chosen_pairs = []
     if solution:
-        return get_solution(manager, routing, solution, num_polygons)
+        index = routing.Start(0)
+        while not routing.IsEnd(index):
+            node = manager.IndexToNode(index)
+            tsp_order.append(node)
+            supernode_idx = node // num_pairs
+            pair_idx = node % num_pairs
+            chosen_pairs.append(start_end_combinations[supernode_idx][pair_idx])
+            index = solution.Value(routing.NextVar(index))
+
+    return tsp_order, chosen_pairs
+
+def start_tsp(polygons, intersections, region):
+    # Step 1: Compute start/end combinations
+    start_end_combinations = [get_start_end_combinations(inter) for inter in intersections]
+
+    plot_tsp_graph(start_end_combinations)
+
+    # Step 2: Compute the distance matrix
+    distance_matrix = compute_distance_matrix(start_end_combinations)
+    pyomo_test(distance_matrix)
+
+    # Check for symmetry
+    if is_symmetric(distance_matrix):
+        print("The distance matrix is symmetric.")
     else:
-        return None
+        print("The distance matrix is not symmetric.")
+
+    # Step 3: Solve the VRP-based TSP
+    tsp_order, chosen_pairs = solve_vrp_with_supernodes(distance_matrix, start_end_combinations)
+    print("Chosen Pairs:", chosen_pairs)
+
+    # Step 4: Extract unique supernodes based on the TSP result
+    seen_supernodes = set()
+    final_tsp_order = []
+    final_chosen_pairs = []
+
+    for idx in tsp_order:
+        supernode_index = idx // 4  # Determine which supernode this pair belongs to
+        if supernode_index not in seen_supernodes:
+            seen_supernodes.add(supernode_index)
+            final_tsp_order.append(supernode_index)
+            final_chosen_pairs.append(chosen_pairs[idx % len(chosen_pairs)])
 
 
-def get_solution(manager, routing, solution, num_polygons):
-    """Extract the TSP solution in terms of the best start/end combinations."""
-    index = routing.Start(0)
-    tsp_route = []
+    print(final_tsp_order)
+    # Step 5: Sort polygons and intersections based on the final TSP order
+    sorted_polygons = [polygons[i] for i in final_tsp_order]
+    sorted_intersections = [intersections[i] for i in final_tsp_order]
 
-    while not routing.IsEnd(index):
-        node = manager.IndexToNode(index)
-        polygon_index = node // 4  # Each polygon has 4 nodes, so divide by 4 to get the polygon index
-        combination_index = node % 4  # Get which combination was chosen
-        tsp_route.append((polygon_index, combination_index))  # Store polygon and combination
-        index = solution.Value(routing.NextVar(index))
-
-    return tsp_route
-
-def sort_polygons_by_tsp(optimal_route, polygon_intersections):
-    reordered_polygons = []
-    reordered_intersections = []
-    used_indices = set()
-
-    for i in range(0, len(optimal_route), 2):  # Steps of 2 to get both start and end points
-        polygon_index = optimal_route[i] // 2
-
-        if polygon_index not in used_indices:
-            # Retrieve both polygon and intersections from the dictionary
-            data = polygon_intersections[polygon_index]
-            reordered_polygons.append(data["polygon"])
-            reordered_intersections.append(data["intersections"])
-            used_indices.add(polygon_index)
-
-    return reordered_polygons, reordered_intersections
+    return sorted_polygons, sorted_intersections, final_chosen_pairs
 
 
-# Function to compute the centroid of a polygon
-def compute_centroid(polygon):
-    x_coords, y_coords = polygon.get_coords()
-    centroid_x = sum(x_coords) / len(x_coords)
-    centroid_y = sum(y_coords) / len(y_coords)
-    return (centroid_x, centroid_y)
+def plot_tsp_graph(start_end_combinations):
+    # Create a graph
+    G = nx.Graph()
 
+    # Function to arrange sub-nodes in a circular pattern around a given center position
+    def circular_layout(center, radius, num_points):
+        # Start from -π/4 radians (which is -45 degrees) for a 45-degree clockwise rotation
+        angles = np.linspace(-np.pi / 4, 2 * np.pi - np.pi / 4, num_points, endpoint=False)
+        return [center + radius * np.array([np.cos(angle), np.sin(angle)]) for angle in angles]
 
-def start_tsp(polygons, intersections):
+    # Arrange super nodes in a large circular pattern
+    def super_node_circular_layout(num_nodes, radius):
+        angles = np.linspace(0, 2 * np.pi, num_nodes, endpoint=False)
+        return [radius * np.array([np.cos(angle), np.sin(angle)]) for angle in angles]
 
-    """
-    # Pairing each polygon with its corresponding intersections using a dictionary, to keep track of which intersection list is for which sub polygon
-    polygon_intersections = {
-        poly.i: {"polygon": poly, "intersections": inters}
-        for poly, inters in zip(optimized_sub_polygons, intersections)
-    }
+    # Add super nodes and edges without specifying positions yet
+    for idx, current_start_end_combinations in enumerate(start_end_combinations):
+        # Create a super node for the polygon
+        super_node = f"Polygon_{idx}"
+        G.add_node(super_node, color='red')
 
-    # Create sorted lists of polygons and intersections, such that poly[0] and intersections[0] are for the same poly
-    sorted_polygons = [polygon_intersections[poly.i]["polygon"] for poly in optimized_sub_polygons]
-    sorted_intersections = [polygon_intersections[poly.i]["intersections"] for poly in optimized_sub_polygons]
+        # Add 4 sub-nodes: first, second, third, fourth
+        sub_node_labels = ["first", "second", "third", "fourth"]
+        for pair_idx, label in enumerate(sub_node_labels):
+            # Create unique node labels based on polygon and label
+            sub_node = f"P{idx}_{label}"
 
-    # Creating the expanded distance matrix to consider start/end combinations
-    expanded_distance_matrix = create_expanded_distance_matrix(sorted_polygons, sorted_intersections)
+            # Add sub-nodes
+            G.add_node(sub_node, color='blue')
 
-    # Solve the TSP with start/end combinations
-    tsp_route_with_combinations = tsp_solver_with_combinations(expanded_distance_matrix, len(sorted_polygons))
+            # Connect each sub-node to the super node
+            G.add_edge(super_node, sub_node)
 
-    # Use the chosen combination indices to retrieve the optimal start/end points for each polygon
-    optimal_path = []
-    for polygon_index, combination_index in tsp_route_with_combinations:
-        polygon = sorted_polygons[polygon_index]
-        intersections = sorted_intersections[polygon_index]
+    # Connect super nodes sequentially
+    for i in range(len(start_end_combinations) - 1):
+        G.add_edge(f"Polygon_{i}", f"Polygon_{i + 1}", color='green')
 
-        # Get the optimal start and end points for the polygon using the selected combination
-        start, end = get_start_end_combinations(intersections)[combination_index]
+    # Connect all super nodes to each other (complete graph)
+    super_node_labels = [f"Polygon_{i}" for i in range(len(start_end_combinations))]
+    for i in range(len(super_node_labels)):
+        for j in range(i + 1, len(super_node_labels)):
+            G.add_edge(super_node_labels[i], super_node_labels[j], color='purple')
 
-        optimal_path.append((start, end))
+    # Arrange super nodes in a large circular layout
+    super_node_positions = super_node_circular_layout(len(start_end_combinations), radius=0.4)
+    positions = {f"Polygon_{idx}": pos for idx, pos in enumerate(super_node_positions)}
 
-    tsp_polygon_indices = [polygon_index for polygon_index, _ in tsp_route_with_combinations]
-    #visualize_tsp_solution(sorted_polygons, tsp_polygon_indices)
-    """
+    # Manually arrange sub-nodes in a circular pattern around their respective super nodes
+    for idx, current_start_end_combinations in enumerate(start_end_combinations):
+        # Position of the super node
+        super_node = f"Polygon_{idx}"
+        center = positions[super_node]
 
-    return 0
+        # Arrange sub-nodes around the super node in a circular layout
+        sub_node_positions = circular_layout(center, radius=0.08, num_points=4)
 
+        # Define positions for the 4 labeled sub-nodes
+        for pair_idx, label in enumerate(sub_node_labels):
+            sub_node = f"P{idx}_{label}"
+            positions[sub_node] = sub_node_positions[pair_idx]
 
-def visualize_tsp_solution(polygons, tsp_route):
-    plt.figure(figsize=(8, 8))
+    # Extract colors for plotting
+    node_colors = [G.nodes[node].get('color', 'blue') for node in G.nodes]
+    edge_colors = ['purple' if G[u][v].get('color') == 'purple' else
+                   'green' if G[u][v].get('color') == 'green' else
+                   'gray' for u, v in G.edges()]
 
-    # Plot each polygon with its intersections
-    for i, polygon in enumerate(polygons):
-        x_coords, y_coords = polygon.get_coords()
-        x_coords.append(x_coords[0])  # Close the polygon loop
-        y_coords.append(y_coords[0])
-        plt.plot(x_coords, y_coords, 'r-', lw=2, marker='o')  # Plot the polygon edges
-
-        # Add label to the centroid of the polygon
-        centroid = compute_centroid(polygon)
-        plt.text(centroid[0], centroid[1], f'{i}', fontsize=12, ha='center', color='blue')
-
-    # Plot the TSP path between centroids of polygons
-    for i in range(len(tsp_route) - 1):
-        if i == 0:
-            continue
-        start_polygon = polygons[tsp_route[i]]
-        end_polygon = polygons[tsp_route[i + 1]]
-
-        # Draw line between centroids
-        centroid_start = compute_centroid(start_polygon)
-        centroid_end = compute_centroid(end_polygon)
-        plt.plot([centroid_start[0], centroid_end[0]], [centroid_start[1], centroid_end[1]], 'b--', lw=2)
-
-    # Mark start and end of the path
-    start_polygon = polygons[tsp_route[0]]
-    end_polygon = polygons[tsp_route[-1]]
-    centroid_start = compute_centroid(start_polygon)
-    centroid_end = compute_centroid(end_polygon)
-
-    plt.plot(centroid_start[0], centroid_start[1], 'ro', markersize=10, label='Start')  # Red dot for start
-    plt.plot(centroid_end[0], centroid_end[1], 'bo', markersize=10, label='End')  # Blue dot for end
-
-    # Draw a line from start node (0) to last node (1)
-    first_node = polygons[0]
-    last_node = polygons[1]
-    first_centroid = compute_centroid(first_node)
-    last_centroid = compute_centroid(last_node)
-    plt.plot([first_centroid[0], last_centroid[0]], [first_centroid[1], last_centroid[1]], 'b--', lw=2)
-
-    plt.title("TSP Optimal Path Visiting Polygons and Intersections")
-    plt.legend()
+    # Draw the graph
+    plt.figure(figsize=(12, 8))
+    nx.draw(G, positions, with_labels=True, node_color=node_colors, node_size=500, font_size=8, font_weight='bold',
+            edge_color=edge_colors)
+    plt.title("MC-TSP Graph with Circular Super Nodes and Complete Super Node Connections")
     plt.show()
+
+
+

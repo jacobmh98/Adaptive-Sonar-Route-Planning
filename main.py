@@ -23,6 +23,14 @@ data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
 sub_polygons = generate_new_data(region)
 optimized_sub_polygons = compute_optimized_data(sub_polygons)
+plot_results3(optimized_sub_polygons)
+
+intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
+sorted_polygons, sorted_intersections, chosen_pairs = intra_regional_tsp.start_tsp(optimized_sub_polygons, intersections, region)
+
+quit()
+
+#coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, tsp_route)
 
 #plot_obstacles(sub_polygons, obstacles)
 #asd(sub_polygons[0], obstacles[0])
