@@ -23,9 +23,13 @@ data_path = 'single_obstacle'
 region, obstacles = get_region(data_path)
 sub_polygons = generate_new_data(region)
 optimized_sub_polygons = compute_optimized_data(sub_polygons)
-plot_obstacles(optimized_sub_polygons, obstacles)
+sub_polygons_obstacles = asd(optimized_sub_polygons[0], obstacles[0])
+plot_obstacles(sub_polygons, obstacles)
+plot_obstacles(sub_polygons_obstacles, obstacles, False)
 
-asd(optimized_sub_polygons[0], obstacles[0])
+intersections = multi_poly_planning.multi_intersection_planning(sub_polygons_obstacles, path_width)
+path = connecting_path.connect_path(sub_polygons_obstacles, intersections)
+coverage_plots.multi_poly_plot(region, path_width, sub_polygons_obstacles, path)
 
 quit()
 #plot_obstacles(sub_polygons, obstacles)

@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from networkx.classes import edges
 
 from decomposition import dot, cross
-from Polygon import Edge, VertexType as VT, Vertex
+from Polygon import Edge, VertexType as VT, Vertex, Polygon
 from global_variables import *
 
 
@@ -237,7 +237,7 @@ def asd(region, obstacle):
 
                 if intersection_up is not None:
                     v_up = Vertex(-1, intersection_up[0], intersection_up[1])
-                    print(f'{v} intersects {edge} at {intersection_up}')
+                    #print(f'{v} intersects {edge} at {intersection_up}')
                     combined_edges.remove(edge)
                     edge.v_from.next = v_up
                     edge.v_to.prev = v_up
@@ -252,7 +252,7 @@ def asd(region, obstacle):
 
                 if intersection_down is not None:
                     v_down = Vertex(-1, intersection_down[0], intersection_down[1])
-                    print(f'{v} intersects {edge} at {intersection_down}')
+                    #print(f'{v} intersects {edge} at {intersection_down}')
                     combined_edges.remove(edge)
                     edge.v_from.next = v_down
                     edge.v_to.prev = v_down
@@ -273,31 +273,44 @@ def asd(region, obstacle):
             cells[-1][1].append(v)
             active_cells[-1] = False
 
-    print()
-    print(active_cells)
+    sub_polygons = []
     for cell in cells:
-        print(cell)
+        vertices = []
 
-def plot_obstacles(sub_polygons, obstacles):
+        # Appending the floor vertices of the cell
+        for i in range(0, len(cell[1])):
+            vertices.append(Vertex(len(vertices), cell[1][i].x, cell[1][i].y))
+
+        # Appending the ceiling vertices of the cell
+        for i in range(len(cell[0]) - 1, -1, -1):
+            vertices.append(Vertex(len(vertices), cell[0][i].x, cell[0][i].y))
+
+        sub_polygons.append(Polygon(vertices))
+
+    return sub_polygons
+
+def plot_obstacles(sub_polygons, obstacles, include_points=True):
     fig, ax = plt.subplots(1, 1)
 
     for p in sub_polygons:
         x_coords, y_coords = p.get_coords()
 
-        ax.plot(x_coords, y_coords, f'k-', marker='o')
+        ax.plot(x_coords, y_coords, f'k-', marker='o' if include_points else None)
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
 
-        for v in p.vertices:
-            plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+        #if include_points:
+#            for v in p.vertices:
+#                plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
     for o in obstacles:
         x_coords, y_coords = o.get_coords()
 
-        ax.plot(x_coords, y_coords, f'k-', marker='o')
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
+        ax.plot(x_coords, y_coords, f'r-', marker='o' if include_points else None)
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'r-')
 
-        for v in o.vertices:
-            plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+        #if include_points:
+#            for v in o.vertices:
+#                plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
     ax.set_aspect('equal')
     plt.show()

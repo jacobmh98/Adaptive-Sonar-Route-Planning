@@ -108,6 +108,7 @@ def plot_results3(sub_polygons, include_points = False):
 
         else:
             ax.plot(x_coords, y_coords, 'k-')
+
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
 
         ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)

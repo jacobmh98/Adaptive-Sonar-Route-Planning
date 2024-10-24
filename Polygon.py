@@ -31,18 +31,19 @@ class Vertex:
         return f"Vertex({self.index}, {self.x}, {self.y}, obs={self.is_obstacle})"
 
 class Edge:
-    def __init__(self, v1, v2):
+    def __init__(self, v1, v2, is_hard_edge = False):
         self.v_from = v1
         self.v_to = v2
         self.prev = None
         self.next = None
+        self.is_hard_edge = is_hard_edge
         if (v2.x - v1.x) == 0 or (v2.y - v1.y) == 0:
             self.slope = 0
         else:
             self.slope = (v2.y - v1.y) / (v2.x - v1.x)
 
     def __repr__(self):
-        return f"Edge({self.v_from.index}, {self.v_to.index}, {self.slope}, obs={self.v_from.is_obstacle})"
+        return f"Edge({self.v_from.index}, {self.v_to.index}, {self.slope}, obs={self.v_from.is_obstacle}, is_hard={self.is_hard_edge})"
 
 class Polygon:
     def __init__(self, v, is_obstacle=False):
@@ -64,6 +65,10 @@ class Polygon:
         for j in range(len(self.edges)):
             self.edges[j].prev = self.edges[(j - 1) % len(self.edges)]
             self.edges[j].next = self.edges[(j + 1) % len(self.edges)]
+
+        #if hard_edges is not None:
+        #for edge in hard_edges:
+        #    self.edges[edge[0]].is_hard_edge = True
 
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""
