@@ -1,5 +1,6 @@
 import numpy as np
 import coverage_plots
+import detect_and_avoid_hard_edges
 
 def compute_total_distance(path):
     total_distance = 0.0
@@ -186,14 +187,14 @@ def connect_last_path(path, intersections):
 
     return last_path
 
-def connect_solo_path(intersections):
+def connect_solo_path(intersections):  # Any point can be used as first point for the optimal path in solo paths
     solo_path = [intersections[0][0],intersections[0][1]] # Manually adding first intersection
     for intersection in intersections[1:]:  # Iterate through remaining intersections and add to the first path
         solo_path = add_intersection_points_to_path(solo_path, intersection)
 
     return solo_path
 
-def connect_path(polygons, total_intersections):
+def connect_path(polygons, total_intersections, hard_edges):
     path = np.empty((0,2))
 
     for i, poly in enumerate(polygons):
@@ -214,6 +215,20 @@ def connect_path(polygons, total_intersections):
         # Last polygon is simple, just start at the end of the path so far for optimal path
         elif i == len(polygons) - 1:
             current_path = connect_last_path(path, total_intersections[i])
+
+        if i > 0 and len(hard_edges) > 0:
+            print()
+            print(f'Going from {i-1} to {i}')
+
+            last_path_point = path[-1]
+            current_first_point = current_path[0]
+            intermediate_points = detect_and_avoid_hard_edges.avoid_hard_edges(last_path_point, current_first_point, poly, polygons, hard_edges)
+
+            if intermediate_points:
+                # Append the intermediate points to the path
+                for point in intermediate_points:
+                    path = np.vstack([path, point])
+
 
         # Should never be an empty path, but just in case check to avoid error
         if len(current_path) > 0:

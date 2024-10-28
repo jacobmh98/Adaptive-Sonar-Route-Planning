@@ -135,6 +135,13 @@ class Polygon:
         else:
             return b - 1
 
+    def calculate_centroid(self):
+        """Calculate the centroid of the polygon."""
+        x_coords, y_coords = self.get_coords()
+        centroid_x = sum(x_coords) / len(x_coords)
+        centroid_y = sum(y_coords) / len(y_coords)
+        return np.array([centroid_x, centroid_y])
+
     def line_intersection(self, p1, p2, q1, q2, epsilon=1e-9):
         """ Find intersection between two line segments (p1, p2) and (q1, q2) with floating-point tolerance """
         r = np.array(p2) - np.array(p1)

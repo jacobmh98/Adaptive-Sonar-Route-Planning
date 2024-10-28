@@ -5,19 +5,24 @@ from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
 
 
-def multi_poly_plot(polygon, current_path_width, polygons, path):
+def multi_poly_plot(polygon, current_path_width, polygons, path, hard_edges):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
+    Highlight hard edges specified for each polygon, and label each vertex with its index.
+
     :param polygon: Polygon
     :param current_path_width:
-    :param polygons: List of the sub polygons
+    :param polygons: List of the sub-polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
+    :param hard_edges: List of lists, where each sublist corresponds to a polygon and contains indices of vertices
+                       defining hard edges. The edge is outgoing from the vertex to the next in a counterclockwise order.
     """
-    coverage = True
+    coverage = False
     plot_sub_polygons = True
 
     fig, ax = plt.subplots(1, 1)
     color = "k"
+
     # Plot the polygon
     if not plot_sub_polygons:
         x_coords, y_coords = polygon.get_coords()
@@ -28,8 +33,21 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     if plot_sub_polygons:
         for i, poly in enumerate(polygons):
             x_coords, y_coords = poly.get_coords()
-            ax.plot(x_coords, y_coords, 'k-', marker='o',markersize=3, label='Polygon')
+            ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=3, label='Polygon')
             ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+
+            # Label each vertex with its index
+            for idx, (x, y) in enumerate(zip(x_coords, y_coords)):
+                ax.text(x, y, f'{idx}', fontsize=8, color='green', ha='right', va='bottom')
+
+            # Plot hard edges
+            if i < len(hard_edges):
+                for vertex_index in hard_edges[i]:
+                    start_idx = vertex_index
+                    end_idx = (vertex_index + 1) % len(x_coords)  # Next vertex, looping back if it's the last vertex
+                    ax.plot([x_coords[start_idx], x_coords[end_idx]],
+                            [y_coords[start_idx], y_coords[end_idx]],
+                            'r-', linewidth=3, label='_nolegend_')
 
             # Find the center of the polygon to place the label
             centroid_x = np.mean(x_coords)
@@ -41,7 +59,7 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     # Plot the path
     if len(path) > 0:
         path_x, path_y = path[:, 0], path[:, 1]
-        ax.plot(path_x, path_y, 'r-', label='Path', linewidth=1)
+        ax.plot(path_x, path_y, 'g-', label='Path', linewidth=1)
 
         # Highlight the start and end points of the path
         ax.plot(path_x[0], path_y[0], 'go', markersize=8, label='Start Point')  # Start point
@@ -77,6 +95,7 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.show()
+
 
 def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, boundary, show_legend=True):
     """
