@@ -14,7 +14,7 @@ def get_region(data_path):
     vertices_data = data['area']['coordinates']
     num_of_obstacles = data['obstacles']['num_of_obstacles']
     hard_edges = data['area']['hard_edges']
-    #print(hard_edges)
+
     # Defining the initial polygon
     vertices = []
 
@@ -23,6 +23,8 @@ def get_region(data_path):
     region = Polygon(vertices)
 
     for e in hard_edges:
+        region.vertices[int(e)].edge_from_v_is_hard = True
+        #vertices[(e + 1) % len(vertices)] = True
         region.edges[e].is_hard_edge = True
 
     obstacles = []

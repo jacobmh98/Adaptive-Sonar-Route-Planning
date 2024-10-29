@@ -4,7 +4,7 @@ import json
 import connecting_path
 import coverage_plots
 import intra_regional_tsp
-import multi_poly_planning
+#import multi_poly_planning
 import optimal_path
 import path_comparison_functions
 from intra_regional_tsp import *
@@ -38,19 +38,18 @@ def extract_hard_edges(polygons, hard_edges):
 
     return all_hard_edges
 
-
-
 data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
+print('region')
+print(f'\t {region.vertices}')
+print(f'\t {region.edges}')
 sub_polygons = generate_new_data(region)
-optimized_sub_polygons = compute_optimized_data(sub_polygons)
-sub_polygons_filtered_mask, sub_polygons_filtered = find_bounding_polygons(optimized_sub_polygons, obstacles[0])
-sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(sub_polygons_filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_mask)
-merged_sub_polygon_decomposed = asd(merged_sub_polygon, obstacles[0])
+#optimized_sub_polygons = compute_optimized_data(sub_polygons)
+#sub_polygons_filtered_mask, sub_polygons_filtered = find_bounding_polygons(optimized_sub_polygons, obstacles[0])
+#sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(sub_polygons_filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_mask)
+#merged_sub_polygon_decomposed = asd(merged_sub_polygon, obstacles[0])
 
-combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
-
-print(obstacles[0].edges)
+#combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
 
 """hard_edges = []
 for i, poly in enumerate([region]):
@@ -63,9 +62,11 @@ for i, poly in enumerate([region]):
 print(hard_edges)"""
 #hard_edges_list = extract_hard_edges(combined_polygons, hard_edges_manuel)
 
-plot_obstacles(optimized_sub_polygons, obstacles)
-plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
+plot_obstacles([region], obstacles, False)
 plot_obstacles(sub_polygons, obstacles, False)
+#plot_obstacles(optimized_sub_polygons, obstacles)
+#plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
+
 quit()
 intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
 path = connecting_path.connect_path(combined_polygons, intersections, hard_edges_list)

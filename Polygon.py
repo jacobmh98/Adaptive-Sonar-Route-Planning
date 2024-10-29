@@ -22,13 +22,14 @@ class Vertex:
         self.prev = None
         self.next = None
         self.is_obstacle = is_obstacle
+        self.edge_from_v_is_hard = False
         self.type = None
 
     def get_array(self):
         return np.array([[self.x], [self.y]])
 
     def __repr__(self):
-        return f"Vertex({self.index}, {self.x}, {self.y}, obs={self.is_obstacle})"
+        return f"Vertex({self.index}, {self.x}, {self.y}, obs={self.is_obstacle}, edge_from_v_is_hard={self.edge_from_v_is_hard})"
 
 class Edge:
     def __init__(self, v1, v2, is_hard_edge = False):
@@ -59,7 +60,10 @@ class Polygon:
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]
             v2 = self.vertices[(i + 1) % self.number_vertices]
-            self.edges.append(Edge(v1, v2))
+            e = Edge(v1, v2)
+            self.edges.append(e)
+
+            e.is_hard_edge = v1.edge_from_v_is_hard
 
             v1.prev = self.vertices[(i - 1) % self.number_vertices]
             v1.next = self.vertices[(i + 1) % self.number_vertices]

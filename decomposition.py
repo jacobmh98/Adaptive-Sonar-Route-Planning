@@ -8,7 +8,6 @@ import pandas as pd
 from global_variables import *
 from plot_functions import plot_results
 
-
 #from global_variables import epsilon#, optimizing_epsilon
 
 def compute_concave_vertices(P):
@@ -62,35 +61,60 @@ def points_are_equal(P1, P2, epsilon=epsilon):
 
 def split_polygon_single(e2, intersection_p, cv):
     """ Split a polygon based on a single intersection point """
+
+    # Creating the 1st sub-polygon
     v0 = Vertex(0, intersection_p[0, 0], intersection_p[1, 0])
+    v0.edge_from_v_is_hard = e2.is_hard_edge
+
     P1_vertices = [v0]
     v_next = e2.v_to
     v_index = 1
+
     while v_next != cv:
-        P1_vertices.append(Vertex(v_index, v_next.x, v_next.y))
+        v = Vertex(v_index, v_next.x, v_next.y)
+        v.edge_from_v_is_hard = v_next.edge_from_v_is_hard
+        P1_vertices.append(v)
         v_index += 1
         v_next = v_next.next
 
     vn = Vertex(v_index, v_next.x, v_next.y)
     P1_vertices.append(vn)
 
+    # Creating the 2nd sub-polygon
     v0 = Vertex(0, cv.x, cv.y)
+    v0.edge_from_v_is_hard = e2.is_hard_edge
     P2_vertices = [v0]
     v_next = cv.next
     v_index = 1
 
     while v_next != e2.v_to:
-        P2_vertices.append(Vertex(v_index, v_next.x, v_next.y))
+        v = Vertex(v_index, v_next.x, v_next.y)
+        v.edge_from_v_is_hard = v_next.edge_from_v_is_hard
+        P2_vertices.append(v)
         v_index += 1
         v_next = v_next.next
 
     vn = Vertex(v_index, intersection_p[0, 0], intersection_p[1, 0])
+    #vn.edge_from_v_is_hard = e2.is_hard_edge
     P2_vertices.append(vn)
 
     P1 = Polygon(P1_vertices)
     P2 = Polygon(P2_vertices)
 
-    return remove_collinear_vertices(P1), remove_collinear_vertices(P2)
+    #plot_obstacles([P1], [], False)
+    #plot_obstacles([P2], [], False)
+
+    """# Define the edges that are hard (if any) for both P1 and P2
+    if e2.is_hard_edge:
+        for edge in P1.edges:
+            if points_are_equal(edge.v_from.get_array(), v0.get_array()) or \
+                    points_are_equal(edge.v_from.get_array(), v0.get_array()):
+
+
+    for e in P2:
+        None"""
+    #return remove_collinear_vertices(P1), remove_collinear_vertices(P2)
+    return P1, P2
 
 def compute_intersection2(e, cv, e2):
     #print(f'{cv=}, {e}, {e2}')
@@ -364,7 +388,9 @@ def remove_collinear_vertices(P):
         if not (dot_product - epsilon <= neg_mag <= dot_product + epsilon):
             # print(f'\t\tcv = {i}, dot = {dot(vec1, vec2)}, mag = {- np.linalg.norm(vec1) * np.linalg.norm(vec2)}')
             # if not (dot(v_left.get_array(), v_right.get_array()) <= 0 <= dot(v_left.get_array(), v_right.get_array()) + epsilon):
-            vertices.append(Vertex(len(vertices), v.x, v.y))
+            new_v = Vertex(len(vertices), v.x, v.y)
+            new_v.edge_from_v_is_hard = v.edge_from_v_is_hard
+            vertices.append(new_v)
         """# Compute the cross product of vectors v1->v2 and v2->v3
         cross_product = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
         # If the cross product is 0, the points are collinear
@@ -378,6 +404,9 @@ def cross(v1, v2):
     return np.cross(v1.flatten(), v2.flatten())
 
 def split_polygon(P, depth=0):
+    #if depth == 1:
+        #return [P]
+    #plot_obstacles(P,[], False)
     # Compute the concave vertices
     P.concave_vertices = compute_concave_vertices(P)
     ncc = len(P.concave_vertices)
@@ -534,6 +563,14 @@ def split_polygon(P, depth=0):
     #print(f'D polygons shape = {len(D_polygons)}, {len(D_polygons[cv])}')
     P1, P2 = D_polygons[cv][edge]
 
+    print(f'{P1.vertices=}')
+    print(f'{P2.vertices=})')
+    print(f'{P1.edges}')
+    print(f'{P2.edges}')
+
+    plot_obstacles([P1], [], True)
+    plot_obstacles([P2], [], True)
+
     #P1.plot(title=f'P1, d = {depth}')
     #P2.plot(title=f'P2, d = {depth}')
         #print('here')
@@ -544,7 +581,6 @@ def split_polygon(P, depth=0):
     result2 = []
 
     result1 = split_polygon(P1, depth + 1)
-
     result2 = split_polygon(P2, depth + 1)
 
     # Combine both lists into one and return it
@@ -728,3 +764,32 @@ def optimize_polygons(sub_polygons):
 
     return sub_polygons
 
+def plot_obstacles(sub_polygons, obstacles, include_points=True):
+    fig, ax = plt.subplots(1, 1)
+    count = 0
+    for i, p in enumerate(sub_polygons):
+        for e in p.edges:
+            if e.is_hard_edge:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'r-', marker='o' if include_points else None)
+            else:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'k-', marker='o' if include_points else None)
+
+        if include_points:
+            for v in p.vertices:
+                plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+                count += 1
+        c_x, c_y = get_center_of_polygon(p)
+        ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
+
+    for o in obstacles:
+        x_coords, y_coords = o.get_coords()
+
+        ax.plot(x_coords, y_coords, f'k-', marker='o' if include_points else None)
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
+
+        if include_points:
+            for v in o.vertices:
+                plt.text(v.x, v.y, f'{count + v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+
+    ax.set_aspect('equal')
+    plt.show()

@@ -3,7 +3,6 @@ import copy
 import numpy as np
 from matplotlib import pyplot as plt
 
-import obstacles
 from decomposition import dot, cross, get_center_of_polygon, optimize_polygons, find_shared_edge, polygons_are_adjacent, \
     points_are_equal, remove_collinear_vertices, remove_equal_points
 from Polygon import Edge, Vertex, Polygon
@@ -611,10 +610,11 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
     fig, ax = plt.subplots(1, 1)
     count = 0
     for i, p in enumerate(sub_polygons):
-        x_coords, y_coords = p.get_coords()
-
-        ax.plot(x_coords, y_coords, f'k-', marker='o' if include_points else None)
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
+        for e in p.edges:
+            if e.is_hard_edge:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'r-', marker='o' if include_points else None)
+            else:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'k-', marker='o' if include_points else None)
 
         if include_points:
             for v in p.vertices:
