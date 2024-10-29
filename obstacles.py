@@ -157,6 +157,10 @@ def asd(sub_polygon, obstacle):
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
+            edge_up = None
+            edge_down = None
+            v_up = None
+            v_down = None
 
             for edge in combined_edges:
                 seg_A = edge.v_from.get_array().flatten()  # Segment point A
@@ -167,29 +171,36 @@ def asd(sub_polygon, obstacle):
 
                 if intersection_up is not None:
                     v_up = Vertex(-1, intersection_up[0], intersection_up[1])
-                    combined_edges.remove(edge)
-                    edge.v_from.next = v_up
-                    edge.v_to.prev = v_up
-                    v_up.prev = edge.v_from
-                    v_up.next = edge.v_to
-                    combined_edges.append(Edge(edge.v_from, v_up))
-                    combined_edges.append(Edge(v_up, edge.v_to))
+                    edge_up = edge
 
-                    cells[-1][0].append(v_up)
 
                 if intersection_down is not None:
                     v_down = Vertex(-1, intersection_down[0], intersection_down[1])
-                    combined_edges.remove(edge)
-                    edge.v_from.next = v_down
-                    edge.v_to.prev = v_down
-                    v_down.prev = edge.v_from
-                    v_down.next = edge.v_to
-                    combined_edges.append(Edge(edge.v_from, v_down))
-                    combined_edges.append(Edge(v_down, edge.v_to))
+                    edge_down = edge
 
-                    # TODO consider also adding v here
-                    cells[-1][1].append(v_down)
 
+            # Handling the upwards intersection
+            combined_edges.remove(edge_up)
+            edge_up.v_from.next = v_up
+            edge_up.v_to.prev = v_up
+            v_up.prev = edge_up.v_from
+            v_up.next = edge_up.v_to
+            combined_edges.append(Edge(edge_up.v_from, v_up))
+            combined_edges.append(Edge(v_up, edge_up.v_to))
+            cells[-1][0].append(v_up)
+
+            # Handling the downwarsd intersection
+            combined_edges.remove(edge_down)
+            edge_down.v_from.next = v_down
+            edge_down.v_to.prev = v_down
+            v_down.prev = edge_down.v_from
+            v_down.next = edge_down.v_to
+            combined_edges.append(Edge(edge_down.v_from, v_down))
+            combined_edges.append(Edge(v_down, edge_down.v_to))
+
+            cells[-1][1].append(v_down)
+
+            # Fixing the previous cell
             active_cells[-1] = False
             top_cell = ([v_up],[v])
             bottom_cell = ([v],[v_down])
@@ -273,6 +284,10 @@ def asd(sub_polygon, obstacle):
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
+            edge_up = None
+            edge_down = None
+            v_up = None
+            v_down = None
 
             for edge in combined_edges:
                 seg_A = edge.v_from.get_array().flatten()  # Segment point A
@@ -283,48 +298,44 @@ def asd(sub_polygon, obstacle):
 
                 if intersection_up is not None:
                     v_up = Vertex(-1, intersection_up[0], intersection_up[1])
-                    print(f"intersects upwards with {edge} at {v_up}")
-
-                    """combined_edges.remove(edge)
-                    edge.v_from.next = v_up
-                    edge.v_to.prev = v_up
-                    v_up.prev = edge.v_from
-                    v_up.next = edge.v_to
-                    combined_edges.append(Edge(edge.v_from, v_up))
-                    combined_edges.append(Edge(v_up, edge.v_to))
-                    cells[-1][0].append(v_up)
-                    cells[-1][1].append(v_up)
-                    active_cells[-1] = False"""
-                    """i, cell = find_cell(v, cells, active_cells, edge.v_to)
-                    cell[0].append(v_up)
-                    cell[1].append(v)
-                    active_cells[i] = False"""
+                    edge_up = edge
+                    #print(f"intersects upwards with {edge} at {v_up}")
 
                 if intersection_down is not None:
-                    print(f"intersects downwards with {edge} at {v_down}")
                     v_down = Vertex(-1, intersection_down[0], intersection_down[1])
-                    print(f'{v} intersects {edge} at {intersection_down}')
-                    """combined_edges.remove(edge)
-                    edge.v_from.next = v_down
-                    edge.v_to.prev = v_down
-                    v_down.prev = edge.v_from
-                    v_down.next = edge.v_to
-                    combined_edges.append(Edge(edge.v_from, v_down))
-                    combined_edges.append(Edge(v_down, edge.v_to))"""
+                    edge_down = edge
+                    #print(f'intersects downwards with {edge} at {v_down}')
 
-                    """cells[-2][0].append(v)
-                    cells[-2][1].append(v_down)
-                    active_cells[-2] = False"""
+            # Handling upwards intersection
+            combined_edges.remove(edge_up)
+            edge_up.v_from.next = v_up
+            edge_up.v_to.prev = v_up
+            v_up.prev = edge_up.v_from
+            v_up.next = edge_up.v_to
+            combined_edges.append(Edge(edge_up.v_from, v_up))
+            combined_edges.append(Edge(v_up, edge_up.v_to))
+            # TODO HERE
+            i, cell = find_cell(v, cells, active_cells, edge_up.v_to)
+            cell[0].append(v_up)
+            cell[1].append(v)
+            active_cells[i] = False
+            # Handling downwards intersection
+            combined_edges.remove(edge_down)
+            edge_down.v_from.next = v_down
+            edge_down.v_to.prev = v_down
+            v_down.prev = edge_down.v_from
+            v_down.next = edge_down.v_to
+            combined_edges.append(Edge(edge_down.v_from, v_down))
+            combined_edges.append(Edge(v_down, edge_down.v_to))
 
-                    """i, cell = find_cell(v, cells, active_cells, edge.v_from)
-                    cell[0].append(v)
-                    cell[1].append(v_down)
-                    active_cells[i] = False"""
+            i, cell = find_cell(v, cells, active_cells, edge_down.v_from)
+            cell[0].append(v)
+            cell[1].append(v_down)
+            active_cells[i] = False
 
-            #new_cell = ([v_up], [v_down])
-            #cells.append(new_cell)
-            #active_cells.append(True)
-            break_here = True
+            new_cell = ([v_up], [v_down])
+            cells.append(new_cell)
+            active_cells.append(True)
         elif v.type == CLOSE:
             print(f'CLOSE at {v}')
             cells[-1][1].append(v)
@@ -565,12 +576,14 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
     for i, v in enumerate(p.vertices):
         v.index = i
 
+    sub_polygons_updated = []
     """# Append all the other sub-polygons not affected by the obstacle
     for i, p in enumerate(sub_polygons):
         if i not in mask:
-            sub_polygons_filtered.append(p)"""
+            sub_polygons_updated.append(p)"""
 
     return p
+
 def decompose_around_obstacle(filtered_sub_polygons, obstacle):
     """ Computes the convex decomposition around the obstacle """
     merge_filtered_sub_polygons(filtered_sub_polygons)
