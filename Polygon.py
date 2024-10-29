@@ -37,13 +37,14 @@ class Edge:
         self.prev = None
         self.next = None
         self.is_hard_edge = is_hard_edge
+        self.edge_length = np.linalg.norm(self.v_from.get_array() - self.v_to.get_array())
         if (v2.x - v1.x) == 0 or (v2.y - v1.y) == 0:
             self.slope = 0
         else:
             self.slope = (v2.y - v1.y) / (v2.x - v1.x)
 
     def __repr__(self):
-        return f"Edge({self.v_from.index}, {self.v_to.index}, {self.slope}, obs={self.v_from.is_obstacle}, is_hard={self.is_hard_edge})"
+        return f"Edge({self.v_from.index}, {self.v_to.index}, length={self.edge_length}, obs={self.v_from.is_obstacle}, is_hard={self.is_hard_edge})"
 
 class Polygon:
     def __init__(self, v, is_obstacle=False):
@@ -53,6 +54,7 @@ class Polygon:
         self.edges = []
         self.i = None
         self.is_obstacle = is_obstacle
+        self.bbox = None
 
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]
@@ -69,6 +71,10 @@ class Polygon:
         #if hard_edges is not None:
         #for edge in hard_edges:
         #    self.edges[edge[0]].is_hard_edge = True
+    def compute_bounding_box(self):
+        vertices = self.vertices_matrix()
+        # Bounding box: min_x, min_y, max_x, max_y
+        self.bbox = (np.min(vertices[0, :]), np.min(vertices[1, :]), np.max(vertices[0, :]), np.max(vertices[1, :]))
 
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""
