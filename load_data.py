@@ -6,7 +6,6 @@ from Polygon import *
 from decomposition import split_polygon, is_well_formed, optimize_polygons, remove_collinear_vertices, \
     remove_equal_points
 
-
 def get_region(data_path):
     # Reading the test data
     f = open(f'test_data/{data_path}.json')
@@ -14,7 +13,7 @@ def get_region(data_path):
     data = json.load(f)
     vertices_data = data['area']['coordinates']
     num_of_obstacles = data['obstacles']['num_of_obstacles']
-    #hard_edges = data['area']['hard_edges']
+    hard_edges = data['area']['hard_edges']
     #print(hard_edges)
     # Defining the initial polygon
     vertices = []
@@ -22,6 +21,9 @@ def get_region(data_path):
     for i in range(len(vertices_data)):
         vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
     region = Polygon(vertices)
+
+    for e in hard_edges:
+        region.edges[e].is_hard_edge = True
 
     obstacles = []
     for i in range(num_of_obstacles):
