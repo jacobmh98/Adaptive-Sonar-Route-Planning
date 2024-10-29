@@ -8,6 +8,7 @@ import multi_poly_planning
 import optimal_path
 import path_comparison_functions
 from intra_regional_tsp import *
+import random
 
 import traveling_salesman_variation
 import traceback
@@ -49,7 +50,7 @@ plot_obstacles(sub_polygons_obstacles, obstacles, False)
 
 hard_edges_manuel = [[],[0,1],[2],[3,4],[0],[2],[]]
 hard_edges_list = extract_hard_edges(sub_polygons_obstacles, hard_edges_manuel)
-print(hard_edges_list)
+
 
 intersections = multi_poly_planning.multi_intersection_planning(sub_polygons_obstacles, path_width)
 path = connecting_path.connect_path(sub_polygons_obstacles, intersections, hard_edges_list)
