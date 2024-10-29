@@ -224,17 +224,20 @@ def remove_equal_points(P):
     vertices = []
 
     for i, v in enumerate(P.vertices):
+        if i == 0:
+            vertices.append(P.vertices[0])
+            continue
+
         add_v = True
 
-        for j, v2 in enumerate(P.vertices):
-            if j >= i:
-                break
-
+        for v2 in vertices:
             if points_are_equal(v.get_array(), v2.get_array()):
                 add_v = False
+                print("removing equal point")
                 break
 
-        vertices.append(v)
+        if add_v:
+            vertices.append(v)
 
     return Polygon(vertices)
 

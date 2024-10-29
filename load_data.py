@@ -3,7 +3,8 @@ import json
 import pickle
 
 from Polygon import *
-from decomposition import split_polygon, is_well_formed, optimize_polygons, remove_collinear_vertices
+from decomposition import split_polygon, is_well_formed, optimize_polygons, remove_collinear_vertices, \
+    remove_equal_points
 
 
 def get_region(data_path):
@@ -25,12 +26,15 @@ def get_region(data_path):
     obstacles = []
     for i in range(num_of_obstacles):
         vertices = []
-        obs = data['obstacles'][f'obstacle{i + 1}']
+        obs = data['obstacles'][f'obstacle_{i + 1}']
 
         for j in range(len(obs)):
             vertices.append(Vertex(j, obs[j][0], obs[j][1], True))
 
-        obstacles.append(Polygon(vertices, True))
+        O = Polygon(vertices, True)
+        O.compute_bounding_box()
+        obstacles.append(O)
+
     return region, obstacles
 
 def generate_new_data(region):
@@ -54,7 +58,9 @@ def compute_optimized_data(sub_polygons):
 
     # Remove collinear vertices in each sub-polygon
     for i, p in enumerate(optimized_sub_polygons):
+        p = remove_equal_points(p)
         p = remove_collinear_vertices(p)
+        p.compute_bounding_box()
         optimized_sub_polygons[i] = p
 
     return optimized_sub_polygons

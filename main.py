@@ -44,17 +44,28 @@ data_path = 'single_obstacle'
 region, obstacles = get_region(data_path)
 sub_polygons = generate_new_data(region)
 optimized_sub_polygons = compute_optimized_data(sub_polygons)
-sub_polygons_obstacles = asd(optimized_sub_polygons[0], obstacles[0])
-plot_obstacles(sub_polygons, obstacles)
-plot_obstacles(sub_polygons_obstacles, obstacles, False)
+sub_polygons_filtered_mask, sub_polygons_filtered = find_bounding_polygons(optimized_sub_polygons, obstacles[0])
+sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(sub_polygons_filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_mask)
+merged_sub_polygon_decomposed = asd(merged_sub_polygon, obstacles[0])
+
+combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
 
 hard_edges_manuel = [[],[0,1],[2],[3,4],[0],[2],[]]
-hard_edges_list = extract_hard_edges(sub_polygons_obstacles, hard_edges_manuel)
+hard_edges_list = extract_hard_edges(combined_polygons, hard_edges_manuel)
+
+plot_obstacles(optimized_sub_polygons, obstacles)
+plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
+plot_obstacles(sub_polygons, obstacles, False)
+
+intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
+path = connecting_path.connect_path(combined_polygons, intersections, hard_edges_list)
+coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path,hard_edges_manuel)
 
 
-intersections = multi_poly_planning.multi_intersection_planning(sub_polygons_obstacles, path_width)
-path = connecting_path.connect_path(sub_polygons_obstacles, intersections, hard_edges_list)
-coverage_plots.multi_poly_plot(region, path_width, sub_polygons_obstacles, path,hard_edges_manuel)
+#intersections = multi_poly_planning.multi_intersection_planning(sub_polygons_obstacles, path_width)
+#path = connecting_path.connect_path(sub_polygons_obstacles, intersections)
+#coverage_plots.multi_poly_plot(region, path_width, sub_polygons_obstacles, path)
+
 
 quit()
 #plot_obstacles(sub_polygons, obstacles)
