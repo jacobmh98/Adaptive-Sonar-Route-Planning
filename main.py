@@ -28,24 +28,8 @@ sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deep
 merged_sub_polygon_decomposed = asd(merged_sub_polygon, obstacles[0])
 
 plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
-
 plot_obstacles(sub_polygons, obstacles, False)
-#plot_obstacles([merged_sub_polygon], obstacles, True)
-#plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
 
-#plot_obstacles(merged_sub_polygons_filtered, obstacles, True)
-
-
-"""data_path = 'single_obstacle'
-region, obstacles = get_region(data_path)
-sub_polygons = generate_new_data(region)
-optimized_sub_polygons = compute_optimized_data(sub_polygons)
-decomp = asd(region, obstacles[0])
-for p in decomp:
-    p = remove_equal_points(p)
-    p = remove_collinear_vertices(p)
-plot_obstacles(optimized_sub_polygons, obstacles)
-plot_obstacles(decomp, obstacles, True)"""
 
 #intersections = multi_poly_planning.multi_intersection_planning(sub_polygons_obstacles, path_width)
 #path = connecting_path.connect_path(sub_polygons_obstacles, intersections)
