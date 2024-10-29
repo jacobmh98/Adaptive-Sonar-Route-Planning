@@ -379,6 +379,23 @@ def find_bounding_polygons(sub_polygons, obstacle):
         p = sub_polygons[i]
         skip = False
 
+        # Check if a vertex is within the polygon (Point-In-Polygon test)
+        for o in obstacle.vertices:
+            cross_products = np.empty(len(p.vertices))
+
+            for j, v in enumerate(p.vertices):
+                vec1 = v.next.get_array() - v.get_array()
+                vec2 = o.get_array() - v.get_array()
+
+                cross_products[j] = cross(vec1, vec2)
+
+            # Check if the obstacle point is contained within the convex polygon
+            if np.all(cross_products > 0):
+                sub_polygons_filtered_indices.append(i)
+                sub_polygons_filtered.append(p)
+                skip = True
+                break
+
         # Check for intersections between each sub-polygon and the obstacle
         for e in p.edges:
             if skip:
@@ -392,6 +409,8 @@ def find_bounding_polygons(sub_polygons, obstacle):
                     sub_polygons_filtered.append(p)
                     skip = True
                     break
+
+
 
     return sub_polygons_filtered_indices, sub_polygons_filtered
 
