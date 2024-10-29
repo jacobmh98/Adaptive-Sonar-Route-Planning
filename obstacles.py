@@ -577,12 +577,12 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
         v.index = i
 
     sub_polygons_updated = []
-    """# Append all the other sub-polygons not affected by the obstacle
-    for i, p in enumerate(sub_polygons):
+    # Append all the other sub-polygons not affected by the obstacle
+    for i, poly in enumerate(sub_polygons):
         if i not in mask:
-            sub_polygons_updated.append(p)"""
+            sub_polygons_updated.append(poly)
 
-    return p
+    return sub_polygons_updated, p
 
 def decompose_around_obstacle(filtered_sub_polygons, obstacle):
     """ Computes the convex decomposition around the obstacle """
