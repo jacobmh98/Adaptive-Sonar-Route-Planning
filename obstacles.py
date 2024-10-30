@@ -374,16 +374,20 @@ def decompose_sweep_line(sub_polygon, obstacle):
         # Appending the floor vertices of the cell
         for i in range(0, len(cell[1])):
             v = cell[1][i]
-            new_v = Vertex(len(vertices), cell[1][i].x, cell[1][i].y)
+            new_v = Vertex(len(vertices), v.x, v.y)
             new_v.edge_from_v_is_hard = v.edge_from_v_is_hard
             vertices.append(new_v)
 
-        # Appending the ceiling vertices of the cell
+        # Appending the ceiling vertices of the cell in reverse order
         for i in range(len(cell[0]) - 1, -1, -1):
             v = cell[0][i]
-            new_v = Vertex(len(vertices), cell[0][i].x, cell[0][i].y)
+            new_v = Vertex(len(vertices), v.x, v.y)
             new_v.edge_from_v_is_hard = v.edge_from_v_is_hard
             vertices.append(new_v)
+
+        for i in range(len(vertices)):
+            vertices[i].edge_from_v_is_hard = vertices[i].edge_from_v_is_hard and not abs(vertices[i].x - vertices[(i + 1) % len(vertices)].x) < epsilon
+
         P = Polygon(vertices)
         sub_polygons.append(P)
 
