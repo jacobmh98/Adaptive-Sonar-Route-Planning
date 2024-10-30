@@ -1,8 +1,9 @@
 import networkx as nx
 import numpy as np
+
+import decomposition
 import polygon_coverage_intersections
 import antipodal_pairs
-from decomposition import polygons_are_adjacent
 from global_variables import *
 from Polygon import Polygon, Vertex
 
@@ -38,7 +39,7 @@ def create_adjacency(polygons):
                 continue
 
             # Test if the two polygons p_i and p_j are adjacent (either complete or partial)
-            if polygons_are_adjacent(p_i, p_j, i, j):
+            if decomposition.polygons_are_adjacent(p_i, p_j, i, j):
                 # Update the adjacent matrix
                 A[i, j] = 1
                 A[j, i] = 1
@@ -140,10 +141,15 @@ def multi_intersection_planning(polygons, current_path_width):
     :param current_path_width: Width of the planned path
     :return: List of lists containing intersection points for each polygon.
     """
+    # Removing collinear vertices before planning intersections
+    removed_col_sub_polygons = []
+    for poly in polygons:
+        removed_col_sub_polygons.append(decomposition.remove_collinear_vertices(poly))
+
     # Creating the list to store intersections for each polygon
     total_intersections = []
 
-    for i, current_poly in enumerate(polygons):
+    for i, current_poly in enumerate(removed_col_sub_polygons):
         # Computing current polygon's antipodal points
         antipodal_vertices = antipodal_pairs.compute_antipodal_pairs(current_poly)
 

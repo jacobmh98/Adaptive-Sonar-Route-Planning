@@ -3,7 +3,9 @@ import time
 import json
 import connecting_path
 import coverage_plots
+import decomposition
 import intra_regional_tsp
+import multi_poly_planning
 #import multi_poly_planning
 import optimal_path
 import path_comparison_functions
@@ -20,23 +22,6 @@ from global_variables import load_existing_data
 from obstacles import *
 from load_data import *
 
-# TODO: Move or change when finalizing how hard edges are made
-def extract_hard_edges(polygons, hard_edges):
-    all_hard_edges = []
-    for poly_index, poly in enumerate(polygons):
-        if poly_index < len(hard_edges):
-            edges = hard_edges[poly_index]
-            x_coords, y_coords = poly.get_coords()
-            for edge_index in edges:
-                start_idx = edge_index
-                end_idx = (edge_index + 1) % len(x_coords)
-
-                hard_edge_start = np.array([x_coords[start_idx], y_coords[start_idx]])
-                hard_edge_end = np.array([x_coords[end_idx], y_coords[end_idx]])
-
-                all_hard_edges.append((hard_edge_start, hard_edge_end))
-
-    return all_hard_edges
 
 data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
@@ -51,28 +36,17 @@ sub_polygons = generate_new_data(region)
 
 #combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
 
-"""hard_edges = []
-for i, poly in enumerate([region]):
-    hard_edges_poly = []
-    for j, edge in enumerate(poly.edges):
-        if edge.is_hard_edge:
-            hard_edges_poly.append(edge)
-    hard_edges.append(hard_edges_poly)
-
-print(hard_edges)"""
-#hard_edges_list = extract_hard_edges(combined_polygons, hard_edges_manuel)
-
-plot_obstacles([region], obstacles, False)
-plot_obstacles(sub_polygons, obstacles, False)
+#plot_obstacles([region], obstacles, False)
+#plot_obstacles(sub_polygons, obstacles, False)
 #plot_obstacles(optimized_sub_polygons, obstacles)
 #plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
 
+
+intersections = multi_poly_planning.multi_intersection_planning(sub_polygons, path_width)
+path = connecting_path.connect_path(sub_polygons, intersections)
+coverage_plots.multi_poly_plot(region, path_width, sub_polygons, path)
+
 quit()
-intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
-path = connecting_path.connect_path(combined_polygons, intersections, hard_edges_list)
-coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path,hard_edges_manuel)
-
-
 #intersections = multi_poly_planning.multi_intersection_planning(sub_polygons_obstacles, path_width)
 #path = connecting_path.connect_path(sub_polygons_obstacles, intersections)
 #coverage_plots.multi_poly_plot(region, path_width, sub_polygons_obstacles, path)

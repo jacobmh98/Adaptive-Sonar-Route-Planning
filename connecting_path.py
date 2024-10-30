@@ -194,7 +194,37 @@ def connect_solo_path(intersections):  # Any point can be used as first point fo
 
     return solo_path
 
-def connect_path(polygons, total_intersections, hard_edges):
+def extract_hard_edges(polygons):
+
+    # Extracting indices of hard edge vertices in each polygon
+    hard_vertice_index_list = []
+    for poly in polygons:
+        sub_list = []
+        for vertex in poly.vertices:
+            if vertex.edge_from_v_is_hard:
+                sub_list.append(vertex.index)
+        hard_vertice_index_list.append(sub_list)
+
+    # Extracting all hard edges
+    all_hard_edges = []
+    for poly_index, poly in enumerate(polygons):
+        if poly_index < len(hard_vertice_index_list):
+            edges = hard_vertice_index_list[poly_index]
+            x_coords, y_coords = poly.get_coords()
+            for edge_index in edges:
+                start_idx = edge_index
+                end_idx = (edge_index + 1) % len(x_coords)
+
+                hard_edge_start = np.array([x_coords[start_idx], y_coords[start_idx]])
+                hard_edge_end = np.array([x_coords[end_idx], y_coords[end_idx]])
+
+                all_hard_edges.append((hard_edge_start, hard_edge_end))
+
+    return all_hard_edges
+
+def connect_path(polygons, total_intersections):
+    hard_edges = extract_hard_edges(polygons)
+
     path = np.empty((0,2))
 
     for i, poly in enumerate(polygons):

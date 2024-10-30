@@ -5,7 +5,7 @@ from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
 
 
-def multi_poly_plot(polygon, current_path_width, polygons, path, hard_edges):
+def multi_poly_plot(polygon, current_path_width, polygons, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
@@ -19,6 +19,14 @@ def multi_poly_plot(polygon, current_path_width, polygons, path, hard_edges):
     """
     coverage = False
     plot_sub_polygons = True
+
+    hard_edges = []
+    for poly in polygons:
+        sub_list = []
+        for vertex in poly.vertices:
+            if vertex.edge_from_v_is_hard:
+                sub_list.append(vertex.index)
+        hard_edges.append(sub_list)
 
     fig, ax = plt.subplots(1, 1)
     color = "k"

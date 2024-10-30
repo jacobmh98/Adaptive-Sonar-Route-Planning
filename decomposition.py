@@ -563,13 +563,13 @@ def split_polygon(P, depth=0):
     #print(f'D polygons shape = {len(D_polygons)}, {len(D_polygons[cv])}')
     P1, P2 = D_polygons[cv][edge]
 
-    print(f'{P1.vertices=}')
-    print(f'{P2.vertices=})')
-    print(f'{P1.edges}')
-    print(f'{P2.edges}')
+    #print(f'{P1.vertices=}')
+    #print(f'{P2.vertices=})')
+    #print(f'{P1.edges}')
+    #print(f'{P2.edges}')
 
-    plot_obstacles([P1], [], True)
-    plot_obstacles([P2], [], True)
+    #plot_obstacles([P1], [], True)
+    #plot_obstacles([P2], [], True)
 
     #P1.plot(title=f'P1, d = {depth}')
     #P2.plot(title=f'P2, d = {depth}')
