@@ -1,6 +1,7 @@
 import copy
 
 import numpy as np
+from absl.app import ExceptionHandler
 from matplotlib import pyplot as plt
 
 from decomposition import dot, cross, get_center_of_polygon, optimize_polygons, find_shared_edge, polygons_are_adjacent, \
@@ -77,7 +78,7 @@ def compute_intersection_edges(e, e2):
 
     return None  # Segments do not intersect within the segment bounds
 
-def asd(sub_polygon, obstacle):
+def decompose_sweep_line(sub_polygon, obstacle):
     """ Decompose a convex around a contained obstacle"""
     # Combining the vertices and edges of the polygon and obstacle
     combined_vertices = sub_polygon.vertices + obstacle.vertices
@@ -104,6 +105,13 @@ def asd(sub_polygon, obstacle):
 
     # Define the event type for each vertex
     for v in combined_vertices_sorted:
+        if abs(angle(v) - np.pi) < epsilon:
+            if v.prev.x > v.x and v.next.x < v.x:
+                v.type = COLLINEAR_CEILING
+            else:
+                v.type = COLLINEAR_FLOOR
+            continue
+
         if v.x < v.next.x and v.x < v.prev.x:
             if angle(v) < np.pi:
                 v.type = OPEN
@@ -127,11 +135,12 @@ def asd(sub_polygon, obstacle):
                 v.type = CEIL_CONVEX
             else:
                 v.type = CEIL_CONCAVE
+
     # Visiting events in ascending order
     cells = []
     active_cells = []
     break_here = False
-#    print(edges)
+
     for v in combined_vertices_sorted:
         if break_here:
             break
@@ -140,7 +149,6 @@ def asd(sub_polygon, obstacle):
             print(f'OPEN at {v}')
             # Opening new cell containing ceiling list and floor list
             cell = ([], [v])
-
             cells.append(cell)
             active_cells.append(True)
         elif v.type == CEIL_CONVEX:
@@ -170,11 +178,13 @@ def asd(sub_polygon, obstacle):
 
                 if intersection_up is not None:
                     v_up = Vertex(-1, intersection_up[0], intersection_up[1])
+                    v_up.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
                     edge_up = edge
-
 
                 if intersection_down is not None:
                     v_down = Vertex(-1, intersection_down[0], intersection_down[1])
+                    v_down.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
+                    print(f'is hard = {edge.is_hard_edge}')
                     edge_down = edge
 
 
@@ -221,7 +231,8 @@ def asd(sub_polygon, obstacle):
 
                 if intersection is not None:
                     v_down = Vertex(-1, intersection[0], intersection[1])
-
+                    v_down.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
+                    print(f'is hard = {edge.is_hard_edge}')
                     i, cell = find_cell(v, cells, active_cells, edge.v_from)
                     cell[0].append(v)
                     cell[1].append(v_down)
@@ -258,6 +269,8 @@ def asd(sub_polygon, obstacle):
 
                 if intersection is not None:
                     v_up = Vertex(-1, intersection[0], intersection[1])
+
+                    v_up.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
 
                     i, cell = find_cell(v, cells, active_cells, edge.v_to)
                     cell[0].append(v_up)
@@ -297,11 +310,13 @@ def asd(sub_polygon, obstacle):
 
                 if intersection_up is not None:
                     v_up = Vertex(-1, intersection_up[0], intersection_up[1])
+                    v_up.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
                     edge_up = edge
                     #print(f"intersects upwards with {edge} at {v_up}")
 
                 if intersection_down is not None:
                     v_down = Vertex(-1, intersection_down[0], intersection_down[1])
+                    v_down.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
                     edge_down = edge
                     #print(f'intersects downwards with {edge} at {v_down}')
 
@@ -339,20 +354,36 @@ def asd(sub_polygon, obstacle):
             print(f'CLOSE at {v}')
             cells[-1][1].append(v)
             active_cells[-1] = False
+        elif v.type == COLLINEAR_CEILING:
+            print(f'COLLINEAR_CEILING at {v}')
+            i, cell = find_cell(v, cells, active_cells)
+            cell[0].append(v)
+        elif v.type == COLLINEAR_FLOOR:
+            print(f'COLLINEAR_FLOOR at {v}')
+            i, cell = find_cell(v, cells, active_cells)
+            cell[1].append(v)
+
         print(f'\t {active_cells}')
         for c in cells:
             print(f'\t {c}')
     sub_polygons = []
+
     for cell in cells:
         vertices = []
 
         # Appending the floor vertices of the cell
         for i in range(0, len(cell[1])):
-            vertices.append(Vertex(len(vertices), cell[1][i].x, cell[1][i].y))
+            v = cell[1][i]
+            new_v = Vertex(len(vertices), cell[1][i].x, cell[1][i].y)
+            new_v.edge_from_v_is_hard = v.edge_from_v_is_hard
+            vertices.append(new_v)
 
         # Appending the ceiling vertices of the cell
         for i in range(len(cell[0]) - 1, -1, -1):
-            vertices.append(Vertex(len(vertices), cell[0][i].x, cell[0][i].y))
+            v = cell[0][i]
+            new_v = Vertex(len(vertices), cell[0][i].x, cell[0][i].y)
+            new_v.edge_from_v_is_hard = v.edge_from_v_is_hard
+            vertices.append(new_v)
         P = Polygon(vertices)
         sub_polygons.append(P)
 
@@ -360,7 +391,6 @@ def asd(sub_polygon, obstacle):
 
 def find_bounding_polygons(sub_polygons, obstacle):
     """ Finds the sub-polygons where that an obstacle intersects """
-
     # Initialize an R-tree index
     idx = index.Index()
 
@@ -555,12 +585,16 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
                         inner_edge = e2
                         outer_edge = e
 
-                    combined_polygon_vertices.append(Vertex(-1, inner_edge.v_from.x, inner_edge.v_from.y))
-
+                    v = Vertex(-1, inner_edge.v_from.x, inner_edge.v_from.y)
                     v_next = outer_edge.v_to.next
 
-                    while v_next != outer_edge.v_to:
-                        combined_polygon_vertices.append(Vertex(-1, v_next.x, v_next.y))
+                    v.edge_from_v_is_hard = outer_edge.v_to.edge_from_v_is_hard
+                    combined_polygon_vertices.append(v)
+
+                    while v_next != outer_edge.v_from:
+                        v = Vertex(-1, v_next.x, v_next.y)
+                        v.edge_from_v_is_hard = v_next.edge_from_v_is_hard
+                        combined_polygon_vertices.append(v)
                         v_next = v_next.next
 
                     #combined_polygon_vertices.append(Vertex(-1, inner_edge.v_to.x, inner_edge.v_to.y))
@@ -568,12 +602,14 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
                     v_next = inner_edge.v_to
 
                     while v_next != inner_edge.v_from:
-                        combined_polygon_vertices.append(Vertex(-1, v_next.x, v_next.y))
+                        v = Vertex(-1, v_next.x, v_next.y)
+                        v.edge_from_v_is_hard = v_next.edge_from_v_is_hard
+                        combined_polygon_vertices.append(v)
                         v_next = v_next.next
-
 
                     print(f"\t MERGIN P{i} and P{j}")
                     P = Polygon(combined_polygon_vertices)
+                    #plot_obstacles([P], [], False)
 
                     #if not is_well_formed(P):
                     #    break
@@ -586,13 +622,14 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
                     break
 
     # Remove collinear vertices for the sub-polygon
+    #p = sub_polygons_filtered[0]
     p = remove_equal_points(sub_polygons_filtered[0])
-    p = remove_collinear_vertices(p)
+    #p = remove_collinear_vertices(p)
     #p.compute_bounding_box()
     #sub_polygons_filtered[i] = p
 
-    for i, v in enumerate(p.vertices):
-        v.index = i
+    #for i, v in enumerate(p.vertices):
+    #    v.index = i
 
     sub_polygons_updated = []
     # Append all the other sub-polygons not affected by the obstacle
@@ -612,13 +649,17 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
     for i, p in enumerate(sub_polygons):
         for e in p.edges:
             if e.is_hard_edge:
-                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'r-', marker='o' if include_points else None)
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'r-')
             else:
-                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'k-', marker='o' if include_points else None)
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'k-')
 
         if include_points:
             for v in p.vertices:
                 plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+                if v.edge_from_v_is_hard:
+                    plt.scatter(v.x, v.y, color='red')
+                else:
+                    plt.scatter(v.x, v.y, color='black')
                 count += 1
         c_x, c_y = get_center_of_polygon(p)
         ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
@@ -640,7 +681,6 @@ def find_cell(v, cells, active_cells, v2=None):
     for i, cell in enumerate(cells):
         if not active_cells[i]:
             continue
-
         if v.type == CEIL_CONVEX and (v.next in cell[0] or v.next in cell[1]):
             return i, cell
         if v.type == FLOOR_CONVEX and (v.prev in cell[0] or v.prev in cell[1]):
@@ -651,17 +691,21 @@ def find_cell(v, cells, active_cells, v2=None):
             return i, cell
         if v.type == MERGE and (v2 in cell[0] or v2 in cell[1]):
             return i, cell
+        if v.type == COLLINEAR_CEILING and (v.next in cell[0] or v.next in cell[1]):
+            return i, cell
+        if v.type == COLLINEAR_FLOOR and (v.prev in cell[0] or v.prev in cell[1]):
+            return i, cell
 
 def angle(v):
     """ Compute interior or exterior (outward-facing angles)  """
     vec1 = v.prev.get_array() - v.get_array()
     vec2 = v.next.get_array() - v.get_array()
 
+    angle1 = np.arccos(np.round(dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)), 3))
+    angle2 = 2 * np.pi - angle1
+
     # If v is part of the obstacle the exterior angle should be computed
     if v.is_obstacle:
-        angle1 = np.arccos(dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-        angle2 = 2 * np.pi - angle1
-
         # If the cross product is positive the angle is ccw (positive rotation), and the ext angle < pi
         if cross(vec1, vec2) < 0:
             return angle1
@@ -669,9 +713,6 @@ def angle(v):
         else:
             return angle2
     else:
-        angle1 = np.arccos(dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-        angle2 = 2 * np.pi - angle1
-
         # If the cross product is positive the angle is ccw (positive rotation), and the ext angle < pi
         if cross(vec1, vec2) < 0:
             return angle1

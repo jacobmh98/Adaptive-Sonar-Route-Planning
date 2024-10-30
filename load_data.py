@@ -36,7 +36,7 @@ def get_region(data_path):
             vertices.append(Vertex(j, obs[j][0], obs[j][1], True))
 
         O = Polygon(vertices, True)
-        O.compute_bounding_box()
+        #O.compute_bounding_box()
         obstacles.append(O)
 
     return region, obstacles
@@ -64,7 +64,7 @@ def compute_optimized_data(sub_polygons):
     for i, p in enumerate(optimized_sub_polygons):
         p = remove_equal_points(p)
         p = remove_collinear_vertices(p)
-        p.compute_bounding_box()
+        #p.compute_bounding_box()
         optimized_sub_polygons[i] = p
 
     return optimized_sub_polygons

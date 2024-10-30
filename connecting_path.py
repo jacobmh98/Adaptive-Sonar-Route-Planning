@@ -216,7 +216,7 @@ def connect_path(polygons, total_intersections, hard_edges):
         elif i == len(polygons) - 1:
             current_path = connect_last_path(path, total_intersections[i])
 
-        if i > 0 and len(hard_edges) > 0:
+        """if i > 0 and len(hard_edges) > 0:
             #print(f'Going from {i-1} to {i}')
 
             last_path_point = path[-1]
@@ -228,7 +228,7 @@ def connect_path(polygons, total_intersections, hard_edges):
                 for point in intermediate_points:
                     path = np.vstack([path, point])
 
-
+        """
         # Should never be an empty path, but just in case check to avoid error
         if len(current_path) > 0:
             path = np.vstack([path, current_path])
