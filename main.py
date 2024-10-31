@@ -43,7 +43,7 @@ sub_polygons = generate_new_data(region)
 
 
 intersections = multi_poly_planning.multi_intersection_planning(sub_polygons, path_width)
-path = connecting_path.connect_path(sub_polygons, intersections)
+path = connecting_path.connect_path(sub_polygons, intersections, region)
 coverage_plots.multi_poly_plot(region, path_width, sub_polygons, path)
 
 quit()

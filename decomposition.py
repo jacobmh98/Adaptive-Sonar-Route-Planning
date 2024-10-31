@@ -82,7 +82,7 @@ def split_polygon_single(e2, intersection_p, cv):
 
     # Creating the 2nd sub-polygon
     v0 = Vertex(0, cv.x, cv.y)
-    v0.edge_from_v_is_hard = e2.is_hard_edge
+    v0.edge_from_v_is_hard = cv.edge_from_v_is_hard
     P2_vertices = [v0]
     v_next = cv.next
     v_index = 1

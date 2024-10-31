@@ -1,9 +1,13 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from global_variables import *
 from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+
+matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
 
 def multi_poly_plot(polygon, current_path_width, polygons, path):
     """
@@ -11,11 +15,9 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     Highlight hard edges specified for each polygon, and label each vertex with its index.
 
     :param polygon: Polygon
-    :param current_path_width:
+    :param current_path_width: Width of the path
     :param polygons: List of the sub-polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
-    :param hard_edges: List of lists, where each sublist corresponds to a polygon and contains indices of vertices
-                       defining hard edges. The edge is outgoing from the vertex to the next in a counterclockwise order.
     """
     coverage = False
     plot_sub_polygons = True
@@ -28,6 +30,7 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
                 sub_list.append(vertex.index)
         hard_edges.append(sub_list)
 
+    # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
     color = "k"
 
@@ -102,8 +105,9 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     plt.grid(True)
     plt.xlabel('X')
     plt.ylabel('Y')
-    plt.show()
 
+    # Show the plot in a separate window
+    plt.show()
 
 def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, boundary, show_legend=True):
     """
