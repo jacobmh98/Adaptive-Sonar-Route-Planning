@@ -82,7 +82,7 @@ def split_polygon_single(e2, intersection_p, cv):
 
     # Creating the 2nd sub-polygon
     v0 = Vertex(0, cv.x, cv.y)
-    v0.edge_from_v_is_hard = e2.is_hard_edge
+    v0.edge_from_v_is_hard = cv.edge_from_v_is_hard
     P2_vertices = [v0]
     v_next = cv.next
     v_index = 1
@@ -404,8 +404,6 @@ def cross(v1, v2):
     return np.cross(v1.flatten(), v2.flatten())
 
 def split_polygon(P, depth=0):
-    #if depth == 1:
-        #return [P]
     #plot_obstacles(P,[], False)
     # Compute the concave vertices
     P.concave_vertices = compute_concave_vertices(P)
