@@ -12,6 +12,8 @@ class VertexType(Enum):
     SPLIT = 6
     MERGE = 7
     CLOSE = 8
+    COLLINEAR_CEILING = 9
+    COLLINEAR_FLOOR = 10
 
 class Vertex:
     def __init__(self, i, x, y, is_obstacle = False):
@@ -71,6 +73,8 @@ class Polygon:
         for j in range(len(self.edges)):
             self.edges[j].prev = self.edges[(j - 1) % len(self.edges)]
             self.edges[j].next = self.edges[(j + 1) % len(self.edges)]
+
+        self.compute_bounding_box()
 
         #if hard_edges is not None:
         #for edge in hard_edges:

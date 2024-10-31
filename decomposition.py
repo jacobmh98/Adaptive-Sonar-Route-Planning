@@ -404,8 +404,6 @@ def cross(v1, v2):
     return np.cross(v1.flatten(), v2.flatten())
 
 def split_polygon(P, depth=0):
-    #if depth == 1:
-        #return [P]
     #plot_obstacles(P,[], False)
     # Compute the concave vertices
     P.concave_vertices = compute_concave_vertices(P)
