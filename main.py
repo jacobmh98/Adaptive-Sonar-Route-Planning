@@ -46,7 +46,7 @@ sub_polygons = generate_new_data(region)
 sub_polygons_filtered_mask, sub_polygons_filtered = find_bounding_polygons(sub_polygons, obstacles[0])
 sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(sub_polygons_filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_mask)
 merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles[0])
-#combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
+combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
 
 """hard_edges = []
 for i, poly in enumerate([region]):
@@ -61,9 +61,9 @@ print(hard_edges)"""
 
 plot_obstacles([region], obstacles, True)
 plot_obstacles(sub_polygons, obstacles, False)
-plot_obstacles([merged_sub_polygon], obstacles, True)
-plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-
+#plot_obstacles([merged_sub_polygon], obstacles, True)
+#plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
+plot_obstacles(combined_polygons, obstacles, False)
 print(obstacles[0].edges)
 print(obstacles[0].vertices)
 

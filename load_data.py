@@ -33,7 +33,9 @@ def get_region(data_path):
         obs = data['obstacles'][f'obstacle_{i + 1}']
 
         for j in range(len(obs)):
-            vertices.append(Vertex(j, obs[j][0], obs[j][1], True))
+            v = Vertex(j, obs[j][0], obs[j][1], True)
+            v.edge_from_v_is_hard = True
+            vertices.append(v)
 
         O = Polygon(vertices, True)
         #O.compute_bounding_box()

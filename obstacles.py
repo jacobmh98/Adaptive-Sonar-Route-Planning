@@ -669,14 +669,26 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
         ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
 
     for o in obstacles:
-        x_coords, y_coords = o.get_coords()
+        for e in o.edges:
+            if e.is_hard_edge:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'r-')
+            else:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], f'k-')
 
-        ax.plot(x_coords, y_coords, f'k-', marker='o' if include_points else None)
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
+
+        #x_coords, y_coords = o.get_coords()
+
+        #ax.plot(x_coords, y_coords, f'k-', marker='o' if include_points else None)
+        #ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
 
         if include_points:
             for v in o.vertices:
                 plt.text(v.x, v.y, f'{count + v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+
+                if v.edge_from_v_is_hard:
+                    plt.scatter(v.x, v.y, color='red')
+                else:
+                    plt.scatter(v.x, v.y, color='black')
 
     ax.set_aspect('equal')
     plt.show()
