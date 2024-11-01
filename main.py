@@ -1,6 +1,9 @@
 import copy
 import time
 import json
+
+from shapely.creation import polygons
+
 import connecting_path
 import coverage_plots
 import decomposition
@@ -38,23 +41,22 @@ combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
 #plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
 #hard_edges_list = extract_hard_edges(combined_polygons, hard_edges_manuel)
 
-for p in combined_polygons:
-    plot_obstacles([p], [], True)
+#for p in combined_polygons:
+ #   plot_obstacles([p], [], True)
 
-plot_obstacles([region], obstacles, True)
-plot_obstacles(sub_polygons, obstacles, False)
+#plot_obstacles([region], obstacles, True)
+#plot_obstacles(sub_polygons, obstacles, False)
 #plot_obstacles([merged_sub_polygon], obstacles, True)
 #plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-plot_obstacles(combined_polygons, obstacles, False)
+#plot_obstacles(combined_polygons, obstacles, False)
 
 #for p in sub_polygons:
 #    plot_obstacles([p], [], True)
 
 #plot_obstacles(combined_polygons, obstacles, False)
 
-
 intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
-path = connecting_path.connect_path(combined_polygons, intersections)
+path = connecting_path.connect_path(combined_polygons, intersections, region)
 coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path)
 
 

@@ -1,129 +1,161 @@
-from turtledemo.penrose import start
-
 import numpy as np
-import Polygon  # Ensure this module is correctly defined with 3D centroid support
 
-def calculate_total_distance(points, end_point):
-    total_distance = 0.0
+def intermediate_path_distance(points, end_point):
+    """ Calculate the total distance from a list of points to an end point.
+
+    :param points: List of numpy arrays representing the path.
+    :param end_point: Numpy array representing the endpoint to which the distance is calculated.
+    :return: Float representing the total distance traveled through the list of points to the end point.
+    """
+    intermediate_path_distance = 0.0
 
     for i in range(len(points) - 1):
         distance = np.linalg.norm(points[i + 1] - points[i])
-        total_distance += distance
-    total_distance += np.linalg.norm(points[-1] - end_point)
+        intermediate_path_distance += distance
+    intermediate_path_distance += np.linalg.norm(points[-1] - end_point)
 
-    return total_distance
-
-
-def compute_normal_vector(hard_edge_start, hard_edge_end):
-    edge_vector = hard_edge_end - hard_edge_start
-    normal_vector = np.array([-edge_vector[1], edge_vector[0], 0.0], dtype=float)
-    normal_vector /= np.linalg.norm(normal_vector)
-    return normal_vector
+    return intermediate_path_distance
 
 
-def lines_intersect(p1, p2, p3, p4, epsilon=1e-6):
+def lines_intersect(p1, p2, p3, p4, eps=1e-6):
+    """ Check if two line segments (p1 to p2 and p3 to p4) intersect.
+
+    :param p1: Numpy array representing the first endpoint of the first line segment.
+    :param p2: Numpy array representing the second endpoint of the first line segment.
+    :param p3: Numpy array representing the first endpoint of the second line segment.
+    :param p4: Numpy array representing the second endpoint of the second line segment.
+    :param epsilon: Float tolerance for determining if points are collinear (default is 1e-6).
+    :return: Bool indicating True if the line segments intersect, False otherwise.
+    """
     def orientation(a, b, c):
         val = (b[1] - a[1]) * (c[0] - b[0]) - (b[0] - a[0]) * (c[1] - b[1])
-        return 0 if abs(val) < epsilon else (1 if val > 0 else 2)
+        return 0 if abs(val) < eps else (1 if val > 0 else 2)
 
-    def on_segment(p, q, r, epsilon=1e-6):
-        return (min(p[0], r[0]) - epsilon <= q[0] <= max(p[0], r[0]) + epsilon and
-                min(p[1], r[1]) - epsilon <= q[1] <= max(p[1], r[1]) + epsilon)
+    def on_segment(p, q, r, eps=1e-6):
+        return (min(p[0], r[0]) - eps <= q[0] <= max(p[0], r[0]) + eps and
+                min(p[1], r[1]) - eps <= q[1] <= max(p[1], r[1]) + eps)
 
     o1, o2, o3, o4 = orientation(p1, p2, p3), orientation(p1, p2, p4), orientation(p3, p4, p1), orientation(p3, p4, p2)
-    return (o1 != o2 and o3 != o4) or (o1 == 0 and on_segment(p1, p3, p2, epsilon) or
-                                       o2 == 0 and on_segment(p1, p4, p2, epsilon) or
-                                       o3 == 0 and on_segment(p3, p1, p4, epsilon) or
-                                       o4 == 0 and on_segment(p3, p2, p4, epsilon))
+    return (o1 != o2 and o3 != o4) or (o1 == 0 and on_segment(p1, p3, p2, eps) or
+                                       o2 == 0 and on_segment(p1, p4, p2, eps) or
+                                       o3 == 0 and on_segment(p3, p1, p4, eps) or
+                                       o4 == 0 and on_segment(p3, p2, p4, eps))
 
 
-def is_point_on_segment(point, seg_start, seg_end, epsilon=1e-6):
-    vector_a = seg_end - seg_start
-    vector_b = point - seg_start
+def is_point_on_edge(point, edge, epsilon=1e-6):
+    """ Check if a point lies on the line segment defined by edge_start and edge_end.
+
+    :param point: Numpy array representing the point to check.
+    :param edge: Tuple containing the starting point and the ending point of the edge.
+    :param epsilon: Float tolerance for checking if the point is on the segment (default is 1e-6).
+    :return: Bool indicating True if the point is on the edge, False otherwise.
+    """
+    edge_start, edge_end = edge
+
+    vector_a = edge_end - edge_start
+    vector_b = point - edge_start
     cross_product = np.abs(np.cross(vector_a, vector_b))
 
     if cross_product > epsilon:
         return False
 
-    min_x, max_x = min(seg_start[0], seg_end[0]), max(seg_start[0], seg_end[0])
-    min_y, max_y = min(seg_start[1], seg_end[1]), max(seg_start[1], seg_end[1])
+    min_x, max_x = min(edge_start[0], edge_end[0]), max(edge_start[0], edge_end[0])
+    min_y, max_y = min(edge_start[1], edge_end[1]), max(edge_start[1], edge_end[1])
     return (min_x - epsilon <= point[0] <= max_x + epsilon and
             min_y - epsilon <= point[1] <= max_y + epsilon)
 
 
-def check_line_intersects_hard_edges(start_point, end_point, hard_edges, ignore_edges=None):
+def is_point_on_hard_edge(point, hard_edges):
+    """ Check if a point is located on any of the hard edges.
+
+    :param point: Numpy array representing the point to check.
+    :param hard_edges: List of hard edges, where each hard edge is a tuple of (start_point, end_point).
+    :return: Tuple containing a boolean indicating if the point is on a hard edge and the hard edge itself, or None if not found.
+    """
+    for hard_edge_start, hard_edge_end in hard_edges:
+        if is_point_on_edge(point, (hard_edge_start, hard_edge_end)):
+            return True, (hard_edge_start, hard_edge_end)  # Return the hard edge as well
+    return False, None
+
+def find_closest_hard_edge_intersection(start_point, end_point, hard_edges, polygon, ignore_edges=None, ignore_points=None):
     """
     Check if a line from start_point to end_point intersects with any hard edges,
-    ignoring specified edges.
+    prioritizing edges that are part of the given polygon and ignoring specified edges.
 
-    Parameters:
-    start_point (numpy array): The starting point of the line segment.
-    end_point (numpy array): The ending point of the line segment.
-    hard_edges (list): List of hard edges, where each hard edge is a tuple of (start_point, end_point).
-    ignore_edges (list, optional): A list of edges to ignore, each represented as a tuple of (start_point, end_point).
-
-    Returns:
-    tuple or None: The closest intersecting edge, or None if no intersection occurs.
+    :param start_point: Numpy array representing the starting point of the line segment.
+    :param end_point: Numpy array representing the ending point of the line segment.
+    :param hard_edges: List of hard edges, where each hard edge is a tuple of (start_point, end_point).
+    :param polygon: Polygon object in which to check for edges.
+    :param ignore_edges: (Optional) List of edges to ignore, each represented as a tuple of (start_point, end_point).
+    :param ignore_points: (Optional) List of points to ignore when checking for intersections.
+    :return: Tuple or None representing the closest intersecting edge that is part of the polygon, or None if no intersection occurs.
     """
-    closest_edge = None
+    closest_hard_edge = None
     min_distance = float('inf')
 
     # Convert ignore_edges to a set of tuples for faster lookup
     if ignore_edges is not None:
         ignore_edges_set = set((tuple(edge[0]), tuple(edge[1])) for edge in ignore_edges)
 
-    for hard_edge_start, hard_edge_end in hard_edges:
+    # Create a set of edges in the polygon for quick lookup
+    polygon_edges_set = {(tuple(edge.v_from.get_array().flatten()), tuple(edge.v_to.get_array().flatten())) for edge in polygon.edges}
+
+    for hard_edge in hard_edges:
+        # Check if hard_edge is a tuple or Edge object
+        if isinstance(hard_edge, tuple):
+            hard_edge_start = np.array(hard_edge[0])
+            hard_edge_end = np.array(hard_edge[1])
+        else:
+            hard_edge_start = hard_edge.v_from.get_array().flatten()
+            hard_edge_end = hard_edge.v_to.get_array().flatten()
+
         current_edge = (tuple(hard_edge_start), tuple(hard_edge_end))
 
         # Skip edges to ignore if specified
         if ignore_edges is not None and current_edge in ignore_edges_set:
             continue
 
+        # Check if the start point is on the current hard edge and should be ignored
+        if ignore_points is not None and any(np.array_equal(start_point, point) for point in ignore_points):
+            if is_point_on_edge(start_point, (hard_edge_start, hard_edge_end)):
+                continue  # Ignore this edge as the start point is on it
+
         # Check for intersection with the current hard edge
         if lines_intersect(start_point, end_point, hard_edge_start, hard_edge_end):
+            # Check if the current edge is part of the polygon
+            if current_edge in polygon_edges_set:
+                return hard_edge_start, hard_edge_end  # Return immediately if this edge is part of the polygon
+
+            # If the edge is not part of the polygon, calculate the distance
             midpoint = (hard_edge_start + hard_edge_end) / 2
             distance = np.linalg.norm(start_point - midpoint)
             if distance < min_distance:
                 min_distance = distance
-                closest_edge = (hard_edge_start, hard_edge_end)
+                closest_hard_edge = (hard_edge_start, hard_edge_end)
 
-    return closest_edge
-
-
-def check_line_intersects_excluding_start_point_edges(start_point, end_point, hard_edges, current_hard_edge, prev_poly):
-    closest_edge = None
-    min_distance = float('inf')
-    for hard_edge_start, hard_edge_end in hard_edges:
-        # Ignore this edge if it contains the start point
-        if is_point_on_segment(start_point, hard_edge_start, hard_edge_end):
-            #if is_line_moving_into_polygon(start_point, end_point, current_hard_edge, prev_poly):
-            #    print("here")
-            continue
-
-        # Check if the line between start_point and end_point intersects with the hard edge
-        if lines_intersect(start_point, end_point, hard_edge_start, hard_edge_end):
-            midpoint = (hard_edge_start + hard_edge_end) / 2
-            distance = np.linalg.norm(start_point - midpoint)
-            if distance < min_distance:
-                min_distance = distance
-                closest_edge = (hard_edge_start, hard_edge_end)
-
-    return closest_edge
+    # Returning the closest edge found or None if no intersection occurs
+    return closest_hard_edge
 
 
-def is_point_on_hard_edge(point, hard_edges):
-    for hard_edge_start, hard_edge_end in hard_edges:
-        if is_point_on_segment(point, hard_edge_start, hard_edge_end):
-            return True, (hard_edge_start, hard_edge_end)  # Return the hard edge as well
-    return False, None
+def cross_product_2d(v1, v2):
+    """ Calculate the cross product of two 2D vectors.
 
-
-def calculate_cross_product_2d(v1, v2):
-    """Calculate the cross product of two 2D vectors."""
+    :param v1: Numpy array representing the first vector.
+    :param v2: Numpy array representing the second vector.
+    :return: Float representing the cross product of the two vectors.
+    """
     return v1[0] * v2[1] - v1[1] * v2[0]
 
 
 def is_line_moving_into_polygon(start_point, end_point, hard_edge, polygon):
+    """ Determine if the line from start_point to end_point is moving into the polygon defined by hard_edge.
+
+    :param start_point: Numpy array representing the starting point of the line segment.
+    :param end_point: Numpy array representing the ending point of the line segment.
+    :param hard_edge: Tuple representing the hard edge as (start_point, end_point).
+    :param polygon: Polygon object to check against.
+    :return: Bool indicating True if the line is moving into the polygon, False otherwise.
+    """
     hard_edge_start, hard_edge_end = hard_edge
 
     # Create 2D vectors from the points
@@ -132,35 +164,31 @@ def is_line_moving_into_polygon(start_point, end_point, hard_edge, polygon):
 
     # Calculate centroid
     centroid = polygon.calculate_centroid()  # Ensure this returns a 2D tuple (x, y)
-    print(f'Centroid: {centroid}')
+
     # Create vector from hard edge start to centroid
     centroid_vector = (centroid[0] - hard_edge_start[0], centroid[1] - hard_edge_start[1])
 
     # Calculate the cross products
-    cross_product_line = calculate_cross_product_2d(hard_edge_vector, line_vector)
-    cross_product_centroid = calculate_cross_product_2d(hard_edge_vector, centroid_vector)
+    cross_product_line = cross_product_2d(hard_edge_vector, line_vector)
+    cross_product_centroid = cross_product_2d(hard_edge_vector, centroid_vector)
 
     # Determine the direction of movement
     return (cross_product_line > 0) and (cross_product_centroid > 0)
 
 
-def find_adjacent_edge(current_hard_edge, last_point, region):
-    """
-    Find the adjacent edge in the region polygon that shares the last point
-    and is not the same as the current hard edge.
+def find_adjacent_region_edge(edge, last_point, region):
+    """ Find the adjacent edge in the region polygon that shares the last point
+        and is not the same as the current hard edge.
 
-    Parameters:
-    current_hard_edge (tuple): The current hard edge as a tuple of (start_point, end_point).
-    last_point (numpy array): The last point in the path, which is a vertex in the current hard edge.
-    region (Polygon): The polygon object that contains all edges to check against.
-
-    Returns:
-    tuple or None: The adjacent edge that shares the last point, or None if not found.
+    :param edge: Tuple representing the current hard edge as (start_point, end_point).
+    :param last_point: Numpy array representing the last point in the path, which is a vertex in the current hard edge.
+    :param region: Polygon object that contains all edges to check against.
+    :return: Tuple or None representing the adjacent edge that shares the last point, or None if not found.
     """
-    current_edge_start, current_edge_end = current_hard_edge
+    edge_start, edge_end = edge
 
     # Check if the last point matches either end of the current hard edge
-    if np.array_equal(last_point, current_edge_end) or np.array_equal(last_point, current_edge_start):
+    if np.array_equal(last_point, edge_end) or np.array_equal(last_point, edge_start):
         # Iterate over all edges in the region
         for edge in region.edges:
             edge_start = edge.v_from.get_array().flatten()
@@ -168,13 +196,60 @@ def find_adjacent_edge(current_hard_edge, last_point, region):
 
             # Check if this edge shares the last point and is not the same as the current hard edge
             if (np.array_equal(last_point, edge_start) or np.array_equal(last_point, edge_end)) and \
-               not (np.array_equal(edge_start, current_edge_start) and np.array_equal(edge_end, current_edge_end)):
-                return (edge_start, edge_end)  # Return the adjacent edge as a tuple
+               not (np.array_equal(edge_start, edge_start) and np.array_equal(edge_end, edge_end)):
+                return edge_start, edge_end  # Return the adjacent edge as a tuple
 
     return None  # Return None if no adjacent edge is found
 
 
+def has_connected_region_hard_edge(point, hard_edges, region, ignore_edge=None):
+    """
+    Check if there are any hard edges in the specified polygon (region) that share the given point,
+    ignoring the specified edge if it's hard.
+
+    :param point: Numpy array representing the point to check.
+    :param hard_edges: List of hard edges, where each hard edge is a tuple of (start_point, end_point).
+    :param region: The Polygon object containing the edges to check against.
+    :param ignore_edge: A tuple representing an edge to ignore when checking for hard edges.
+    :return: True if any edge that shares the point is a hard edge (excluding ignore_edge), False otherwise.
+    """
+    # Get the edges of the specified region
+    x_coords, y_coords = region.get_coords()  # Get the coordinates of the polygon
+
+    # Iterate through each edge of the region
+    for i in range(len(x_coords)):
+        edge_start = (x_coords[i], y_coords[i])
+        edge_end = (x_coords[(i + 1) % len(x_coords)], y_coords[(i + 1) % len(x_coords)])  # Wrap around
+        print(f'edge: {edge_start}, {edge_end}')
+        # Check if the edge shares the given point
+        if np.array_equal(point, edge_start) or np.array_equal(point, edge_end):
+            # If it shares the point, check if it is a hard edge
+            current_edge = (edge_start, edge_end)
+
+            # Skip the ignore_edge check if specified
+            if ignore_edge is not None and (np.array_equal(edge_start, ignore_edge[0]) and np.array_equal(edge_end, ignore_edge[1])):
+                continue
+
+            # Check if the current edge is a hard edge
+            for hard_edge in hard_edges:
+                if (np.array_equal(edge_start, hard_edge[0]) and np.array_equal(edge_end, hard_edge[1])) or \
+                   (np.array_equal(edge_start, hard_edge[1]) and np.array_equal(edge_end, hard_edge[0])):
+                    print(f"Found hard edge: {hard_edge} at point {point}")  # Debugging line
+                    return True  # Found a hard edge at the point
+
+    print(f"No connected hard edge found at point: {point}")  # Debugging line
+    return False  # No hard edge found at the point
+
+
 def find_adjacent_hard_edge(hard_edge, point, hard_edges, region):
+    """ Find an adjacent hard edge that shares a vertex with the specified point.
+
+    :param hard_edge: Tuple representing the hard edge as (start_point, end_point).
+    :param point: Numpy array representing the point to check against the hard edges.
+    :param hard_edges: List of hard edges.
+    :param region: Polygon object containing the hard edges.
+    :return: Tuple or None representing the adjacent hard edge that shares the specified point, or None if not found.
+    """
     hard_edge_start, hard_edge_end = hard_edge
 
     for edge in hard_edges:
@@ -186,16 +261,23 @@ def find_adjacent_hard_edge(hard_edge, point, hard_edges, region):
                 return edge  # Return the adjacent hard edge
 
     # Edge case where the region is not fully enclosed in hard edges, so no hard edge is found
-    edge = find_adjacent_edge(hard_edge, point, region)
+    edge = find_adjacent_region_edge(hard_edge, point, region)
 
     return edge
 
 
 def find_optimal_path(left_path, right_path, end_point):
+    """ Determine the optimal path between two paths (left and right) based on length and number of turns.
+
+    :param left_path: List representing the first path as a list of points.
+    :param right_path: List representing the second path as a list of points.
+    :param end_point: Numpy array representing the endpoint to which the paths will be compared.
+    :return: List representing the optimal path based on the criteria specified (shortest path).
+    """
     # Choosing the shortest path (first by number of turns, then by distance)
     if len(left_path) == len(right_path):
-        left_dist = calculate_total_distance(left_path, end_point)
-        right_dist = calculate_total_distance(right_path, end_point)
+        left_dist = intermediate_path_distance(left_path, end_point)
+        right_dist = intermediate_path_distance(right_path, end_point)
         return left_path if left_dist < right_dist else right_path
 
     elif len(left_path) < len(right_path):
@@ -205,15 +287,11 @@ def find_optimal_path(left_path, right_path, end_point):
 
 
 def find_polygons_of_hard_edge(hard_edge, polygons):
-    """
-    Find all polygons that contain the given hard edge.
+    """ Find all polygons that contain the given hard edge.
 
-    Parameters:
-    hard_edge (tuple): A tuple representing the hard edge as (start_point, end_point).
-    polygons (list): A list of Polygon objects.
-
-    Returns:
-    list: A list of polygon objects that contain the hard edge.
+    :param hard_edge: Tuple representing the hard edge as (start_point, end_point).
+    :param polygons: List of Polygon objects.
+    :return: List of polygon objects that contain the hard edge.
     """
     matching_polygons = []
 
@@ -238,6 +316,18 @@ def find_polygons_of_hard_edge(hard_edge, polygons):
 
 
 def shorter_path(start_point, end_point, start_hard_edge, start_on_hard_edge, poly, polygons, region, hard_edges_list):
+    """ Check if a shorter path exists from start_point to end_point while avoiding hard edges.
+
+    :param start_point: Numpy array representing the starting point of the path.
+    :param end_point: Numpy array representing the ending point of the path.
+    :param start_hard_edge: Tuple representing the hard edge at the starting point.
+    :param start_on_hard_edge: Bool indicating if the start point is on a hard edge.
+    :param poly: Polygon object associated with the starting point.
+    :param polygons: List of all polygons.
+    :param region: Polygon object representing the region to check against.
+    :param hard_edges_list: List of hard edges to avoid.
+    :return: Bool indicating True if a shorter path can be found, False otherwise.
+    """
     # Do a better check later
     if not start_on_hard_edge:
         return False
@@ -246,7 +336,7 @@ def shorter_path(start_point, end_point, start_hard_edge, start_on_hard_edge, po
     if is_line_moving_into_polygon(start_point, end_point, start_hard_edge, poly):
 
         # Next we check for any intersecting edges
-        intersecting_edge = check_line_intersects_hard_edges(start_point, end_point, hard_edges_list, [start_hard_edge])
+        intersecting_edge = find_closest_hard_edge_intersection(start_point, end_point, hard_edges_list, poly, [start_hard_edge])
 
         # If an edge is found to intersect new line, then check if this line is inside that polygon (if inside both polygons, it is assumed to be clear)
         if intersecting_edge:
@@ -261,7 +351,7 @@ def shorter_path(start_point, end_point, start_hard_edge, start_on_hard_edge, po
             if inside:
                 next_hard_edge = find_adjacent_hard_edge(intersecting_edge, end_point, hard_edges_list, region)
 
-                start_poly_check = check_line_intersects_hard_edges(start_point, end_point, hard_edges_list, [start_hard_edge, intersecting_edge, next_hard_edge])
+                start_poly_check = find_closest_hard_edge_intersection(start_point, end_point, hard_edges_list, poly, [start_hard_edge, intersecting_edge, next_hard_edge])
 
                 # If no intersecting edges found, then there is a clear path from the given start to the end point
                 if not start_poly_check:
@@ -269,108 +359,329 @@ def shorter_path(start_point, end_point, start_hard_edge, start_on_hard_edge, po
 
     return False
 
-def follow_and_create_path(temp_path, end_point, start_hard_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list, direction):
-    print(direction)
-    intersecting_edge = start_hard_edge
-    current_hard_edge = start_hard_edge
-    start_point = temp_path[0]
-    print(f"starting point: {temp_path[0]}")
-    print(f"Ending point: {end_point}")
-    print(f"Start hard edge: {start_hard_edge}")
 
-    if is_line_moving_into_polygon(start_point, end_point, start_hard_edge, prev_poly):
+def is_point_on_region_edge(point, region, epsilon=1e-6):
+    """
+    Check if a given point lies on any of the edges of the specified polygon (region).
 
-        print("Moving into clear")
-        #intersecting_edge = check_line_intersects_hard_edges(start_point, end_point, hard_edges_list, [start_hard_edge])
-    else:
-        print("moving into unclear")
+    :param point: Numpy array representing the point to check.
+    :param region: Polygon object that contains the edges to check against.
+    :param epsilon: Tolerance for determining if the point lies on an edge (default is 1e-6).
 
+    :return: True if the point lies on any edge of the polygon, False otherwise.
+    """
+    # Get the edges of the specified region
+    x_coords, y_coords = region.get_coords()  # Get the coordinates of the polygon
+
+    # Iterate through each edge of the region
+    for i in range(len(x_coords)):
+        edge_start = np.array([x_coords[i], y_coords[i]])
+        edge_end = np.array([x_coords[(i + 1) % len(x_coords)], y_coords[(i + 1) % len(x_coords)]])  # Wrap around
+
+        # Check if the point lies on the edge using the is_point_on_edge logic
+        if is_point_on_edge(point, (edge_start, edge_end), epsilon):
+            return True  # The point lies on the edge
+
+    return False  # The point does not lie on any edge of the polygon
+
+
+def has_adjacent_hard_edge(point, hard_edge, hard_edges):
+    """
+    Check if any adjacent edges to the specified hard edge are hard edges
+    and return the adjacent hard edge that is connected to the given point.
+
+    :param point: Numpy array representing the point that lies on the hard edge.
+    :param hard_edge: A tuple representing the hard edge as (start_point, end_point).
+    :param hard_edges: List of hard edges, where each hard edge is a tuple of (start_point, end_point).
+
+    :return: Tuple (True, adjacent_hard_edge) if any adjacent edge is a hard edge, else (False, None).
+    """
+    edge_start, edge_end = hard_edge
+
+    # Iterate through all hard edges to check for adjacency
+    for edge in hard_edges:
+        # Ignore the current hard edge itself
+        if not (np.array_equal(edge[0], edge_start) and np.array_equal(edge[1], edge_end)) and \
+           not (np.array_equal(edge[0], edge_end) and np.array_equal(edge[1], edge_start)):
+            # Check if the edge shares the specified point
+            if (np.array_equal(edge[0], point) or np.array_equal(edge[1], point)):
+                return True, edge  # Return the adjacent hard edge connected to the point
+
+    return False, None  # No adjacent hard edge found
+
+
+def follow_and_create_path(temp_path, end_point, intersecting_edge, start_on_hard_edge, start_is_clear, curr_poly, prev_poly, polygons, region, hard_edges_list, direction):
+    """ Follow and create a path around the hard edges, adjusting based on direction.
+
+    :param temp_path: List representing the current path being constructed.
+    :param end_point: Numpy array representing the endpoint to which the path is aimed.
+    :param intersecting_edge: Tuple representing the hard edge currently being intersected.
+    :param start_on_hard_edge: Bool indicating if the start point is on a hard edge.
+    :param start_is_clear: Bool indicating if the path from the start point is clear.
+    :param prev_poly: Polygon object representing the previous polygon before the current one.
+    :param polygons: List of all polygons in the region.
+    :param region: Polygon object representing the region to check against.
+    :param hard_edges_list: List of hard edges to avoid.
+    :param direction: String indicating the direction to follow ('right' or 'left').
+    :return: List representing the updated path after avoiding hard edges.
+    """
+    current_hard_edge = intersecting_edge
+    first_intersecting_edge = intersecting_edge
+    counter = 0
+    #print(direction)
+    #print(f'First intersecting edge: {intersecting_edge}')
+    # Computing optimal free path
     while True:
-        # Checking for a free path
-        intersecting_edge = check_line_intersects_excluding_start_point_edges(temp_path[-1], end_point,
-                                                                              hard_edges_list, current_hard_edge,
-                                                                              prev_poly)
+        new_start_point = temp_path[-1]
+        #print(f'New start point: {new_start_point}')
+        # If start point is on a hard edge and is clear, we ignore the starting edge (it is not crossed)
+        if start_on_hard_edge and start_is_clear:
+            start_on_hard_edge = False  # Only starts there once
+            intersecting_edge = find_closest_hard_edge_intersection(new_start_point, end_point, hard_edges_list, prev_poly, [first_intersecting_edge], [new_start_point])
+            #print("1")
+        else:
 
-        print(f'Next edge: {intersecting_edge}')
+            # Checking if new start point is on the region edge
+            if is_point_on_region_edge(new_start_point, region):
+                #print("On region edge")
+
+                # Checking if adjacent edge in direction is hard, if so, start point must be counted as intersection
+                has_adjacent, adjacent_hard_edge = has_adjacent_hard_edge(new_start_point, current_hard_edge, hard_edges_list)
+
+                if has_adjacent:
+                    #print("Adjacent hard edge")
+
+                    # Check if the line from new start to end is moving inside the end polygon
+                    if is_line_moving_into_polygon(new_start_point, end_point, current_hard_edge, curr_poly):
+                        #print("Moving inside")
+                        intersecting_edge = find_closest_hard_edge_intersection(new_start_point, end_point, hard_edges_list, prev_poly, [current_hard_edge], [new_start_point, end_point])
+
+                    else:
+                        #print("Moving outside")
+                        intersecting_edge = find_closest_hard_edge_intersection(new_start_point, end_point, hard_edges_list, prev_poly, [current_hard_edge], [new_start_point])
+
+                # If no adjacent then the start point is not counted as an intersection
+                else:
+                    #print("No adjacent hard edge")
+                    intersecting_edge = find_closest_hard_edge_intersection(new_start_point, end_point, hard_edges_list, prev_poly, [current_hard_edge], [new_start_point])
+
+            else:
+                intersecting_edge = find_closest_hard_edge_intersection(new_start_point, end_point, hard_edges_list, prev_poly, [current_hard_edge], [new_start_point])
+
         # Check if a free path is found then stop searching
         if not intersecting_edge:
+            #print(f"Clear path found, last path point: {new_start_point}")
+            break
+
+        # Incase a path is never found, should not happen
+        if counter > 50:
+            #print(f"No path found when going {direction}")
             break
 
         # Finding the next hard edge to follow around the obstacle, using prev point to get edge, so always in correct direction
-        current_hard_edge = find_adjacent_hard_edge(current_hard_edge, temp_path[-1], hard_edges_list, region)
+        current_hard_edge = find_adjacent_hard_edge(current_hard_edge, new_start_point, hard_edges_list, region)
+        if not current_hard_edge:
+            current_hard_edge = intersecting_edge
+
+        #print(f'current_edge: {current_hard_edge}')
 
         # Which next point to append depends on direction
         if direction == 'right':
-            if shorter_path(temp_path[0], current_hard_edge[0], start_hard_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list):
+            if shorter_path(temp_path[0], current_hard_edge[0], first_intersecting_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list):
                 temp_path = [temp_path[0], current_hard_edge[0]]
+                #print("Shorter path found")
             else:
                 temp_path.append(current_hard_edge[0])
         else:
-            if shorter_path(temp_path[0], current_hard_edge[1], start_hard_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list):
+            if shorter_path(temp_path[0], current_hard_edge[1], first_intersecting_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list):
                 temp_path = [temp_path[0], current_hard_edge[1]]
+                #print("Shorter path found")
             else:
                 temp_path.append(current_hard_edge[1])
-
+        counter += 1
 
     return temp_path
 
 
 def avoid_hard_edges(start_point, end_point, current_polygon, polygons, region, hard_edges_list):
+    """
+    Determine a path around hard edges from start_point to end_point within the current polygon.
+
+    :param start_point: Numpy array representing the starting point of the path.
+    :param end_point: Numpy array representing the ending point of the path.
+    :param current_polygon: Polygon object containing the starting point.
+    :param polygons: List of all polygons in the region.
+    :param region: Polygon object representing the region to check against.
+    :param hard_edges_list: List of hard edges to avoid.
+    :return: List representing a series of intermediate points forming a clear path around hard edges.
+    """
     intermediate_points = []
-    current_poly_index = polygons.index(current_polygon)
-    prev_poly = polygons[current_poly_index - 1]
+    previous_polygon = polygons[polygons.index(current_polygon) - 1]
 
     # Check if the start point is on a hard edge
     start_on_hard_edge, start_hard_edge = is_point_on_hard_edge(start_point, hard_edges_list)
 
+    start_is_clear = False
+
     # Start point is on a hard edge
     if start_on_hard_edge:
+        #print('Starting on hard edge')
 
         # Check if the line from the start point to the end point is moving into polygon and not crossing the hard edge
-        if is_line_moving_into_polygon(start_point, end_point, start_hard_edge, prev_poly):
-            print("Going into clear area")
+        if is_line_moving_into_polygon(start_point, end_point, start_hard_edge, previous_polygon):
+            #print("Start going into clear area")
+            start_is_clear = True
+            # Check for intersections with hard edges, ignoring the edge where the start point lies
+            intersecting_edge = find_closest_hard_edge_intersection(start_point, end_point, hard_edges_list, previous_polygon, [start_hard_edge])
+            if not intersecting_edge:
+                #print("Clear path")
+                return []
+            else:
+                # Check if end point is on a hard edge
+                on_hard_edge, end_hard_edge = is_point_on_hard_edge(end_point, hard_edges_list)
 
+                if on_hard_edge:
+                    #print(f'End point on hard edge: {end_hard_edge}')
+                    # Checking if line is moving inside either of the polygons
+                    in_first = is_line_moving_into_polygon(start_point, end_point, intersecting_edge, previous_polygon)
+                    in_last = is_line_moving_into_polygon(end_point, start_point, intersecting_edge, current_polygon)
+
+                    if in_first or in_last:
+                        #print("End going into clear area")
+                        #print("Clear path")
+                        return []
+
+                    #else:
+                        #print("End going into unclear area")
+                        #print(f'intersecting edge: {intersecting_edge}')  # Must use the intersecting edge for check, as it can be an edge before end edge
+                #else:
+                    #print(f'intersecting edge: {intersecting_edge}')
          # Line from start to end is moving
         else:
-            print("Going into unclear area")
+            #print("Start going into unclear area")
+            # The intersecting edge is the start edge, as it get crossed
+            intersecting_edge = start_hard_edge
+            #print(f'intersecting edge: {intersecting_edge}')
 
     # Not starting on a hard edge
     else:
-        print("Point not on hard edge")
+        #print("Starting on soft edge")
+        intersecting_edge = find_closest_hard_edge_intersection(start_point, end_point, hard_edges_list, previous_polygon)
 
+        if intersecting_edge:
 
-    return intermediate_points
+            # Check if end point is on a hard edge
+            on_hard_edge, end_hard_edge = is_point_on_hard_edge(end_point, hard_edges_list)
 
-"""
-            # Check for intersections with hard edges, ignoring the edge where the start point lies
-            intersecting_edge = check_line_intersects_hard_edges(start_point, end_point, hard_edges_list,
-                                                                 [start_hard_edge])
-            if intersecting_edge:
-                right_temp_path = follow_and_create_path([start_point, intersecting_edge[0]], end_point, start_hard_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list, direction='right')
-                left_temp_path = follow_and_create_path([start_point, intersecting_edge[1]], end_point, start_hard_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list,direction='left')
-                intermediate_points = find_optimal_path(left_temp_path, right_temp_path, end_point)
+            if on_hard_edge:
+                #print(f'End point on hard edge: {end_hard_edge}')
+                # Checking if line is moving inside either of the polygons
+                in_first = is_line_moving_into_polygon(start_point, end_point, intersecting_edge, previous_polygon)
+                in_last = is_line_moving_into_polygon(end_point, start_point, intersecting_edge, current_polygon)
+
+                if in_first or in_last:
+                    #print("End going into clear area")
+                    #print("Clear path")
+                    return []
+
+                #else:
+                    #print("End going into unclear area")
+                    #print(f'intersecting edge: {intersecting_edge}')
+            #else:
+                #print(f'End point not on hard edge')
+                #print(f'intersecting edge: {intersecting_edge}')
 
         else:
-            print("Going into unclear area")
-            intersecting_edge = check_line_intersects_hard_edges(start_point, end_point, hard_edges_list)
+            #print("Clear path")
+            return []
 
-            if intersecting_edge:
-                right_temp_path = follow_and_create_path([start_point, intersecting_edge[0]], end_point, start_hard_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list, direction='right')
-                left_temp_path = follow_and_create_path([start_point, intersecting_edge[1]], end_point, start_hard_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list,direction='left')
-                intermediate_points = find_optimal_path(left_temp_path, right_temp_path, end_point)
-
-    # Starting point not on hard edge
-    else:
-        print("Point not on hard edge")
-        intersecting_edge = check_line_intersects_hard_edges(start_point, end_point, hard_edges_list)
-        print(f'intersecting edge: {intersecting_edge}')
-        # if an edge is found it is not a clear path
-        if intersecting_edge:
-            right_temp_path = follow_and_create_path([start_point, intersecting_edge[0]], end_point, intersecting_edge, start_on_hard_edge, prev_poly, polygons, region,
-                                                     hard_edges_list, direction='right')
-            left_temp_path = follow_and_create_path([start_point, intersecting_edge[1]], end_point, intersecting_edge, start_on_hard_edge, prev_poly, polygons, region,
-                                                    hard_edges_list, direction='left')
-            intermediate_points = find_optimal_path(left_temp_path, right_temp_path, end_point)
+    # Computing path around hard edges in both directions
+    right_temp_path = follow_and_create_path([start_point, intersecting_edge[0]], end_point, intersecting_edge,
+                                             start_on_hard_edge, start_is_clear, current_polygon, previous_polygon, polygons, region, hard_edges_list,
+                                             direction='right')
+    left_temp_path = follow_and_create_path([start_point, intersecting_edge[1]], end_point, intersecting_edge,
+                                            start_on_hard_edge, start_is_clear, current_polygon, previous_polygon, polygons, region, hard_edges_list,
+                                            direction='left')
+    intermediate_points = find_optimal_path(left_temp_path, right_temp_path, end_point)
 
     return intermediate_points
+
+
+
+""" old
+def follow_and_create_path(temp_path, end_point, intersecting_edge, start_on_hard_edge, start_is_clear, prev_poly, polygons, region, hard_edges_list, direction):
+    Follow and create a path around the hard edges, adjusting based on direction.
+
+    :param temp_path: List representing the current path being constructed.
+    :param end_point: Numpy array representing the endpoint to which the path is aimed.
+    :param intersecting_edge: Tuple representing the hard edge currently being intersected.
+    :param start_on_hard_edge: Bool indicating if the start point is on a hard edge.
+    :param start_is_clear: Bool indicating if the path from the start point is clear.
+    :param prev_poly: Polygon object representing the previous polygon before the current one.
+    :param polygons: List of all polygons in the region.
+    :param region: Polygon object representing the region to check against.
+    :param hard_edges_list: List of hard edges to avoid.
+    :param direction: String indicating the direction to follow ('right' or 'left').
+    :return: List representing the updated path after avoiding hard edges.
+
+    current_hard_edge = intersecting_edge
+    first_intersecting_edge = intersecting_edge
+    counter = 0
+    print(direction)
+
+    # Computing optimal free path
+    while True:
+        # If start point is on a hard edge and is clear, we ignore the starting edge (it is not crossed)
+        if start_on_hard_edge and start_is_clear:
+            intersecting_edge = find_closest_hard_edge_intersection(temp_path[-1], end_point, hard_edges_list, prev_poly, [first_intersecting_edge], True)
+
+        # Else starting edge is intersected, and we must plan a path around it
+        else:
+            inside = False
+            hard_edge_polys = find_polygons_of_hard_edge(intersecting_edge, polygons)
+
+            for poly in hard_edge_polys:
+                if is_line_moving_into_polygon(temp_path[-1], end_point, intersecting_edge, poly):
+                    inside = True
+
+            if inside:
+                intersecting_edge = find_closest_hard_edge_intersection(temp_path[-1], end_point, hard_edges_list, prev_poly, [current_hard_edge], True)
+            else:
+                intersecting_edge = find_closest_hard_edge_intersection(temp_path[-1], end_point, hard_edges_list, prev_poly, [], False)
+            #print(f'next intersecting edge: {intersecting_edge}')
+
+        print(f'next: {intersecting_edge}')
+        print(f'current: {current_hard_edge}')
+
+        # Check if a free path is found then stop searching
+        if not intersecting_edge:
+            break
+
+        # Incase a path is never found, should not happen
+        if counter > 100:
+            print(f"No path found when going {direction}")
+            break
+
+        # Finding the next hard edge to follow around the obstacle, using prev point to get edge, so always in correct direction
+        current_hard_edge = find_adjacent_hard_edge(current_hard_edge, temp_path[-1], hard_edges_list, region)
+        #print(f'current_edge: {current_hard_edge}')
+
+        # Which next point to append depends on direction
+        if direction == 'right':
+            if shorter_path(temp_path[0], current_hard_edge[0], first_intersecting_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list):
+                temp_path = [temp_path[0], current_hard_edge[0]]
+                #print("Shorter path found")
+            else:
+                temp_path.append(current_hard_edge[0])
+        else:
+            if shorter_path(temp_path[0], current_hard_edge[1], first_intersecting_edge, start_on_hard_edge, prev_poly, polygons, region, hard_edges_list):
+                temp_path = [temp_path[0], current_hard_edge[1]]
+                #print("Shorter path found")
+
+            else:
+                temp_path.append(current_hard_edge[1])
+        counter += 1
+
+    return temp_path
+
 """

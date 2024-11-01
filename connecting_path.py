@@ -251,7 +251,8 @@ def connect_path(polygons, total_intersections, region):
             hard_edges = extract_hard_edges(polygons)
 
             if i > 0 and len(hard_edges) > 0:
-                print(f'Going from {i-1} to {i}')
+                #print()
+                #print(f'Going from {i-1} to {i}')
 
                 last_path_point = path[-1]
                 current_first_point = current_path[0]
