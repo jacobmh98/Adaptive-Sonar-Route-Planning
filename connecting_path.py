@@ -1,6 +1,8 @@
 import numpy as np
 import coverage_plots
 import detect_and_avoid_hard_edges
+from detect_and_avoid_hard_edges import avoid_hard_edges
+
 
 def compute_total_distance(path):
     total_distance = 0.0
@@ -222,9 +224,7 @@ def extract_hard_edges(polygons):
 
     return all_hard_edges
 
-def connect_path(polygons, total_intersections):
-    hard_edges = extract_hard_edges(polygons)
-
+def connect_path(polygons, total_intersections, region):
     path = np.empty((0,2))
 
     for i, poly in enumerate(polygons):
@@ -246,19 +246,24 @@ def connect_path(polygons, total_intersections):
         elif i == len(polygons) - 1:
             current_path = connect_last_path(path, total_intersections[i])
 
-        """if i > 0 and len(hard_edges) > 0:
-            #print(f'Going from {i-1} to {i}')
+        avoid_hard_edges_bool = True
+        if avoid_hard_edges_bool:
+            hard_edges = extract_hard_edges(polygons)
 
-            last_path_point = path[-1]
-            current_first_point = current_path[0]
-            intermediate_points = detect_and_avoid_hard_edges.avoid_hard_edges(last_path_point, current_first_point, poly, polygons, hard_edges)
+            if i > 0 and len(hard_edges) > 0:
+                #print()
+                #print(f'Going from {i-1} to {i}')
 
-            if intermediate_points:
-                # Append the intermediate points to the path
-                for point in intermediate_points:
-                    path = np.vstack([path, point])
+                last_path_point = path[-1]
+                current_first_point = current_path[0]
+                intermediate_points = detect_and_avoid_hard_edges.avoid_hard_edges(last_path_point, current_first_point, poly, polygons, region, hard_edges)
 
-        """
+                if intermediate_points:
+                    # Append the intermediate points to the path
+                    for point in intermediate_points:
+                        path = np.vstack([path, point])
+
+
         # Should never be an empty path, but just in case check to avoid error
         if len(current_path) > 0:
             path = np.vstack([path, current_path])

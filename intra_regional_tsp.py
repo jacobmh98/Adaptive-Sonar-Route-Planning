@@ -130,7 +130,7 @@ def start_tsp(polygons, intersections):
 
     # Solve the TSP with start/end combinations
     tsp_route_with_combinations = tsp_solver_with_combinations(expanded_distance_matrix, len(sorted_polygons))
-
+    """
     # Use the chosen combination indices to retrieve the optimal start/end points for each polygon
     optimal_path = []
     for polygon_index, combination_index in tsp_route_with_combinations:
@@ -142,9 +142,8 @@ def start_tsp(polygons, intersections):
 
         optimal_path.append((start, end))
 
-    tsp_polygon_indices = [polygon_index for polygon_index, _ in tsp_route_with_combinations]
+    #tsp_polygon_indices = [polygon_index for polygon_index, _ in tsp_route_with_combinations]
     #visualize_tsp_solution(sorted_polygons, tsp_polygon_indices)
-    """
 
     return 0
 
