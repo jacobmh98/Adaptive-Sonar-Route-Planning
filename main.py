@@ -25,20 +25,20 @@ from load_data import *
 
 data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
-plot_obstacles([region], obstacles, True)
-merged_sub_polygon_decomposed = decompose_sweep_line(region, obstacles[0])
-plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-#sub_polygons = generate_new_data(region)
-#optimized_sub_polygons = compute_optimized_data(sub_polygons)
-#sub_polygons_filtered_mask, sub_polygons_filtered = find_bounding_polygons(sub_polygons, obstacles[0])
-#sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(sub_polygons_filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_mask)
+#plot_obstacles([region], obstacles, False)
+#merged_sub_polygon_decomposed = decompose_sweep_line(region, obstacles[0])
+#plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
+sub_polygons = generate_new_data(region)
+optimized_sub_polygons = compute_optimized_data(sub_polygons)
+sub_polygons_filtered_mask, sub_polygons_filtered = find_bounding_polygons(sub_polygons, obstacles[0])
+sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(sub_polygons_filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_mask)
 #merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles[0])
 #combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
-
 
 #plot_obstacles(sub_polygons, obstacles, False)
 #plot_obstacles(optimized_sub_polygons, obstacles)
 #plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
+plot_obstacles(sub_polygons_extract + [merged_sub_polygon], obstacles, False)
 #hard_edges_list = extract_hard_edges(combined_polygons, hard_edges_manuel)
 
 #for p in combined_polygons:

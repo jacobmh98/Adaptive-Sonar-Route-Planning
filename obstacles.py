@@ -78,11 +78,15 @@ def compute_intersection_edges(e, e2):
 
     return None  # Segments do not intersect within the segment bounds
 
-def decompose_sweep_line(sub_polygon, obstacle):
+def decompose_sweep_line(sub_polygon, obstacle=None):
     """ Decompose a convex around a contained obstacle"""
     # Combining the vertices and edges of the polygon and obstacle
-    combined_vertices = sub_polygon.vertices + obstacle.vertices
-    combined_edges = sub_polygon.edges + obstacle.edges
+    if obstacle is None:
+        combined_vertices = sub_polygon.vertices
+        combined_edges = sub_polygon.edges
+    else:
+        combined_vertices = sub_polygon.vertices + obstacle.vertices
+        combined_edges = sub_polygon.edges + obstacle.edges
 
     # Insertion Sort for the events based on x-coordinate in ascending order
     combined_vertices_sorted = []
