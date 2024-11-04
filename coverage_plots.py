@@ -7,7 +7,7 @@ from shapely.geometry import Polygon as ShapelyPolygon
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
+#matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
 
 def multi_poly_plot(polygon, current_path_width, polygons, path):
     """
@@ -291,13 +291,13 @@ def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, 
     fig.suptitle('Comparison of Path 1, Path 2, and Best Path', fontsize=16)
 
     # Plot Path 1
-    plot_single_path(ax1, poly, b1, b_mate1, a1, dx, path1, title=f"Distance = {score1:.2f}")
+    plot_single_path(ax1, poly, b1, b_mate1, a1, path_width, path1, title=f"Distance = {score1:.2f}")
 
     # Plot Path 2
-    plot_single_path(ax2, poly, b2, b_mate2, a2, dx, path2, title=f"Distance = {score2:.2f}")
+    plot_single_path(ax2, poly, b2, b_mate2, a2, path_width, path2, title=f"Distance = {score2:.2f}")
 
     # Plot the Best Path in the third subplot
-    plot_single_path(ax3, poly, b_best, b_mate_best, a_best, dx, optimal_path, title=f"Best Path")
+    plot_single_path(ax3, poly, b_best, b_mate_best, a_best, path_width, optimal_path, title=f"Best Path")
 
     plt.tight_layout()
     plt.show()
@@ -381,7 +381,7 @@ def visualize_coverage_wasted_and_overlap(polygon, path_points, covered_area, wa
 
     # Plot the path as a line
     path_x, path_y = zip(*path_points)
-    ax.plot(path_x, path_y, 'b-', linewidth=2, label='Path')
+    ax.plot(path_x, path_y, 'b-', linewidth=1, label='Path')
 
     # Plot the covered area inside the polygon
     if not covered_area.is_empty:

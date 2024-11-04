@@ -45,7 +45,7 @@ def get_region(data_path):
 
 def generate_new_data(region):
     # Compute the split that gives the sub-polygons
-    print('running')
+    #print('running')
     return split_polygon(region)
 
 def compute_optimized_data(sub_polygons):

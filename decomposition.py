@@ -415,10 +415,10 @@ def split_polygon(P, depth=0):
 
     # Base case: if the polygon is convex, return it
     if ncc == 0:
-        print(f'\treturning from {depth - 1}')
+        #print(f'\treturning from {depth - 1}')
         #save_polygon(P, depth, len(P.vertices))
         return [P]
-    print(f'{depth=}')
+    #(f'{depth=}')
     #print(f'{n=}, {ncc=}')
     #print(f'concave vertices = {P.concave_vertices}')
 

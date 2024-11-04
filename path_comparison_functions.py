@@ -139,11 +139,11 @@ def compute_path_data(poly, path, time):
     outlier_area = compute_outlier_area(poly, path)
     overlap_area = compute_overlap_area(poly, path)
 
-    print(f'Execution time: {time}')
+    print(f'Execution time: {time}s')
     print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
-    print(f'Covered area: {covered_area.area}')
-    print(f'Outlier area: {outlier_area.area}')
-    print(f'Overlap area: {overlap_area.area}')
+    print(f'Covered area: {covered_area.area}m\u00B2')
+    print(f'Outlier area: {outlier_area.area}m\u00B2')
+    print(f'Overlap area: {overlap_area.area}m\u00B2')
     coverage_plots.visualize_coverage_wasted_and_overlap(poly, path, covered_area, outlier_area, overlap_area)
     print()
 
@@ -151,7 +151,7 @@ def compute_path_data(poly, path, time):
     distance = compute_total_distance(path)
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
 
-    print(f'Distance: {distance}')
+    print(f'Path distance: {distance}m')
     print(f'Total turns: {total_turns}')
     print(f'Hard turns (<45): {hard_turns}')
     print(f'Medium turns (45-90): {medium_turns}')

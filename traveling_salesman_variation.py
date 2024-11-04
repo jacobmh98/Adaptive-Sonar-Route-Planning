@@ -1,4 +1,4 @@
-"""from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -71,7 +71,7 @@ def solve_tsp(distance_matrix):
 
 
 # Visualize the polygons and the TSP path
-def visualize_tsp_solution(polygons, tsp_route):
+def visualize_tsp_solution(polygons):
     # Plot polygons
     plt.figure(figsize=(8, 8))
 
@@ -79,22 +79,19 @@ def visualize_tsp_solution(polygons, tsp_route):
         x_coords, y_coords = polygon.get_coords()
         x_coords.append(x_coords[0])  # Close the polygon
         y_coords.append(y_coords[0])
-        plt.plot(x_coords, y_coords, 'r-', lw=2, marker='o')
+        plt.plot(x_coords, y_coords, 'k-', lw=2, marker='o')
 
-        # Add a label to the centroid of the polygon
+        # Compute and plot the centroid
         centroid = compute_centroid(polygon)
-        plt.text(centroid[0], centroid[1], f'{tsp_route[i]}', fontsize=12, ha='center', color='blue')
+        plt.scatter(centroid[0], centroid[1], color='blue', s=50)  # Blue dot for centroid
+        plt.text(centroid[0], centroid[1], f'{i}', fontsize=14, ha='center', color='black')  # Black label
 
-    # Plot TSP path
-    for i in range(len(tsp_route)):
-        start_polygon = polygons[tsp_route[i]]
-        end_polygon = polygons[tsp_route[(i + 1) % len(tsp_route)]]
-
-        # Draw line between centroids
-        centroid_start = compute_centroid(start_polygon)
-        centroid_end = compute_centroid(end_polygon)
+    # Plot the path through the polygons in order
+    for i in range(len(polygons) - 1):
+        centroid_start = compute_centroid(polygons[i])
+        centroid_end = compute_centroid(polygons[i + 1])
         plt.plot([centroid_start[0], centroid_end[0]], [centroid_start[1], centroid_end[1]], 'b--', lw=2)
 
-    plt.title("TSP Optimal Path Visiting Polygons")
+    plt.title("Path Through Polygons in Order")
     plt.show()
-"""
+
