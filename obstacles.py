@@ -78,15 +78,22 @@ def compute_intersection_edges(e, e2):
 
     return None  # Segments do not intersect within the segment bounds
 
-def decompose_sweep_line(sub_polygon, obstacle=None):
+def decompose_sweep_line(sub_polygon, obstacles):
     """ Decompose a convex around a contained obstacle"""
     # Combining the vertices and edges of the polygon and obstacle
-    if obstacle is None:
+    combined_vertices = sub_polygon.vertices
+    combined_edges = sub_polygon.edges
+
+    for o in obstacles:
+        combined_vertices += o.vertices
+        combined_edges += o.edges
+
+    """    if obstacle is None:
         combined_vertices = sub_polygon.vertices
         combined_edges = sub_polygon.edges
     else:
         combined_vertices = sub_polygon.vertices + obstacle.vertices
-        combined_edges = sub_polygon.edges + obstacle.edges
+        combined_edges = sub_polygon.edges + obstacle.edges"""
 
     # Insertion Sort for the events based on x-coordinate in ascending order
     combined_vertices_sorted = []
@@ -153,21 +160,21 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             break
 
         if v.type == OPEN:
-            #print(f'OPEN at {v}')
+            print(f'OPEN at {v}')
             # Opening new cell containing ceiling list and floor list
             cell = ([], [v])
             cells.append(cell)
             active_cells.append(True)
         elif v.type == CEIL_CONVEX:
-            #print(f'CEIL_CONVEX at {v}')
-            i, cell = find_cell(v, cells, active_cells)
+            print(f'CEIL_CONVEX at {v}')
+            i, cell = find_cell(v, cells, active_cells, True)
             cell[0].append(v)
         elif v.type == FLOOR_CONVEX:
-            #print(f'FLOOR_CONVEX at {v}')
-            i, cell = find_cell(v, cells, active_cells)
+            print(f'FLOOR_CONVEX at {v}')
+            i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
         elif v.type == SPLIT:
-            #print(f'SPLIT at {v}')
+            print(f'SPLIT at {v}')
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -228,7 +235,7 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             combined_edges.append(Edge(edge_up.v_from, v_up))
             combined_edges.append(Edge(v_up, edge_up.v_to))
 
-            i, cell = find_cell(v, cells, active_cells, edge_up.v_to)
+            i, cell = find_cell(v, cells, active_cells, True, edge_up.v_to)
             cell[0].append(v_up)
 
             # Handling the downwards intersection
@@ -241,7 +248,7 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             combined_edges.append(Edge(v_down, edge_down.v_to))
 
             #TODO cell = find_cell()
-            i2, cell = find_cell(v, cells, active_cells, edge_down.v_from)
+            i2, cell = find_cell(v, cells, active_cells, False, edge_down.v_from)
             cell[1].append(v_down)
 
             if i == i2:
@@ -258,9 +265,8 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             cells.append(bottom_cell)
             active_cells.append(True)
             active_cells.append(True)
-
         elif v.type == CEIL_CONCAVE:
-            #print(f'CEIL_CONCAVE at {v}')
+            print(f'CEIL_CONCAVE at {v}')
             # Shooting ray downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -288,7 +294,7 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             v_down = Vertex(-1, intersection[0], intersection[1])
             v_down.edge_from_v_is_hard = intersection_edge.v_from.edge_from_v_is_hard
 
-            i, cell = find_cell(v, cells, active_cells, intersection_edge.v_from)
+            i, cell = find_cell(v, cells, active_cells, False, intersection_edge.v_from)
             cell[0].append(v)
             cell[1].append(v_down)
             active_cells[i] = False
@@ -310,9 +316,8 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             # TODO consider also adding v here"""
             # i, cell = find_cell(edge.v_from, cells)
             # cell[1].append(v_down)
-
         elif v.type == FLOOR_CONCAVE:
-            #print(f'FLOOR_CONCAVE at {v}')
+            print(f'FLOOR_CONCAVE at {v}')
             # Shooting ray upwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -340,7 +345,7 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
 
             v_up.edge_from_v_is_hard = intersection_edge.v_from.edge_from_v_is_hard
 
-            i, cell = find_cell(v, cells, active_cells, intersection_edge.v_to)
+            i, cell = find_cell(v, cells, active_cells, True, intersection_edge.v_to)
             cell[0].append(v_up)
             cell[1].append(v)
             active_cells[i] = False
@@ -360,14 +365,23 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             combined_edges.append(Edge(intersection_edge.v_from, v_up))
             combined_edges.append(Edge(v_up, intersection_edge.v_to))
         elif v.type == MERGE:
-            #print(f'MERGE at {v}')
+            print(f'MERGE at {v}')
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
+
             edge_up = None
             edge_down = None
             v_up = None
             v_down = None
+
+            intersections_up = []
+            intersections_up_dist = []
+            intersections_up_edges = []
+
+            intersections_down = []
+            intersections_down_dist = []
+            intersections_down_edges = []
 
             for edge in combined_edges:
                 seg_A = edge.v_from.get_array().flatten()  # Segment point A
@@ -377,17 +391,45 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
                 intersection_down = compute_intersection(ray_start, -ray_dir, seg_B, seg_A)
 
                 if intersection_up is not None:
-                    v_up = Vertex(-1, intersection_up[0], intersection_up[1])
+                    """v_up = Vertex(-1, intersection_up[0], intersection_up[1])
                     v_up.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
-                    edge_up = edge
+                    edge_up = edge"""
                     #print(f"intersects upwards with {edge} at {v_up}")
 
+                    intersections_up.append(intersection_up)
+                    dist = np.linalg.norm(intersection_up - v.get_array().flatten())
+                    intersections_up_edges.append(edge)
+                    intersections_up_dist.append(dist)
+
                 if intersection_down is not None:
-                    v_down = Vertex(-1, intersection_down[0], intersection_down[1])
+                    """v_down = Vertex(-1, intersection_down[0], intersection_down[1])
                     v_down.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
-                    edge_down = edge
+                    edge_down = edge"""
+
+                    intersections_down.append(intersection_down)
+                    dist = np.linalg.norm(intersection_down - v.get_array().flatten())
+                    intersections_down_dist.append(dist)
+                    intersections_down_edges.append(edge)
                     #print(f'intersects downwards with {edge} at {v_down}')
 
+            intersection_up_index = np.argmin(intersections_up_dist)
+            intersection_up = intersections_up[intersection_up_index]
+            intersection_up_edge = intersections_up_edges[intersection_up_index]
+
+            v_up = Vertex(-1, intersection_up[0], intersection_up[1])
+            v_up.edge_from_v_is_hard = intersection_up_edge.v_from.edge_from_v_is_hard
+            edge_up = intersection_up_edge
+
+            intersection_down_index = np.argmin(intersections_down_dist)
+            intersection_down = intersections_down[intersection_down_index]
+            intersection_down_edge = intersections_down_edges[intersection_down_index]
+
+            v_down = Vertex(-1, intersection_down[0], intersection_down[1])
+            v_down.edge_from_v_is_hard = intersection_down_edge.v_from.edge_from_v_is_hard
+            edge_down = intersection_down_edge
+
+            print(f'{edge_up=}')
+            print(f'{edge_down=}')
             # Handling upwards intersection
             combined_edges.remove(edge_up)
             edge_up.v_from.next = v_up
@@ -397,10 +439,13 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             combined_edges.append(Edge(edge_up.v_from, v_up))
             combined_edges.append(Edge(v_up, edge_up.v_to))
             # TODO HERE
-            i, cell = find_cell(v, cells, active_cells, edge_up.v_to)
+
+            i, cell = find_cell(v, cells, active_cells, True, edge_up.v_to)
+            print(f'{v_up=} belongs to {cell=}')
             cell[0].append(v_up)
             cell[1].append(v)
             active_cells[i] = False
+
             # Handling downwards intersection
             combined_edges.remove(edge_down)
             edge_down.v_from.next = v_down
@@ -410,7 +455,7 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             combined_edges.append(Edge(edge_down.v_from, v_down))
             combined_edges.append(Edge(v_down, edge_down.v_to))
 
-            i, cell = find_cell(v, cells, active_cells, edge_down.v_from)
+            i, cell = find_cell(v, cells, active_cells, False, edge_down.v_from)
             cell[0].append(v)
             cell[1].append(v_down)
             active_cells[i] = False
@@ -418,23 +463,24 @@ def decompose_sweep_line(sub_polygon, obstacle=None):
             new_cell = ([v_up], [v_down])
             cells.append(new_cell)
             active_cells.append(True)
+
         elif v.type == CLOSE:
             print(f'CLOSE at {v}')
-            i, cell = find_cell(v, cells, active_cells, )
+            i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
             active_cells[i] = False
         elif v.type == COLLINEAR_CEILING:
-            #print(f'COLLINEAR_CEILING at {v}')
-            i, cell = find_cell(v, cells, active_cells)
+            print(f'COLLINEAR_CEILING at {v}')
+            i, cell = find_cell(v, cells, active_cells, True)
             cell[0].append(v)
         elif v.type == COLLINEAR_FLOOR:
-            #print(f'COLLINEAR_FLOOR at {v}')
-            i, cell = find_cell(v, cells, active_cells)
+            print(f'COLLINEAR_FLOOR at {v}')
+            i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
 
-        #print(f'\t {active_cells}')
-        #for c in cells:
-            #print(f'\t {c}')
+        print(f'\t {active_cells}')
+        for c in cells:
+            print(f'\t {c}')
     sub_polygons = []
 
     for cell in cells:
@@ -762,7 +808,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
     ax.set_aspect('equal')
     plt.show()
 
-def find_cell(v, cells, active_cells, v2=None):
+def find_cell(v, cells, active_cells, direction_up=None, v2=None):
     for i, cell in enumerate(cells):
         if not active_cells[i]:
             continue
@@ -776,8 +822,11 @@ def find_cell(v, cells, active_cells, v2=None):
             return i, cell
         if v.type == FLOOR_CONCAVE and (v.prev in cell[0] or v.prev in cell[1]) and (v2 in cell[1] or v2 in cell[0]):
             return i, cell
-        if v.type == MERGE and (v2 in cell[0] or v2 in cell[1]):
-            return i, cell
+        if v.type == MERGE:
+            if direction_up and v2 in cell[0]:
+                return i, cell
+            if not direction_up and v2 in cell[1]:
+                return i, cell
         if v.type == COLLINEAR_CEILING and (v.next in cell[0] or v.next in cell[1]):
             return i, cell
         if v.type == COLLINEAR_FLOOR and (v.prev in cell[0] or v.prev in cell[1]):
