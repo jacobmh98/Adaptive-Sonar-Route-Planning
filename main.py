@@ -1,55 +1,50 @@
-import numpy as np
+import copy
 import json
-import functions
-import CPP_2D_convex_functions
-import matplotlib.pyplot as plt
+import multi_poly_planning
+import path_comparison_functions
+import pickle
+import traceback
+from global_variables import *
+import numpy as np
+import time
 
-# Reading the test data
-f1 = open('test_data/complex_polygon.json')
+antwerp = False
+if antwerp:
+    with open('test_data/antwerp_comparison.pkl', 'rb') as file:
+        optimized_polygons = pickle.load(file)
 
-data = json.load(f1)
+else:
+    with open('test_data/simple_complex_comparison.pkl', 'rb') as file:
+        optimized_polygons = pickle.load(file)
 
-# Find antipodal vertex testing
-P = np.array(data["area"]["coordinates"])
-antipodal_vertices = CPP_2D_convex_functions.antipodal_vertice_pairs(P)
-antipodal_vertices = CPP_2D_convex_functions.remove_parallel_antipodal_vertices(P, antipodal_vertices)  # Removing parallel vertices
-diametral_point = CPP_2D_convex_functions.get_diametral_antipodal_point(P, antipodal_vertices, 2)
+# Plotting the sub-polygons
 
-# Defining the vertices in counter-clock wise order
-vertices = data['area']['coordinates']
-vertices = np.array(vertices).T
+if dfs_sort:
+    # Order the list of sub polygons
+    adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_polygons)
+    start_node = next(iter(adjacency_graph.nodes()))
+    #functions.plot_graph(adjacency_graph)
+    polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_polygons, start_node)
 
-# Number of vertices
-n = vertices.shape[1]
+else:  # Unsorted polygons
+    polygons = optimized_polygons
 
-# Creating a plot
-fig = plt.figure()
+start_time = time.time()
+total_path = multi_poly_planning.multi_path_planning(polygons, dx, extern_start_end)
+end_time = time.time()
+elapsed_time = end_time - start_time
 
-# Plotting the points
-x_coords = vertices[0, :]
-y_coords = vertices[1, :]
+# For comparisons
+distance = path_comparison_functions.compute_total_distance(total_path)
+total_turns, hard_turns, medium_turns, soft_turns = path_comparison_functions.calculate_turns_and_classify(total_path)
 
-# Plotting path
-#path = np.array(path).T
-#path_x = path[0, :]
-#path_y = path[1, :]
+print('Newest version:')
+print(f'Distance: {distance}')
+print(f'Total turns: {total_turns}')
+print(f'Hard turns: {hard_turns}')
+print(f'Medium turns: {medium_turns}')
+print(f'Soft turns: {soft_turns}')
+print(f'Elapsed time: {elapsed_time}')
+print()
 
-plt.plot(x_coords, y_coords, 'b-', marker='o')  # Connect back to the first point to close the polygon
-plt.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'b-')
-
-#plt.plot(path_x, path_y, 'r-', marker='o')
-plt.grid()
-
-for i in range(n):
-    x = vertices[0][i]
-    y = vertices[1][i]
-    plt.text(x, y, f'{i}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
-
-    for k in range(antipodal_vertices.shape[0]):
-        xk = [P[antipodal_vertices[k, 0], 0], P[antipodal_vertices[k, 1], 0]]
-        yk = [P[antipodal_vertices[k, 0], 1], P[antipodal_vertices[k, 1], 1]]
-        plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
-
-plt.show()
-
-quit()
+multi_poly_planning.multi_poly_plot(optimized_polygons, polygons, dx, extern_start_end, ext_p_start, ext_p_end, total_path)

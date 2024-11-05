@@ -28,7 +28,7 @@ def compute_antipodal_pairs(polygon):
         j += 1
 
     # Loop over each vertex i
-    for i in range(n):
+    for i in range(0,n):
         antipodal_pairs.append((i, j))
 
         # Move the caliper to the next vertex and check the antipodal condition
@@ -51,6 +51,8 @@ def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
     unique_pairs = set()
 
     for i, j in antipodal_pairs:
+        if i == j:  # TODO: Ensure that a (1,1) dont get added as an antipodal point, this is a temp fix
+            continue
         # Filter out neighboring pairs
         if abs(i - j) % n != 1:
             # Add the pair if its reverse doesn't exist
