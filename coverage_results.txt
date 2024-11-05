@@ -1,11 +1,11 @@
-Execution time: 0.3181154727935791
-Coverage percentage: 99.76%
-Covered area: 182561.8579520339
-Wasted area: 5874.428936945808
-Overlap area: 18200.523664587243
+Execution time: 0.6496446132659912
+Coverage percentage: 96.38%
+Covered area: 176387.58520674324
+Wasted area: 12578.489389283766
+Overlap area: 15054.566262312912
 
-Distance: 19419.955963755172
-Total turns: 124
-Hard turns (<45): 18
-Medium turns (45-90): 45
-Soft turns (>90): 61
+Distance: 13391.594891266872
+Total turns: 84
+Hard turns (<45): 12
+Medium turns (45-90): 28
+Soft turns (>90): 44
