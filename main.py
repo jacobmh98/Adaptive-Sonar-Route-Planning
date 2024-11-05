@@ -27,12 +27,18 @@ from obstacles import *
 from load_data import *
 
 # Loading the region and obstacles
-data_path = 'complex_polygon'
+data_path = 'complex_polygon_obstacles_2'
 region, obstacles = get_region(data_path)
 
+# Decompose the region using the sweep line algorithm
+sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
+plot_obstacles(sub_polygons_sweep_line, obstacles, False)
+
 # Decompose the region without considering obstacles
-sub_polygons = generate_new_data(region)
-#plot_obstacles(sub_polygons, obstacles, False)
+sub_polygons = generate_new_data(copy.deepcopy(region))
+
+#%% Plot the decomposed sub_polygons without considered obstacles
+plot_obstacles(sub_polygons, obstacles, False)
 
 # Optimize the sub-polygons by merging when possible
 #optimized_sub_polygons = compute_optimized_data(sub_polygons)
@@ -45,6 +51,8 @@ obstacles_affected = []
 for o in obstacles:
     filtered_mask, filtered = find_bounding_polygons(sub_polygons, o)
     common_found = False
+
+    #plot_obstacles(filtered, obstacles, False)
 
     for index, mask in enumerate(sub_polygons_filtered_masks):
         for i in mask:
@@ -70,45 +78,45 @@ for o in obstacles:
         sub_polygons_filtered.append(filtered)
         obstacles_affected.append([o])
 
-
 # Merge each cluster into a single polygon and decompose it using sweep line algorithm
 decomposed_polygons = []
 extracted_sub_polygons = []
+extracted_sub_polygons_mask = []
+dont_include_mask = []
+
+for list in sub_polygons_filtered_masks:
+    for p in list:
+        dont_include_mask.append(p)
+
 for i, filtered in enumerate(sub_polygons_filtered):
     sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_masks[i])
-    #plot_obstacles([merged_sub_polygon], obstacles_affected[i], True)
+
+    #plot_obstacles([merged_sub_polygon], obstacles, True)
+
     merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles_affected[i])
     decomposed_polygons += merged_sub_polygon_decomposed
 
+    #plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
+
     for p in sub_polygons_extract:
-        if p not in extracted_sub_polygons:
-            extracted_sub_polygons.append(p)
+        if p not in extracted_sub_polygons_mask and p not in dont_include_mask:
+            extracted_sub_polygons_mask.append(p)
+            extracted_sub_polygons.append(sub_polygons[p])
 
-print(decomposed_polygons)
-plot_obstacles(extracted_sub_polygons + decomposed_polygons, obstacles, False)
-#combined_polygons = sub_polygons_extract + merged_sub_polygon_decomposed
+# Combining all the decomposed sub-polygons with obstacles
+combined_polygons = extracted_sub_polygons + decomposed_polygons
+
+#%% Plot the sub_polygons computed only with the sweep line algorithm
+#plot_obstacles(sub_polygons_sweep_line, obstacles, False)
+#%% Plot the region and obstacles
 #plot_obstacles([region], obstacles, False)
-#plot_obstacles(sub_polygons, obstacles, False)
+
+#%% Plot the optimized sub_polygons without considered obstacles
 #plot_obstacles(optimized_sub_polygons, obstacles)
+
+#%% Plot the sub_polygons while considered obstacles
 #plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
-#plot_obstacles(sub_polygons_extract + [merged_sub_polygon], obstacles, False)
-#hard_edges_list = extract_hard_edges(combined_polygons, hard_edges_manuel)
-#plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-
-#for p in combined_polygons:
-#    plot_obstacles([p], [], True)
-
-
-#plot_obstacles([region], obstacles, True)
-#plot_obstacles(sub_polygons, obstacles, False)
-#plot_obstacles([merged_sub_polygon], obstacles, True)
-#plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-#plot_obstacles(combined_polygons, obstacles, False)
-
-#for p in sub_polygons:
-#    plot_obstacles([p], [], True)
-
-#plot_obstacles(combined_polygons, obstacles, False)
+plot_obstacles(combined_polygons, obstacles, False)
 
 quit()
 intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)

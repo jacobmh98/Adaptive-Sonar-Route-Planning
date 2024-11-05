@@ -152,8 +152,8 @@ def decompose_sweep_line(sub_polygon, obstacles):
     active_cells = []
     break_here = False
 
-    for v in combined_vertices_sorted:
-        print(f'{v} {v.type}')
+    #for v in combined_vertices_sorted:
+        #print(f'{v} {v.type}')
 
     for v in combined_vertices_sorted:
         if break_here:
@@ -428,8 +428,8 @@ def decompose_sweep_line(sub_polygon, obstacles):
             v_down.edge_from_v_is_hard = intersection_down_edge.v_from.edge_from_v_is_hard
             edge_down = intersection_down_edge
 
-            print(f'{edge_up=}')
-            print(f'{edge_down=}')
+            #print(f'{edge_up=}')
+            #print(f'{edge_down=}')
             # Handling upwards intersection
             combined_edges.remove(edge_up)
             edge_up.v_from.next = v_up
@@ -441,7 +441,7 @@ def decompose_sweep_line(sub_polygon, obstacles):
             # TODO HERE
 
             i, cell = find_cell(v, cells, active_cells, True, edge_up.v_to)
-            print(f'{v_up=} belongs to {cell=}')
+            #print(f'{v_up=} belongs to {cell=}')
             cell[0].append(v_up)
             cell[1].append(v)
             active_cells[i] = False
@@ -750,13 +750,14 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
     #for i, v in enumerate(p.vertices):
     #    v.index = i
 
-    sub_polygons_updated = []
+    sub_polygons_extract = []
+
     # Append all the other sub-polygons not affected by the obstacle
     for i, poly in enumerate(sub_polygons):
         if i not in mask:
-            sub_polygons_updated.append(poly)
+            sub_polygons_extract.append(i)
 
-    return sub_polygons_updated, p
+    return sub_polygons_extract, p
 
 def decompose_around_obstacle(filtered_sub_polygons, obstacle):
     """ Computes the convex decomposition around the obstacle """
@@ -808,7 +809,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
     ax.set_aspect('equal')
     plt.show()
 
-def find_cell(v, cells, active_cells, direction_up=None, v2=None):
+def find_cell(v, cells, active_cells, direction_up, v2=None):
     for i, cell in enumerate(cells):
         if not active_cells[i]:
             continue
