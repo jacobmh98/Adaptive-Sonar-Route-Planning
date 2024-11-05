@@ -4,7 +4,8 @@ epsilon = 0.01 # 10cm
 load_existing_data = True
 
 # Start parameters
-dx = 15 # Path width (Must be >0) (1 is 1 meter)
+path_width = 15 # Path width (Must be >0) (1 is 1 meter)
+overlap_distance =  0
 remove_parallel_vertices = True  # Can cause issues in path coverage if not removed
 extern_start_end = False
 if extern_start_end:
@@ -23,3 +24,5 @@ distance_weight = 1
 distance_to_start_weight = 1
 distance_to_end_weight = 1
 turn_weight = 5
+
+store_data = False
