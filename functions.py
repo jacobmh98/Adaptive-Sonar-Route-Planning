@@ -579,7 +579,7 @@ def plot_graph(G):
 
     pos = nx.spring_layout(G)  # Layout for node positions
     nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
-    ax.set_title('Undirected Graph')
+    ax.set_title('Adjacency Graph')
     plt.show()
 
 def plot_polygons(P, sub_polygons, G):

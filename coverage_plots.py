@@ -20,7 +20,7 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
     """
     coverage = False
-    plot_sub_polygons = False
+    plot_sub_polygons = True
 
     # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
