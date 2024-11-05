@@ -13,6 +13,7 @@ def compute_antipodal_pairs(polygon):
     """ Computes antipodal pairs for a given polygon.
 
     :param polygon: Polygon object with a list of vertices.
+
     :return: List of tuples representing antipodal vertex pairs.
     """
     vertices = polygon.vertices
@@ -27,7 +28,7 @@ def compute_antipodal_pairs(polygon):
         j += 1
 
     # Loop over each vertex i
-    for i in range(0,n):
+    for i in range(n):
         antipodal_pairs.append((i, j))
 
         # Move the caliper to the next vertex and check the antipodal condition
@@ -40,55 +41,18 @@ def compute_antipodal_pairs(polygon):
 
 
 def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
-    """
-    Filter out neighboring antipodal pairs and remove redundant pairs (i, j) and (j, i).
+    """ Filter out neighboring antipodal pairs and remove redundant pairs (i, j) and (j, i).
 
-    For a triangle (3 vertices), neighboring points along the hypotenuse are not removed.
-
-    :param polygon: Polygon object to check neighboring vertices.
     :param antipodal_pairs: List of tuples representing antipodal pairs.
+    :param polygon: Polygon object to check neighboring vertices.
     :return: Filtered list of unique and non-neighboring antipodal pairs.
     """
     n = polygon.number_vertices
     unique_pairs = set()
 
-    # Special case for triangles (3 vertices)
-    if n == 3:
-        # Get lengths of each edge to identify the hypotenuse
-        edges = [
-            (0, 1, np.linalg.norm(np.array(polygon.vertices[0].v) - np.array(polygon.vertices[1].v))),
-            (1, 2, np.linalg.norm(np.array(polygon.vertices[1].v) - np.array(polygon.vertices[2].v))),
-            (2, 0, np.linalg.norm(np.array(polygon.vertices[2].v) - np.array(polygon.vertices[0].v)))
-        ]
-        # Find the hypotenuse, the edge with the longest length
-        hypotenuse = max(edges, key=lambda edge: edge[2])
-        hypotenuse_indices = (hypotenuse[0], hypotenuse[1])
-
-        # Keep the hypotenuse neighbors, but continue filtering for others
-        for i, j in antipodal_pairs:
-            if i == j:  # Avoid adding pairs where both points are the same
-                continue
-
-            # Allow neighbors along the hypotenuse
-            if (i, j) == hypotenuse_indices or (j, i) == hypotenuse_indices:
-                unique_pairs.add((i, j))
-            else:
-                # Check if i and j are neighbors (for non-triangle cases)
-                if abs(i - j) != 1 and abs(i - j) != n - 1:
-                    # Add the pair if its reverse doesn't exist
-                    if (j, i) not in unique_pairs:
-                        unique_pairs.add((i, j))
-
-    # General case for polygons with more than 3 vertices
-    else:
-        for i, j in antipodal_pairs:
-            if i == j:  # Avoid adding pairs where both points are the same
-                continue
-
-            # Check if i and j are neighbors, including wrapping around the polygon
-            if abs(i - j) == 1 or abs(i - j) == n - 1:
-                continue  # Skip neighboring pairs
-
+    for i, j in antipodal_pairs:
+        # Filter out neighboring pairs
+        if abs(i - j) % n != 1:
             # Add the pair if its reverse doesn't exist
             if (j, i) not in unique_pairs:
                 unique_pairs.add((i, j))
@@ -124,12 +88,15 @@ def get_diametric_antipodal_pair_index(polygon, antipodal_pairs, b):
 
 
 def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
-    """ Filter the antipodal pairs to keep only the diametric antipodal pairs for each vertex.
+    """
+    Filter the antipodal pairs to keep only the diametric antipodal pairs for each vertex.
 
-    :param polygon: Polygon object with vertices.
-    :param antipodal_pairs: List of tuples representing antipodal pairs.
+    Args:
+        polygon: Polygon object with vertices.
+        antipodal_pairs: List of tuples representing antipodal pairs.
 
-    :returns: List of tuples representing only the diametric antipodal pairs.
+    Returns:
+        List of tuples representing only the diametric antipodal pairs.
     """
     diametric_pairs = set()  # Using a set to avoid duplicates
 
@@ -143,18 +110,20 @@ def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
             sorted_pair = tuple(sorted([b, diametric_pair]))
             diametric_pairs.add(sorted_pair)
 
-    #plot_antipodal_points(polygon, diametric_pairs)
-
     # Convert the set to a list for the final output
     return list(diametric_pairs)
 
 
 def get_diametric_antipodal_point_index(diametric_antipodal_pairs, b):
-    """ Given a point index b, find and return its diametric antipodal point a from the diametric antipodal pairs.
+    """
+    Given a point index b, find and return its diametric antipodal point a from the diametric antipodal pairs.
 
-    :param diametric_antipodal_pairs: List of tuples representing diametric antipodal pairs.
-    :param b: The index of the point for which to find the diametric antipodal pair.
-    :returns: The index of the diametric antipodal point for b, or None if not found.
+    Args:
+        diametric_antipodal_pairs: List of tuples representing diametric antipodal pairs.
+        b: The index of the point for which to find the diametric antipodal pair.
+
+    Returns:
+        The index of the diametric antipodal point for b, or None if not found.
     """
     for (i, j) in diametric_antipodal_pairs:
         if i == b:
@@ -175,11 +144,11 @@ def plot_antipodal_points(polygon, antipodal_vertices):
     x_coords, y_coords = polygon.get_coords()
 
     # Plot the polygon (ensure the polygon closes by connecting last and first point)
-    plt.plot(x_coords + [x_coords[0]], y_coords + [y_coords[0]], 'k-', marker='o')
+    plt.plot(x_coords + [x_coords[0]], y_coords + [y_coords[0]], 'b-', marker='o')
 
     # Plot vertex indices for reference
     for v in polygon.vertices:
-        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='blue')
+        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='red')
 
     # Plot the antipodal pairs
     for (i, j) in antipodal_vertices:
@@ -188,5 +157,5 @@ def plot_antipodal_points(polygon, antipodal_vertices):
         plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
 
     # Display the plot
-    #plt.grid()
+    plt.grid()
     plt.show()
