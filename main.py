@@ -27,12 +27,14 @@ from obstacles import *
 from load_data import *
 
 # Loading the region and obstacles
-data_path = 'complex_polygon_obstacles_2'
+data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
 
 # Decompose the region using the sweep line algorithm
 sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
 plot_obstacles(sub_polygons_sweep_line, obstacles, False)
+
+
 
 # Decompose the region without considering obstacles
 sub_polygons = generate_new_data(copy.deepcopy(region))
@@ -91,8 +93,6 @@ for list in sub_polygons_filtered_masks:
 for i, filtered in enumerate(sub_polygons_filtered):
     sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(filtered), copy.deepcopy(sub_polygons), sub_polygons_filtered_masks[i])
 
-    #plot_obstacles([merged_sub_polygon], obstacles, True)
-
     merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles_affected[i])
     decomposed_polygons += merged_sub_polygon_decomposed
 
@@ -103,8 +103,11 @@ for i, filtered in enumerate(sub_polygons_filtered):
             extracted_sub_polygons_mask.append(p)
             extracted_sub_polygons.append(sub_polygons[p])
 
+    plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
+
 # Combining all the decomposed sub-polygons with obstacles
 combined_polygons = extracted_sub_polygons + decomposed_polygons
+plot_obstacles(combined_polygons, obstacles, False)
 
 #%% Plot the sub_polygons computed only with the sweep line algorithm
 #plot_obstacles(sub_polygons_sweep_line, obstacles, False)
@@ -116,7 +119,18 @@ combined_polygons = extracted_sub_polygons + decomposed_polygons
 
 #%% Plot the sub_polygons while considered obstacles
 #plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
-plot_obstacles(combined_polygons, obstacles, False)
+
+sum_combined = 0
+for i, p in enumerate(combined_polygons):
+    sum_combined += min_polygon_width(p.vertices_matrix())
+
+print(f'{sum_combined=}')
+
+sum_sweep_line = 0
+for i, p in enumerate(sub_polygons_sweep_line):
+    sum_sweep_line += min_polygon_width(p.vertices_matrix())
+
+print(f'{sum_sweep_line=}')
 
 quit()
 intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
