@@ -6,6 +6,7 @@ from shapely.creation import polygons
 
 import connecting_path
 import coverage_plots
+import dubins_turning
 import decomposition
 import intra_regional_tsp
 import multi_poly_planning
@@ -27,7 +28,7 @@ from obstacles import *
 from load_data import *
 
 # Loading the region and obstacles
-data_path = 'complex_polygon_obstacles_2'
+data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
 
 # Decompose the region using the sweep line algorithm
@@ -104,7 +105,7 @@ for i, filtered in enumerate(sub_polygons_filtered):
             extracted_sub_polygons.append(sub_polygons[p])
 
 # Combining all the decomposed sub-polygons with obstacles
-combined_polygons = extracted_sub_polygons + decomposed_polygons
+combined_polygons = sub_polygons #extracted_sub_polygons + decomposed_polygons
 
 #%% Plot the sub_polygons computed only with the sweep line algorithm
 #plot_obstacles(sub_polygons_sweep_line, obstacles, False)
@@ -125,11 +126,10 @@ total_start_time = time.time()
 if tsp_sorting:
     print("TSP Sorting")
     #tsp_route = intra_regional_tsp.start_tsp(optimized_sub_polygons, intersections)
-
     # TODO: Old tsp, use some for new
     distance_matrix = traveling_salesman_variation.create_distance_matrix(combined_polygons)
     tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-    traveling_salesman_variation.visualize_tsp_solution(combined_polygons, tsp_route)
+    #traveling_salesman_variation.visualize_tsp_solution(combined_polygons, tsp_route)
     combined_polygons = [combined_polygons[i] for i in tsp_route]
 
 elif dfs_sorting:
@@ -157,6 +157,8 @@ else:
     path = connecting_path.connect_path(combined_polygons, intersections, region)
     distance = path_comparison_functions.compute_total_distance(path)
 
+
+#smooth_path = dubins_turning.dubins_path_with_heading(path, 15)
 coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path)
 
 # Ending timer and computing total execution time
