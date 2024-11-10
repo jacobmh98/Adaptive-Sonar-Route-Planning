@@ -109,6 +109,8 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     # Show the plot in a separate window
     plt.show()
 
+    return fig
+
 def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, boundary, show_legend=True):
     """
     Plot the polygon, points b, b_mate, a, and multiple vectors (L_flight, L_flight_ext, and L_flight_2 reversed) for a convex polygon with an optional legend.

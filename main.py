@@ -26,19 +26,20 @@ from global_variables import load_existing_data
 from obstacles import *
 from load_data import *
 
+
 # Loading the region and obstacles
 data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
+plot_obstacles([region], obstacles, False)
 
 # Decompose the region using the sweep line algorithm
 sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
 plot_obstacles(sub_polygons_sweep_line, obstacles, False)
 
-
-
 # Decompose the region without considering obstacles
 sub_polygons = generate_new_data(copy.deepcopy(region))
 
+quit()
 #%% Plot the decomposed sub_polygons without considered obstacles
 plot_obstacles(sub_polygons, obstacles, False)
 
@@ -135,7 +136,7 @@ print(f'{sum_sweep_line=}')
 quit()
 intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
 path = connecting_path.connect_path(combined_polygons, intersections, region)
-coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path)
+fig = coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path)
 
 
 quit()

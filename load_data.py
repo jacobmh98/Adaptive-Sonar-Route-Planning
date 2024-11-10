@@ -8,8 +8,7 @@ from decomposition import split_polygon, is_well_formed, optimize_polygons, remo
 
 def get_region(data_path):
     # Reading the test data
-    f = open(f'test_data/{data_path}.json')
-
+    f = open(f'{data_path}')
     data = json.load(f)
     vertices_data = data['area']['coordinates']
     num_of_obstacles = data['obstacles']['num_of_obstacles']
