@@ -13,7 +13,6 @@ from rtree import index
 
 from load_data import generate_new_data
 
-
 def compute_intersection(ray_start, ray_dir, seg_A, seg_B):
     # Vector from A to B (the direction of the segment)
     seg_dir = seg_B - seg_A
@@ -42,6 +41,7 @@ def compute_intersection(ray_start, ray_dir, seg_A, seg_B):
     else:
         # No valid intersection
         return None
+
 def compute_intersection_edges(e, e2):
     """
         Compute the intersection point of two line segments defined by points p1, p2 and p3, p4.
@@ -810,7 +810,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
                     plt.scatter(v.x, v.y, color='black')
 
     ax.set_aspect('equal')
-    #plt.show()
+    plt.show()
     return fig
 
 def find_cell(v, cells, active_cells, direction_up, v2=None):

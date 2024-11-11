@@ -171,3 +171,15 @@ def compute_path_data(poly, path, time):
             file.write(f"Hard turns (<45): {hard_turns}\n")
             file.write(f"Medium turns (45-90): {medium_turns}\n")
             file.write(f"Soft turns (>90): {soft_turns}\n")
+
+    result = {
+        'type': 'coverage_statistics',
+        'coverage_percentage': coverage_percentage,
+        'covered_area': covered_area.area,
+        'distance': distance,
+        'total_turns': total_turns,
+        'hard_turns': hard_turns,
+        'medium_turns': medium_turns,
+        'soft_turns': soft_turns
+    }
+    return result

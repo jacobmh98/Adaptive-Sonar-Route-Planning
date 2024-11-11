@@ -7,7 +7,7 @@ from shapely.geometry import Polygon as ShapelyPolygon
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
+#matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
 
 def multi_poly_plot(polygon, current_path_width, polygons, path):
     """

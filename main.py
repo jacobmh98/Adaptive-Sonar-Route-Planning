@@ -28,23 +28,19 @@ from load_data import *
 
 
 # Loading the region and obstacles
-data_path = 'complex_polygon'
+data_path = 'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/complex_polygon.json'
 region, obstacles = get_region(data_path)
 plot_obstacles([region], obstacles, False)
 
 # Decompose the region using the sweep line algorithm
-sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
-plot_obstacles(sub_polygons_sweep_line, obstacles, False)
+#sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
+#plot_obstacles(sub_polygons_sweep_line, obstacles, False)
 
 # Decompose the region without considering obstacles
 sub_polygons = generate_new_data(copy.deepcopy(region))
 
-quit()
 #%% Plot the decomposed sub_polygons without considered obstacles
 plot_obstacles(sub_polygons, obstacles, False)
-
-# Optimize the sub-polygons by merging when possible
-#optimized_sub_polygons = compute_optimized_data(sub_polygons)
 
 # Divide the sub-polygons into clusters that are affected by the obstacles
 sub_polygons_filtered_masks = []
@@ -108,7 +104,11 @@ for i, filtered in enumerate(sub_polygons_filtered):
 
 # Combining all the decomposed sub-polygons with obstacles
 combined_polygons = extracted_sub_polygons + decomposed_polygons
+
+# Optimize the sub-polygons by merging when possible
+#optimized_sub_polygons = compute_optimized_data(combined_polygons)
 plot_obstacles(combined_polygons, obstacles, False)
+
 
 #%% Plot the sub_polygons computed only with the sweep line algorithm
 #plot_obstacles(sub_polygons_sweep_line, obstacles, False)
@@ -121,7 +121,7 @@ plot_obstacles(combined_polygons, obstacles, False)
 #%% Plot the sub_polygons while considered obstacles
 #plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
 
-sum_combined = 0
+"""sum_combined = 0
 for i, p in enumerate(combined_polygons):
     sum_combined += min_polygon_width(p.vertices_matrix())
 
@@ -131,15 +131,23 @@ sum_sweep_line = 0
 for i, p in enumerate(sub_polygons_sweep_line):
     sum_sweep_line += min_polygon_width(p.vertices_matrix())
 
-print(f'{sum_sweep_line=}')
+print(f'{sum_sweep_line=}')"""
+
+#adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
+#start_node = next(iter(adjacency_graph.nodes()))
+#optimized_sub_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
+
+distance_matrix = traveling_salesman_variation.create_distance_matrix(combined_polygons)
+tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
+traveling_salesman_variation.visualize_tsp_solution(combined_polygons, tsp_route)
+optimized_sub_polygons = [combined_polygons[i] for i in tsp_route]
+
+intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
+path = connecting_path.connect_path(optimized_sub_polygons, intersections, region)
+fig = coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, path)
 
 quit()
-intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
-path = connecting_path.connect_path(combined_polygons, intersections, region)
-fig = coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path)
 
-
-quit()
 #plot_obstacles(sub_polygons, obstacles)
 #asd(sub_polygons[0], obstacles[0])
 # TODO obstruction starts here
