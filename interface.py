@@ -206,6 +206,7 @@ def update_stats():
         stats_label.config(text=str,
                            justify="left",  # Justify text to the left
                            anchor="w")
+
 def path_planner():
     global current_plot_index
     sub_polygons = sub_polygons_list[current_plot_index]
@@ -278,7 +279,7 @@ def setup_plot_pane():
 
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry
+    global label, decomposition_variable, path_width_entry, sorting_variable
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
@@ -303,6 +304,17 @@ def setup_option_pane():
     path_width_entry = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
     path_width_entry.pack(anchor='w')
     path_width_entry.insert(0, '10')
+
+    Label(options_pane, text='Sorting Method', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
+    sorting_variable = StringVar(value='TSP Centroid')
+    rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered')
+    rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS')
+    rb6 = Radiobutton(options_pane, text='TSP Centroid', variable=sorting_variable, value='TSP Centroid')
+    rb7 = Radiobutton(options_pane, text='Intra Regional TSP', variable=sorting_variable, value='Intra Regional TSP')
+    rb4.pack(anchor='w')
+    rb5.pack(anchor='w')
+    rb6.pack(anchor='w')
+    rb7.pack(anchor='w')
 
     Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
