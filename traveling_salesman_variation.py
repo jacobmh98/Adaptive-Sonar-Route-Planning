@@ -25,7 +25,7 @@ def create_distance_matrix(polygons):
         for j in range(i + 1, n):
             distance = compute_distance(polygons[i], polygons[j])
             distance_matrix[i][j] = distance
-            distance_matrix[j][i] = distance  # Symmetric matrix
+            distance_matrix[j][i] = distance  # For symmetric matrix
     return distance_matrix
 
 

@@ -9,13 +9,12 @@ import coverage_plots
 import decomposition
 import intra_regional_tsp
 import multi_poly_planning
-#import multi_poly_planning
 import optimal_path
 import path_comparison_functions
-from intra_regional_tsp import *
+#import intra_regional_tsp
+import intra_regional_tsp_networkx
 import random
 from collections import Counter
-
 import traveling_salesman_variation
 import traceback
 from global_variables import *
@@ -27,7 +26,7 @@ from obstacles import *
 from load_data import *
 
 # Loading the region and obstacles
-data_path = 'complex_polygon_obstacles_2'
+data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
 
 # Decompose the region using the sweep line algorithm
@@ -104,7 +103,7 @@ for i, filtered in enumerate(sub_polygons_filtered):
             extracted_sub_polygons.append(sub_polygons[p])
 
 # Combining all the decomposed sub-polygons with obstacles
-combined_polygons = extracted_sub_polygons + decomposed_polygons
+combined_polygons = sub_polygons#extracted_sub_polygons + decomposed_polygons
 
 #%% Plot the sub_polygons computed only with the sweep line algorithm
 #plot_obstacles(sub_polygons_sweep_line, obstacles, False)
@@ -120,17 +119,21 @@ combined_polygons = extracted_sub_polygons + decomposed_polygons
 
 # Starting timer for all cpp functions
 total_start_time = time.time()
+intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
+
 
 # Choosing sorting method
 if tsp_sorting:
     print("TSP Sorting")
-    #tsp_route = intra_regional_tsp.start_tsp(optimized_sub_polygons, intersections)
+    combined_polygons = intra_regional_tsp.solve_intra_regional_tsp(combined_polygons, intersections)
+   # combined_polygons = intra_regional_tsp_networkx.solve_intra_regional_tsp_networkx(region, polygons, intersections)
 
-    # TODO: Old tsp, use some for new
-    distance_matrix = traveling_salesman_variation.create_distance_matrix(combined_polygons)
-    tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-    traveling_salesman_variation.visualize_tsp_solution(combined_polygons, tsp_route)
-    combined_polygons = [combined_polygons[i] for i in tsp_route]
+
+    # Old tsp, use some for new
+    #distance_matrix = traveling_salesman_variation.create_distance_matrix(combined_polygons)
+    #tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
+    #traveling_salesman_variation.visualize_tsp_solution(combined_polygons, tsp_route)
+    #combined_polygons = [combined_polygons[i] for i in tsp_route]
 
 elif dfs_sorting:
     # Order the list of sub polygons
@@ -143,21 +146,19 @@ elif dfs_sorting:
 print(f'Number of polygons = {len(combined_polygons)}')
 
 # Computing optimal path width given start path width and a tolerance (+- to path width)
-if find_optimal_path_width:
-    path, distance, path_width = optimal_path.compute_optimal_path_width(combined_polygons, path_width, tolerance, iterations)
+#if find_optimal_path_width:
+#    path, distance, path_width = optimal_path.compute_optimal_path_width(combined_polygons, path_width, tolerance, iterations)
 
 # Check if computing path using reversed sorted polygon list provides a better result
-elif check_reverse:
-    path, distance = optimal_path.compute_reverse(combined_polygons, path_width)
+#elif check_reverse:
+#    path, distance = optimal_path.compute_reverse(combined_polygons, path_width)
 
 # Baseline path
-else:
-    print('Baseline path:')
-    intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
-    path = connecting_path.connect_path(combined_polygons, intersections, region)
-    distance = path_comparison_functions.compute_total_distance(path)
-
-coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path)
+#else:
+print('Baseline path:')
+intersections = multi_poly_planning.multi_intersection_planning(combined_polygons, path_width)
+path = connecting_path.connect_path(combined_polygons, intersections, region)
+distance = path_comparison_functions.compute_total_distance(path)
 
 # Ending timer and computing total execution time
 total_end_time = time.time()
@@ -165,3 +166,5 @@ total_execution_time = total_end_time - total_start_time
 
 if get_path_data:
     path_comparison_functions.compute_path_data(region, path, total_execution_time)
+
+coverage_plots.multi_poly_plot(region, path_width, combined_polygons, path)

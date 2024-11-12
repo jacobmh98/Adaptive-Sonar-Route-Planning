@@ -9,6 +9,36 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
 
+
+def plot_simple_poly_path(polygon, path):
+    # Create a figure and axis
+    fig, ax = plt.subplots(1, 1)
+    ax.set_aspect('equal')  # Set axis to equal scaling
+
+    x_coords, y_coords = polygon.get_coords()
+    ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=3, label='Polygon')
+    ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+
+    # Label each vertex with its index
+    for idx, (x, y) in enumerate(zip(x_coords, y_coords)):
+        ax.text(x, y, f'{idx}', fontsize=8, color='green', ha='right', va='bottom')
+
+
+    # Plot the path
+    if len(path) > 0:
+        path_x, path_y = path[:, 0], path[:, 1]
+        ax.plot(path_x, path_y, 'g-', label='Path', linewidth=2)
+
+        # Highlight the start and end points of the path
+        ax.plot(path_x[0], path_y[0], 'go', markersize=8, label='Start Point')  # Start point
+        ax.plot(path_x[-1], path_y[-1], 'ro', markersize=8, label='End Point')  # End point
+
+    plt.xlabel('X')
+    plt.ylabel('Y')
+
+    # Show the plot in a separate window
+    plt.show()
+
 def multi_poly_plot(polygon, current_path_width, polygons, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
