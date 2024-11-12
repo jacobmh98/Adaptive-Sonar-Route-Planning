@@ -128,7 +128,7 @@ def rotating_calipers_path_planner(polygon, current_path_width, d_pq):
         # Compute the best path for the current antipodal pair
         current_intersections = polygon_coverage_intersections.best_intersection(polygon, current_path_width, i, j)
 
-        # TODO: Create a better cost function
+        # TODO: Create a better cost function?
         current_cost = len(current_intersections)
 
         # Update the optimal path if the current path has a lower cost

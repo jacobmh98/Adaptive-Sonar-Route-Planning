@@ -1,4 +1,5 @@
 import copy
+import time
 from tkinter import *
 from tkinter import filedialog
 
@@ -222,6 +223,8 @@ def path_planner():
                 global path_width
                 path_width = float(value)
 
+                total_start_time = time.time()
+
                 if sorting_variable.get() == 'DFS':
                     print("DFS")
                     sorted_sub_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(sub_polygons)
@@ -240,7 +243,11 @@ def path_planner():
                 path = connecting_path.connect_path(sorted_sub_polygons, intersections, region)
                 fig = coverage_plots.multi_poly_plot(region, path_width, sorted_sub_polygons, path)
 
-                stats_dict = compute_path_data(region, path, 0)
+                # Ending timer and computing total execution time
+                total_end_time = time.time()
+                total_execution_time = total_end_time - total_start_time
+
+                stats_dict = compute_path_data(region, path, obstacles,total_execution_time)
                 stats_dict['sorting_variable'] = sorting_variable.get()
                 stats.append(stats_dict)
                 plots.append(fig)

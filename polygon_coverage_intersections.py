@@ -387,13 +387,13 @@ def best_intersection(poly, current_path_width, i, j):
         else:
             intersections = get_path_intersections(poly, current_path_width, b2_index, poly.get_mate(b2_index), a2_index, boundary)
 
-        """# Check for a few edge cases where rotating caliper does not compute optimal path
+        # Check for a few edge cases where rotating caliper does not compute optimal path
         edge_case_one_intersections = get_path_intersections(poly, current_path_width, b_index, poly.get_mate(b_index), a_index, boundary)
         edge_case_two_intersections = get_path_intersections(poly, current_path_width, b2_index, poly.get_mate(b2_index), a2_index, boundary)
         if len(edge_case_one_intersections) < len(edge_case_two_intersections):
             if len(edge_case_one_intersections) < len(intersections):
                 intersections = edge_case_one_intersections
         elif len(edge_case_two_intersections) < len(intersections):
-            intersections = edge_case_two_intersections"""
+            intersections = edge_case_two_intersections
 
     return intersections

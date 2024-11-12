@@ -29,6 +29,7 @@ from load_data import *
 # Loading the region and obstacles
 data_path = 'C:/Users/andre/Documents/Adaptive-Sonar-Route-Planning/test_data/complex_polygon.json'
 region, obstacles = get_region(data_path)
+print(obstacles)
 #plot_obstacles([region], obstacles, False)
 
 # Decompose the region using the sweep line algorithm
@@ -180,6 +181,6 @@ total_end_time = time.time()
 total_execution_time = total_end_time - total_start_time
 
 if get_path_data:
-    path_comparison_functions.compute_path_data(region, path, total_execution_time)
+    path_comparison_functions.compute_path_data(region, path, obstacles, total_execution_time)
 
 coverage_plots.multi_poly_plot(region, path_width, sorted_combined_polygons, path)

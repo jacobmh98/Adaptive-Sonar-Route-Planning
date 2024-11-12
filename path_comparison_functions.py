@@ -58,26 +58,33 @@ def compute_turns(path):
 
 
 # Coverage functions
-def compute_covered_area(polygon, path):
-    """ Function to compute the coverage of the path inside the given polygon, and
-        return this as an area and the percentage it covers the polygon
 
-    :param polygon: Polygon
-    :param path: List of points
-    :return: Covered area as shapely Polygon area and a float percentage
+def compute_covered_area_with_obstacles(region, obstacles, path):
     """
+    Compute the coverage of the path inside the region, excluding obstacle areas.
+
+    :param region: Main region polygon as an instance of the Polygon class
+    :param obstacles: List of Polygon instances representing obstacles
+    :param path: List of points (as tuples or arrays) representing the path
+    :return: Tuple containing the covered area as a Shapely Polygon and the coverage percentage (float)
+    """
+    # Convert path points to a LineString and buffer it to create a coverage area
     path = LineString(path)
-    buffered_path = path.buffer((path_width + overlap_distance)/ 2.0)
+    buffered_path = path.buffer((path_width + overlap_distance) / 2.0)
 
-    # Convert your Polygon class to a Shapely Polygon
-    poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = ShapelyPolygon(poly_coords)
+    # Convert the main region polygon to a Shapely Polygon
+    region_coords = [(v.x, v.y) for v in region.vertices]
+    region_shape = ShapelyPolygon(region_coords)
 
-    # Find the intersection of the buffered path and the polygon (covered area)
-    covered_area = poly_shape.intersection(buffered_path)
+    # Subtract obstacle areas from the main region
+    obstacles_shapes = [ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles]
+    effective_region = region_shape.difference(unary_union(obstacles_shapes))
 
-    # Calculate the percentage of the polygon that is covered
-    coverage_percentage = (covered_area.area / poly_shape.area) * 100
+    # Compute the area covered within the effective region (region - obstacles)
+    covered_area = effective_region.intersection(buffered_path)
+
+    # Calculate the coverage percentage of the effective area
+    coverage_percentage = (covered_area.area / effective_region.area) * 100
 
     return covered_area, coverage_percentage
 
@@ -134,10 +141,10 @@ def compute_overlap_area(polygon, path):
 
     return overlap_area
 
-def compute_path_data(poly, path, time):
+def compute_path_data(poly, path, obstacles, time):
     distance = compute_total_distance(path)
 
-    covered_area, coverage_percentage = compute_covered_area(poly, path)
+    covered_area, coverage_percentage = compute_covered_area_with_obstacles(poly, obstacles, path)
     outlier_area = compute_outlier_area(poly, path)
     overlap_area = compute_overlap_area(poly, path)
 
