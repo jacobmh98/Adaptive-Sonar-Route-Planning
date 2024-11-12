@@ -903,7 +903,7 @@ def combined_algorithms(region, obstacles):
                 extracted_sub_polygons_mask.append(p)
                 extracted_sub_polygons.append(sub_polygons[p])
 
-        plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
+        #plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
 
 def angle(v):
     """ Compute interior or exterior (outward-facing angles)  """

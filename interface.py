@@ -221,7 +221,6 @@ def path_planner():
                 # Convert to integer
                 global path_width
                 path_width = float(value)
-                intersections = multi_poly_planning.multi_intersection_planning(sub_polygons, path_width)
 
                 if sorting_variable.get() == 'DFS':
                     print("DFS")
@@ -231,16 +230,13 @@ def path_planner():
                     sorted_sub_polygons = traveling_salesman_variation.solve_centroid_tsp(sub_polygons)
                 elif sorting_variable.get() == 'Intra Regional TSP':
                     print("Intra Regional")
+                    intersections = multi_poly_planning.multi_intersection_planning(sub_polygons, path_width)
                     sorted_sub_polygons = intra_regional_tsp.solve_intra_regional_tsp(sub_polygons, intersections)
                 else:
                     print("Unordered")
                     sorted_sub_polygons = sub_polygons
 
-                #distance_matrix = traveling_salesman_variation.create_distance_matrix(sub_polygons)
-                #tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-                #traveling_salesman_variation.visualize_tsp_solution(sub_polygons, tsp_route)
-                #optimized_sub_polygons = [sub_polygons[i] for i in tsp_route]
-
+                intersections = multi_poly_planning.multi_intersection_planning(sorted_sub_polygons, path_width)
                 path = connecting_path.connect_path(sorted_sub_polygons, intersections, region)
                 fig = coverage_plots.multi_poly_plot(region, path_width, sorted_sub_polygons, path)
 
