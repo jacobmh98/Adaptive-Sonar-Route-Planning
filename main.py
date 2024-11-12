@@ -123,25 +123,18 @@ intersections = multi_poly_planning.multi_intersection_planning(combined_polygon
 
 
 # Choosing sorting method
-if tsp_sorting:
-    print("TSP Sorting")
-    combined_polygons = intra_regional_tsp.solve_intra_regional_tsp(combined_polygons, intersections)
-   # combined_polygons = intra_regional_tsp_networkx.solve_intra_regional_tsp_networkx(region, polygons, intersections)
-
-
-    # Old tsp, use some for new
-    #distance_matrix = traveling_salesman_variation.create_distance_matrix(combined_polygons)
-    #tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-    #traveling_salesman_variation.visualize_tsp_solution(combined_polygons, tsp_route)
-    #combined_polygons = [combined_polygons[i] for i in tsp_route]
-
-elif dfs_sorting:
-    # Order the list of sub polygons
+if dfs_sorting:
     print("DFS Sorting")
-    adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(combined_polygons)
-    start_node = next(iter(adjacency_graph.nodes()))
-    combined_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, combined_polygons, start_node)
-    #plot_graph(adjacency_graph)
+    combined_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(combined_polygons)
+
+elif tsp_centroid_sorting:
+    print("TSP Centroid Sorting")
+    combined_polygons = traveling_salesman_variation.solve_centroid_tsp(combined_polygons)
+
+elif tsp_intra_regional_sorting:
+    print("TSP Intra Regional Sorting")
+    combined_polygons = intra_regional_tsp.solve_intra_regional_tsp(combined_polygons, intersections)
+
 
 print(f'Number of polygons = {len(combined_polygons)}')
 

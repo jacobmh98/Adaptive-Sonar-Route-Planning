@@ -70,6 +70,12 @@ def solve_tsp(distance_matrix):
         return None
 
 
+def solve_centroid_tsp(polygons):
+    distance_matrix = create_distance_matrix(polygons)
+    tsp_route = solve_tsp(distance_matrix)
+    sorted_polygons = [polygons[i] for i in tsp_route]
+    return sorted_polygons
+
 # Visualize the polygons and the TSP path
 def visualize_tsp_solution(polygons, tsp_route):
     # Plot polygons

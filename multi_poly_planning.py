@@ -50,7 +50,7 @@ def create_adjacency(polygons):
                 #print(f'{i} and {j} are adjacent')
     return A,G
 
-def sort_sub_polygons_using_dfs(G, polygons, start):
+def sort_sub_polygons_using_dfs(polygons):
     """ Use DFS to order the sub-polygons based on the adjacency graph
 
     :param G: nx graph
@@ -58,8 +58,12 @@ def sort_sub_polygons_using_dfs(G, polygons, start):
     :param start: string, start node
     :return sorted_polys: The sorted list of polygons
     """
+
+    adjacency_matrix, adjacency_graph = create_adjacency(polygons)
+    start = next(iter(adjacency_graph.nodes()))
+
     # Perform DFS on the graph starting from the specified start node
-    dfs_order = list(nx.dfs_preorder_nodes(G, start))
+    dfs_order = list(nx.dfs_preorder_nodes(adjacency_graph, start))
 
     # Convert the node labels back to polygon indices
     dfs_order_indices = [int(node[1:]) for node in dfs_order]
