@@ -1,7 +1,6 @@
 import copy
 
 import numpy as np
-from absl.app import ExceptionHandler
 from matplotlib import pyplot as plt
 
 from decomposition import dot, cross, get_center_of_polygon, optimize_polygons, find_shared_edge, polygons_are_adjacent, \

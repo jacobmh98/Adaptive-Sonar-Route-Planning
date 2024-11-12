@@ -1,7 +1,6 @@
 import numpy as np
-import coverage_plots
-import detect_and_avoid_hard_edges
-from detect_and_avoid_hard_edges import avoid_hard_edges
+import plot_cpp
+import cpp_hard_edges
 
 
 def compute_total_distance(path):
@@ -148,18 +147,13 @@ def connect_middle_path(polygons, total_intersections, i, path):
     check_middle = [start_point] + middle_path + [end_point1]
     check_opposite = [start_point] + opposite_path + [end_point2]
 
-    #coverage_plots.multi_poly_plot(polygons[i], polygons, np.array(check_middle))
-    #coverage_plots.multi_poly_plot(polygons[i], polygons, np.array(check_opposite))
-
     # Checking total distances travelled in each path
     dist1 = compute_total_distance(check_middle)
     dist2 = compute_total_distance(check_opposite)
 
     if dist1 <= dist2:
-        #print("middle")
         return middle_path
     else:
-        #print("opposite")
         return opposite_path
 
 def connect_last_path(path, intersections):
@@ -196,8 +190,8 @@ def connect_solo_path(intersections):  # Any point can be used as first point fo
 
     return solo_path
 
-def extract_hard_edges(polygons):
 
+def extract_hard_edges(polygons):
     # Extracting indices of hard edge vertices in each polygon
     hard_vertice_index_list = []
     for poly in polygons:
@@ -223,6 +217,7 @@ def extract_hard_edges(polygons):
                 all_hard_edges.append((hard_edge_start, hard_edge_end))
 
     return all_hard_edges
+
 
 def connect_path(polygons, total_intersections, region):
     path = np.empty((0,2))
@@ -251,12 +246,9 @@ def connect_path(polygons, total_intersections, region):
             hard_edges = extract_hard_edges(polygons)
 
             if i > 0 and len(hard_edges) > 0:
-                #print()
-                #print(f'Going from {i-1} to {i}')
-
                 last_path_point = path[-1]
                 current_first_point = current_path[0]
-                intermediate_points = detect_and_avoid_hard_edges.avoid_hard_edges(last_path_point, current_first_point, poly, polygons, region, hard_edges)
+                intermediate_points = cpp_hard_edges.avoid_hard_edges(last_path_point, current_first_point, poly, polygons, region, hard_edges)
 
                 if intermediate_points:
                     # Append the intermediate points to the path

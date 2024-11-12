@@ -2,18 +2,18 @@ import copy
 import time
 from tkinter import *
 from tkinter import filedialog
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-import connecting_path
-import coverage_plots
-import intra_regional_tsp
-import multi_poly_planning
-import traveling_salesman_variation
+import cpp_connect_path
+import cpp_path_planning
+import plot_cpp
+import sorting_dfs_adjacency_graph
+import sorting_tsp_centroid
+import sorting_tsp_intra_regional
 from decomposition import sum_of_widths
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
-from path_comparison_functions import compute_path_data
+from cpp_path_data import compute_path_data
 
 file_path = None
 plots = []
@@ -224,24 +224,24 @@ def path_planner():
                 path_width = float(value)
 
                 total_start_time = time.time()
+                intersections = cpp_path_planning.multi_intersection_planning(sub_polygons, path_width)
 
                 if sorting_variable.get() == 'DFS':
                     print("DFS")
-                    sorted_sub_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(sub_polygons)
+                    sorted_sub_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(sub_polygons, intersections)
                 elif sorting_variable.get() == 'TSP Centroid':
                     print("Centroids")
-                    sorted_sub_polygons = traveling_salesman_variation.solve_centroid_tsp(sub_polygons)
-                elif sorting_variable.get() == 'Intra Regional TSP':
+                    sorted_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(sub_polygons, intersections)
+                elif sorting_variable.get() == 'TSP Intra Regional':
                     print("Intra Regional")
-                    intersections = multi_poly_planning.multi_intersection_planning(sub_polygons, path_width)
-                    sorted_sub_polygons = intra_regional_tsp.solve_intra_regional_tsp(sub_polygons, intersections)
+                    sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(sub_polygons, intersections)
                 else:
                     print("Unordered")
                     sorted_sub_polygons = sub_polygons
+                    sorted_intersections = intersections
 
-                intersections = multi_poly_planning.multi_intersection_planning(sorted_sub_polygons, path_width)
-                path = connecting_path.connect_path(sorted_sub_polygons, intersections, region)
-                fig = coverage_plots.multi_poly_plot(region, path_width, sorted_sub_polygons, path)
+                path = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
+                fig = plot_cpp.plot_multi_polys_path(region, path_width, sorted_sub_polygons, path)
 
                 # Ending timer and computing total execution time
                 total_end_time = time.time()

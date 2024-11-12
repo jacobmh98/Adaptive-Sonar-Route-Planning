@@ -1,14 +1,37 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from global_variables import *
 from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+# Pop plot out of IDE
+#matplotlib.use('TkAgg')
 
-#matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
+def plot_antipodal_points(polygon, antipodal_vertices):
+    """ Plot the polygon and highlight the antipodal points.
 
+    :param polygon: Polygon object with vertices.
+    :param antipodal_vertices: List of tuples representing antipodal vertex pairs.
+    """
+    # Get the x and y coordinates of the vertices
+    x_coords, y_coords = polygon.get_coords()
+
+    # Plot the polygon (ensure the polygon closes by connecting last and first point)
+    plt.plot(x_coords + [x_coords[0]], y_coords + [y_coords[0]], 'k-', marker='o')
+
+    # Plot vertex indices for reference
+    for v in polygon.vertices:
+        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='blue')
+
+    # Plot the antipodal pairs
+    for (i, j) in antipodal_vertices:
+        xk = [polygon.vertices[i].x, polygon.vertices[j].x]
+        yk = [polygon.vertices[i].y, polygon.vertices[j].y]
+        plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
+
+    # Display the plot
+    #plt.grid()
+    plt.show()
 
 def plot_simple_poly_path(polygon, path):
     # Create a figure and axis
@@ -39,12 +62,13 @@ def plot_simple_poly_path(polygon, path):
     # Show the plot in a separate window
     plt.show()
 
-def multi_poly_plot(polygon, current_path_width, polygons, path):
+
+def plot_multi_polys_path(polygon, current_path_width, polygons, path):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
 
-    :param polygon: Polygon
+    :param polygon: Polygon of the region
     :param current_path_width: Width of the path
     :param polygons: List of the sub-polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
@@ -140,6 +164,7 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
     plt.show()
 
     return fig
+
 
 def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, boundary, show_legend=True):
     """
@@ -399,7 +424,7 @@ def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
     ax.set_ylabel('Y')
 
 
-def visualize_coverage_wasted_and_overlap(polygon, path_points, covered_area, wasted_area, overlap_area):
+def plot_coverage(polygon, path_points, covered_area, wasted_area, overlap_area):
     # Create the plot
     fig, ax = plt.subplots()
 

@@ -1,7 +1,7 @@
 import math
-from coverage_plots import *
+from plot_cpp import *
 from global_variables import *
-from connecting_path import find_nearest_vertex_to_point
+from cpp_connect_path import find_nearest_vertex_to_point
 
 
 def create_vector(v1, v2):
