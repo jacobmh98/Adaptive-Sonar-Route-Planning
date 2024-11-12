@@ -35,8 +35,8 @@ def compute_turns(path):
         vector2 = path[i + 1] - path[i]
 
         # Normalize the vectors
-        unit_vector1 = vector1 / np.linalg.norm(vector1)
-        unit_vector2 = vector2 / np.linalg.norm(vector2)
+        unit_vector1 = vector1 / (np.linalg.norm(vector1) + epsilon)
+        unit_vector2 = vector2 / (np.linalg.norm(vector2) + epsilon)
 
         # Compute the dot product and find the angle between vectors
         dot_product = np.dot(unit_vector1, unit_vector2)
@@ -147,7 +147,6 @@ def compute_path_data(poly, path, time):
     print(f'Covered area: {covered_area.area}')
     print(f'Outlier area: {outlier_area.area}')
     print(f'Overlap area: {overlap_area.area}')
-    print()
 
     # Computing turns in the path
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
@@ -173,3 +172,15 @@ def compute_path_data(poly, path, time):
             file.write(f"Hard turns (<45): {hard_turns}\n")
             file.write(f"Medium turns (45-90): {medium_turns}\n")
             file.write(f"Soft turns (>90): {soft_turns}\n")
+
+    result = {
+        'type': 'coverage_statistics',
+        'coverage_percentage': coverage_percentage,
+        'covered_area': covered_area.area,
+        'distance': distance,
+        'total_turns': total_turns,
+        'hard_turns': hard_turns,
+        'medium_turns': medium_turns,
+        'soft_turns': soft_turns
+    }
+    return result

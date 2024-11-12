@@ -11,6 +11,8 @@ from global_variables import *
 
 from rtree import index
 
+from load_data import generate_new_data
+
 def compute_intersection(ray_start, ray_dir, seg_A, seg_B):
     # Vector from A to B (the direction of the segment)
     seg_dir = seg_B - seg_A
@@ -39,6 +41,7 @@ def compute_intersection(ray_start, ray_dir, seg_A, seg_B):
     else:
         # No valid intersection
         return None
+
 def compute_intersection_edges(e, e2):
     """
         Compute the intersection point of two line segments defined by points p1, p2 and p3, p4.
@@ -808,6 +811,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
 
     ax.set_aspect('equal')
     plt.show()
+    return fig
 
 def find_cell(v, cells, active_cells, direction_up, v2=None):
     for i, cell in enumerate(cells):
@@ -834,6 +838,72 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
             return i, cell
         if v.type == CLOSE and v.prev in cell[1] and v.next in cell[0]:
             return i, cell
+
+def combined_algorithms(region, obstacles):
+    # Decompose the region without considering obstacles
+    sub_polygons = generate_new_data(copy.deepcopy(region))
+
+    # Divide the sub-polygons into clusters that are affected by the obstacles
+    sub_polygons_filtered_masks = []
+    sub_polygons_filtered = []
+    obstacles_affected = []
+
+    for o in obstacles:
+        filtered_mask, filtered = find_bounding_polygons(sub_polygons, o)
+        common_found = False
+
+        # plot_obstacles(filtered, obstacles, False)
+
+        for index, mask in enumerate(sub_polygons_filtered_masks):
+            for i in mask:
+                for j in filtered_mask:
+                    if i == j:
+                        common_found = True
+                        break
+
+                if common_found:
+                    break
+
+            if common_found:
+                for i, p in enumerate(filtered_mask):
+                    if p not in mask:
+                        mask.append(p)
+                        sub_polygons_filtered[index].append(filtered[i])
+
+                        if o not in obstacles_affected[index]:
+                            obstacles_affected[index].append(o)
+
+        if not common_found:
+            sub_polygons_filtered_masks.append(filtered_mask)
+            sub_polygons_filtered.append(filtered)
+            obstacles_affected.append([o])
+
+    # Merge each cluster into a single polygon and decompose it using sweep line algorithm
+    decomposed_polygons = []
+    extracted_sub_polygons = []
+    extracted_sub_polygons_mask = []
+    dont_include_mask = []
+
+    for list in sub_polygons_filtered_masks:
+        for p in list:
+            dont_include_mask.append(p)
+
+    for i, filtered in enumerate(sub_polygons_filtered):
+        sub_polygons_extract, merged_sub_polygon = merge_filtered_sub_polygons(copy.deepcopy(filtered),
+                                                                               copy.deepcopy(sub_polygons),
+                                                                               sub_polygons_filtered_masks[i])
+
+        merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles_affected[i])
+        decomposed_polygons += merged_sub_polygon_decomposed
+
+        # plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
+
+        for p in sub_polygons_extract:
+            if p not in extracted_sub_polygons_mask and p not in dont_include_mask:
+                extracted_sub_polygons_mask.append(p)
+                extracted_sub_polygons.append(sub_polygons[p])
+
+        plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
 
 def angle(v):
     """ Compute interior or exterior (outward-facing angles)  """

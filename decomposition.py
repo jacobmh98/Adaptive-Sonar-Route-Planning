@@ -791,3 +791,11 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
 
     ax.set_aspect('equal')
     plt.show()
+
+def sum_of_widths(sub_polygons):
+    sum = 0
+
+    for p in sub_polygons:
+        sum += min_polygon_width(p.vertices_matrix())
+
+    return sum

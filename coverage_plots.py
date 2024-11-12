@@ -7,7 +7,7 @@ from shapely.geometry import Polygon as ShapelyPolygon
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
+#matplotlib.use('TkAgg')  # or 'Qt5Agg', depending on setup
 
 
 def plot_simple_poly_path(polygon, path):
@@ -138,6 +138,8 @@ def multi_poly_plot(polygon, current_path_width, polygons, path):
 
     # Show the plot in a separate window
     plt.show()
+
+    return fig
 
 def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, boundary, show_legend=True):
     """
