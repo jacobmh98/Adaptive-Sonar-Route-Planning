@@ -1,6 +1,5 @@
-"""from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 import numpy as np
-import matplotlib.pyplot as plt
 
 # Function to compute centroid of a polygon
 def compute_centroid(polygon):
@@ -25,7 +24,7 @@ def create_distance_matrix(polygons):
         for j in range(i + 1, n):
             distance = compute_distance(polygons[i], polygons[j])
             distance_matrix[i][j] = distance
-            distance_matrix[j][i] = distance  # Symmetric matrix
+            distance_matrix[j][i] = distance  # For symmetric matrix
     return distance_matrix
 
 
@@ -70,31 +69,11 @@ def solve_tsp(distance_matrix):
         return None
 
 
-# Visualize the polygons and the TSP path
-def visualize_tsp_solution(polygons, tsp_route):
-    # Plot polygons
-    plt.figure(figsize=(8, 8))
+def solve_centroid_tsp(polygons, intersections):
+    distance_matrix = create_distance_matrix(polygons)
+    tsp_route = solve_tsp(distance_matrix)
+    sorted_polys = [polygons[i] for i in tsp_route]
+    sorted_inters = [intersections[i] for i in tsp_route]
 
-    for i, polygon in enumerate(polygons):
-        x_coords, y_coords = polygon.get_coords()
-        x_coords.append(x_coords[0])  # Close the polygon
-        y_coords.append(y_coords[0])
-        plt.plot(x_coords, y_coords, 'r-', lw=2, marker='o')
+    return sorted_polys, sorted_inters
 
-        # Add a label to the centroid of the polygon
-        centroid = compute_centroid(polygon)
-        plt.text(centroid[0], centroid[1], f'{tsp_route[i]}', fontsize=12, ha='center', color='blue')
-
-    # Plot TSP path
-    for i in range(len(tsp_route)):
-        start_polygon = polygons[tsp_route[i]]
-        end_polygon = polygons[tsp_route[(i + 1) % len(tsp_route)]]
-
-        # Draw line between centroids
-        centroid_start = compute_centroid(start_polygon)
-        centroid_end = compute_centroid(end_polygon)
-        plt.plot([centroid_start[0], centroid_end[0]], [centroid_start[1], centroid_end[1]], 'b--', lw=2)
-
-    plt.title("TSP Optimal Path Visiting Polygons")
-    plt.show()
-"""

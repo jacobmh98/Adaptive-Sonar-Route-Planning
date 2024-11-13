@@ -1,8 +1,9 @@
 import numpy as np
-import coverage_plots
+import plot_cpp
 from global_variables import *
 from shapely.ops import unary_union
 from shapely.geometry import Polygon as ShapelyPolygon, LineString
+
 
 def compute_total_distance(path):
     """ Function to compute the length of the path
@@ -15,6 +16,7 @@ def compute_total_distance(path):
     for i in range(len(path) - 1):
         total_distance += np.linalg.norm(path[i + 1] - path[i])
     return total_distance
+
 
 def compute_turns(path):
     """ Function to compute the number of turns in the path, and classify them as three different turn types
@@ -35,8 +37,8 @@ def compute_turns(path):
         vector2 = path[i + 1] - path[i]
 
         # Normalize the vectors
-        unit_vector1 = vector1 / np.linalg.norm(vector1)
-        unit_vector2 = vector2 / np.linalg.norm(vector2)
+        unit_vector1 = vector1 / (np.linalg.norm(vector1) + epsilon)
+        unit_vector2 = vector2 / (np.linalg.norm(vector2) + epsilon)
 
         # Compute the dot product and find the angle between vectors
         dot_product = np.dot(unit_vector1, unit_vector2)
@@ -57,29 +59,35 @@ def compute_turns(path):
     return total_turns, hard_turns, medium_turns, soft_turns
 
 
-# Coverage functions
-def compute_covered_area(polygon, path):
-    """ Function to compute the coverage of the path inside the given polygon, and
-        return this as an area and the percentage it covers the polygon
-
-    :param polygon: Polygon
-    :param path: List of points
-    :return: Covered area as shapely Polygon area and a float percentage
+def compute_covered_area_with_obstacles(region, obstacles, path):
     """
+    Compute the coverage of the path inside the region, excluding obstacle areas.
+
+    :param region: Main region polygon as an instance of the Polygon class
+    :param obstacles: List of Polygon instances representing obstacles
+    :param path: List of points (as tuples or arrays) representing the path
+    :return: Tuple containing the covered area as a Shapely Polygon and the coverage percentage (float)
+    """
+    # Convert path points to a LineString and buffer it to create a coverage area
     path = LineString(path)
-    buffered_path = path.buffer((path_width + overlap_distance)/ 2.0)
+    buffered_path = path.buffer((path_width + overlap_distance) / 2.0)
 
-    # Convert your Polygon class to a Shapely Polygon
-    poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = ShapelyPolygon(poly_coords)
+    # Convert the main region polygon to a Shapely Polygon
+    region_coords = [(v.x, v.y) for v in region.vertices]
+    region_shape = ShapelyPolygon(region_coords)
 
-    # Find the intersection of the buffered path and the polygon (covered area)
-    covered_area = poly_shape.intersection(buffered_path)
+    # Subtract obstacle areas from the main region
+    obstacles_shapes = [ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles]
+    effective_region = region_shape.difference(unary_union(obstacles_shapes))
 
-    # Calculate the percentage of the polygon that is covered
-    coverage_percentage = (covered_area.area / poly_shape.area) * 100
+    # Compute the area covered within the effective region (region - obstacles)
+    covered_area = effective_region.intersection(buffered_path)
+
+    # Calculate the coverage percentage of the effective area
+    coverage_percentage = (covered_area.area / effective_region.area) * 100
 
     return covered_area, coverage_percentage
+
 
 def compute_outlier_area(polygon, path):
     """ Computes the path area outside the polygon
@@ -99,6 +107,7 @@ def compute_outlier_area(polygon, path):
     outlying_area = buffered_path.difference(poly_shape)
 
     return outlying_area
+
 
 def compute_overlap_area(polygon, path):
     """ Computes the path overlap area inside the polygon
@@ -134,28 +143,30 @@ def compute_overlap_area(polygon, path):
 
     return overlap_area
 
-def compute_path_data(poly, path, time):
-    covered_area, coverage_percentage = compute_covered_area(poly, path)
+
+def compute_path_data(poly, path, obstacles, time):
+    distance = compute_total_distance(path)
+
+    covered_area, coverage_percentage = compute_covered_area_with_obstacles(poly, obstacles, path)
     outlier_area = compute_outlier_area(poly, path)
     overlap_area = compute_overlap_area(poly, path)
 
     print(f'Execution time: {time}')
+    print(f'Distance: {distance}')
     print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
     print(f'Covered area: {covered_area.area}')
     print(f'Outlier area: {outlier_area.area}')
     print(f'Overlap area: {overlap_area.area}')
-    coverage_plots.visualize_coverage_wasted_and_overlap(poly, path, covered_area, outlier_area, overlap_area)
-    print()
 
     # Computing turns in the path
-    distance = compute_total_distance(path)
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
 
-    print(f'Distance: {distance}')
     print(f'Total turns: {total_turns}')
     print(f'Hard turns (<45): {hard_turns}')
     print(f'Medium turns (45-90): {medium_turns}')
     print(f'Soft turns (>90): {soft_turns}')
+
+    #plot_cpp.plot_coverage(poly, path, covered_area, outlier_area, overlap_area)
 
     if store_data:
         output_file = "coverage_results.txt"

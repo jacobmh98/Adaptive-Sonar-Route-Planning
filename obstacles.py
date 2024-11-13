@@ -1,7 +1,6 @@
 import copy
 
 import numpy as np
-from absl.app import ExceptionHandler
 from matplotlib import pyplot as plt
 
 from decomposition import dot, cross, get_center_of_polygon, optimize_polygons, find_shared_edge, polygons_are_adjacent, \
@@ -368,7 +367,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             combined_edges.append(Edge(intersection_edge.v_from, v_up))
             combined_edges.append(Edge(v_up, intersection_edge.v_to))
         elif v.type == MERGE:
-            print(f'MERGE at {v}')
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -466,7 +464,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             new_cell = ([v_up], [v_down])
             cells.append(new_cell)
             active_cells.append(True)
-
         elif v.type == CLOSE:
             print(f'CLOSE at {v}')
             i, cell = find_cell(v, cells, active_cells, False)
@@ -828,8 +825,11 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
         if v.type == FLOOR_CONCAVE and (v.prev in cell[0] or v.prev in cell[1]) and (v2 in cell[1] or v2 in cell[0]):
             return i, cell
         if v.type == MERGE:
-            if direction_up and v2 in cell[0]:
-                return i, cell
+            if direction_up:
+                if v2.type == OPEN and v2 in cell[1]:
+                    return i, cell
+                elif v2 in cell[0]:
+                    return i, cell
             if not direction_up and v2 in cell[1]:
                 return i, cell
         if v.type == COLLINEAR_CEILING and (v.next in cell[0] or v.next in cell[1]):
@@ -903,7 +903,7 @@ def combined_algorithms(region, obstacles):
                 extracted_sub_polygons_mask.append(p)
                 extracted_sub_polygons.append(sub_polygons[p])
 
-        plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
+        #plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
 
 def angle(v):
     """ Compute interior or exterior (outward-facing angles)  """

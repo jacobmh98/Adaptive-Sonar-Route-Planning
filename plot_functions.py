@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import decomposition
-from decomposition import *
+import networkx as nx
 
 """ Temporary plot functions """
 def plot_results(split_polygons, depth, cv, Di):
@@ -132,7 +132,7 @@ def plot_graph(sub_polygons):
                 continue
 
             # Test if the two polygons p_i and p_j are adjacent (either complete or partial)
-            if polygons_are_adjacent(p_i, p_j, i, j):
+            if decomposition.polygons_are_adjacent(p_i, p_j, i, j):
                 # Update the adjacent matrix
                 G.add_edge(f'P{i}', f'P{j}')
 

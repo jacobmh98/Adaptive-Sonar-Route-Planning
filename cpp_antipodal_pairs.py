@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import plot_cpp
 
 def dist(p1, p2):
     """ Distance function to calculate distance between two points
@@ -143,7 +143,7 @@ def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
             sorted_pair = tuple(sorted([b, diametric_pair]))
             diametric_pairs.add(sorted_pair)
 
-    #plot_antipodal_points(polygon, diametric_pairs)
+    #plot.cpp.plot_antipodal_points(polygon, diametric_pairs)
 
     # Convert the set to a list for the final output
     return list(diametric_pairs)
@@ -164,29 +164,3 @@ def get_diametric_antipodal_point_index(diametric_antipodal_pairs, b):
 
     # If no pair is found for the given point
     return None
-
-def plot_antipodal_points(polygon, antipodal_vertices):
-    """ Plot the polygon and highlight the antipodal points.
-
-    :param polygon: Polygon object with vertices.
-    :param antipodal_vertices: List of tuples representing antipodal vertex pairs.
-    """
-    # Get the x and y coordinates of the vertices
-    x_coords, y_coords = polygon.get_coords()
-
-    # Plot the polygon (ensure the polygon closes by connecting last and first point)
-    plt.plot(x_coords + [x_coords[0]], y_coords + [y_coords[0]], 'k-', marker='o')
-
-    # Plot vertex indices for reference
-    for v in polygon.vertices:
-        plt.text(v.x, v.y, f'{v.index}', fontsize=12, ha='right', color='blue')
-
-    # Plot the antipodal pairs
-    for (i, j) in antipodal_vertices:
-        xk = [polygon.vertices[i].x, polygon.vertices[j].x]
-        yk = [polygon.vertices[i].y, polygon.vertices[j].y]
-        plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
-
-    # Display the plot
-    #plt.grid()
-    plt.show()

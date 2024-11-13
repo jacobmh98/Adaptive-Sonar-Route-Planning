@@ -1,0 +1,15 @@
+{
+  "area": {
+    "coordinates": [
+      [0,0],
+      [100,0],
+      [100,60],
+      [0,60]
+    ],
+    "hard_edges": [
+    ]
+  },
+  "obstacles": {
+    "num_of_obstacles": 0
+  }
+}

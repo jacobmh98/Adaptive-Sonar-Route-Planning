@@ -1,38 +1,22 @@
-import copy
 import time
-import json
-
-from shapely.creation import polygons
-
-import connecting_path
-import coverage_plots
-import decomposition
-import intra_regional_tsp
-import multi_poly_planning
-#import multi_poly_planning
-import optimal_path
-import path_comparison_functions
-from intra_regional_tsp import *
-import random
-from collections import Counter
-
-import traveling_salesman_variation
-import traceback
-from global_variables import *
-from decomposition import *
-from plot_functions import *
-import pickle
-from global_variables import load_existing_data
+import cpp_connect_path
+import plot_cpp
+import sorting_dfs_adjacency_graph
+import sorting_tsp_centroid
+import sorting_tsp_intra_regional
+import cpp_path_planning
+import cpp_path_data
 from obstacles import *
 from load_data import *
 
-
 # Loading the region and obstacles
-data_path = 'C:/Users/jacob/Documents/GitHub/Adaptive-Sonar-Route-Planning/test_data/complex_polygon.json'
+data_path = 'C:/Users/andre/Documents/Adaptive-Sonar-Route-Planning/test_data/complex_polygon.json'
 region, obstacles = get_region(data_path)
-plot_obstacles([region], obstacles, False)
+#plot_obstacles([region], obstacles, False)
 
 # Decompose the region using the sweep line algorithm
+sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
+
 #sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
 #plot_obstacles(sub_polygons_sweep_line, obstacles, False)
 
@@ -40,7 +24,7 @@ plot_obstacles([region], obstacles, False)
 sub_polygons = generate_new_data(copy.deepcopy(region))
 
 #%% Plot the decomposed sub_polygons without considered obstacles
-plot_obstacles(sub_polygons, obstacles, False)
+#plot_obstacles(sub_polygons, obstacles, False)
 
 # Divide the sub-polygons into clusters that are affected by the obstacles
 sub_polygons_filtered_masks = []
@@ -100,14 +84,14 @@ for i, filtered in enumerate(sub_polygons_filtered):
             extracted_sub_polygons_mask.append(p)
             extracted_sub_polygons.append(sub_polygons[p])
 
-    plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
+    #plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
 
 # Combining all the decomposed sub-polygons with obstacles
 combined_polygons = extracted_sub_polygons + decomposed_polygons
 
 # Optimize the sub-polygons by merging when possible
 #optimized_sub_polygons = compute_optimized_data(combined_polygons)
-plot_obstacles(combined_polygons, obstacles, False)
+#plot_obstacles(combined_polygons, obstacles, False)
 
 
 #%% Plot the sub_polygons computed only with the sweep line algorithm
@@ -120,92 +104,42 @@ plot_obstacles(combined_polygons, obstacles, False)
 
 #%% Plot the sub_polygons while considered obstacles
 #plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
-
-"""sum_combined = 0
-for i, p in enumerate(combined_polygons):
-    sum_combined += min_polygon_width(p.vertices_matrix())
-
-print(f'{sum_combined=}')
-
-sum_sweep_line = 0
-for i, p in enumerate(sub_polygons_sweep_line):
-    sum_sweep_line += min_polygon_width(p.vertices_matrix())
-
-print(f'{sum_sweep_line=}')"""
-
-#adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
-#start_node = next(iter(adjacency_graph.nodes()))
-#optimized_sub_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
-
-distance_matrix = traveling_salesman_variation.create_distance_matrix(combined_polygons)
-tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-traveling_salesman_variation.visualize_tsp_solution(combined_polygons, tsp_route)
-optimized_sub_polygons = [combined_polygons[i] for i in tsp_route]
-
-intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
-path = connecting_path.connect_path(optimized_sub_polygons, intersections, region)
-fig = coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, path)
-
-quit()
-
-#plot_obstacles(sub_polygons, obstacles)
-#asd(sub_polygons[0], obstacles[0])
-# TODO obstruction starts here
-#plot_results4(optimized_sub_polygons, obstructions)
-plot_results3(optimized_sub_polygons)
-#plot_graph(optimized_sub_polygons)
+#plot_obstacles(combined_polygons, obstacles, False)
 
 # Starting timer for all cpp functions
 total_start_time = time.time()
-
-# Compute intersections
-#intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
+intersections = cpp_path_planning.multi_intersection_planning(combined_polygons, path_width)
 
 # Choosing sorting method
-if tsp_sorting:
-    #tsp_route = intra_regional_tsp.start_tsp(optimized_sub_polygons, intersections)
+if dfs_sorting:
+    print("DFS Sorting")
+    sorted_combined_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(combined_polygons, intersections)
 
-    # TODO: Old tsp, use some for new
-    """distance_matrix = traveling_salesman_variation.create_distance_matrix(optimized_sub_polygons)
-    tsp_route = traveling_salesman_variation.solve_tsp(distance_matrix)
-    traveling_salesman_variation.visualize_tsp_solution(optimized_sub_polygons, tsp_route)
-    optimized_sub_polygons = [sub_polygons[i] for i in tsp_route]
-    """
-elif dfs_sorting:  # TODO: Clean further
-    # Order the list of sub polygons
-    adjacency_matrix, adjacency_graph = multi_poly_planning.create_adjacency(optimized_sub_polygons)
-    start_node = next(iter(adjacency_graph.nodes()))
-    optimized_sub_polygons = multi_poly_planning.sort_sub_polygons_using_dfs(adjacency_graph, optimized_sub_polygons, start_node)
-    #plot_graph(adjacency_graph)
+elif tsp_centroid_sorting:
+    print("TSP Centroid Sorting")
+    sorted_combined_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(combined_polygons, intersections)
 
-print(f'Number of polygons = {len(optimized_sub_polygons)}')
+elif tsp_intra_regional_sorting:
+    print("TSP Intra Regional Sorting")
+    # Using intersections start/end pairs to find optimal sorting order using tsp
+    sorted_combined_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(combined_polygons, intersections, trials = 2)
 
-
-# Computing optimal path width given start path width and a tolerance (+- to path width)
-if find_optimal_path_width:
-    path, distance, path_width = optimal_path.compute_optimal_path_width(optimized_sub_polygons, path_width, tolerance, iterations)
-
-# Check if computing path using reversed sorted polygon list provides a better result
-elif check_reverse:
-    path, distance = optimal_path.compute_reverse(optimized_sub_polygons, path_width)
-
-# Baseline path
 else:
     print('Baseline path:')
-    intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
-    path = connecting_path.connect_path(optimized_sub_polygons, intersections)
-    distance = path_comparison_functions.compute_total_distance(path)
+    sorted_combined_polygons = combined_polygons
+    sorted_intersections = intersections
 
-coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, path)
+# Computing new intersections (if running intra regional) using the sorted combined polygons
+path = cpp_connect_path.connect_path(sorted_combined_polygons, sorted_intersections, region)
+distance = cpp_path_data.compute_total_distance(path)
 
+print(f'Number of polygons = {len(sorted_combined_polygons)}')
 
 # Ending timer and computing total execution time
 total_end_time = time.time()
 total_execution_time = total_end_time - total_start_time
 
 if get_path_data:
-    path_comparison_functions.compute_path_data(region, path, total_execution_time)
+    cpp_path_data.compute_path_data(region, path, obstacles, total_execution_time)
 
-
-
-
+plot_cpp.plot_multi_polys_path(region, path_width, sorted_combined_polygons, path)
