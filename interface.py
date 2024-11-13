@@ -33,7 +33,7 @@ def select_file():
         label.config(text=f"{file_path}")
 
     region, obstacles = get_region(file_path)
-    fig = plot_obstacles([region], obstacles, False)
+    fig = plot_obstacles([region], obstacles, True)
     plots.append(fig)
     sub_polygons_list.append(None)
     stats.append(None)
