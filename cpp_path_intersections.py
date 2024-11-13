@@ -305,9 +305,9 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
             check_near_edge_intersections = poly.find_intersections(v_extended)
             if not check_near_edge_intersections:
                 break
-            #else:
+            else:
                 # Create tuples of two consecutive points and append to all_intersections
-             #   all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
+                all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
         else:
             # Create tuples of two consecutive points and append to all_intersections
             all_intersections.append((new_intersections[0], new_intersections[1]))

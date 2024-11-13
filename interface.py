@@ -11,6 +11,7 @@ import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
 import sorting_tsp_intra_regional
 from decomposition import sum_of_widths
+from global_variables import number_of_tsp_trials
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
 from cpp_path_data import compute_path_data
@@ -234,7 +235,8 @@ def path_planner():
                     sorted_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(sub_polygons, intersections)
                 elif sorting_variable.get() == 'TSP Intra Regional':
                     print("Intra Regional")
-                    sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(sub_polygons, intersections)
+                    # TODO: Get number of trials values from textfield
+                    sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(sub_polygons, intersections, number_of_tsp_trials)
                 else:
                     print("Unordered")
                     sorted_sub_polygons = sub_polygons
@@ -324,11 +326,11 @@ def setup_option_pane():
     path_width_entry.insert(0, '10')
 
     Label(options_pane, text='Sorting Method', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
-    sorting_variable = StringVar(value='TSP Centroid')
+    sorting_variable = StringVar(value='Unordered')
     rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered')
     rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS')
     rb6 = Radiobutton(options_pane, text='TSP Centroid', variable=sorting_variable, value='TSP Centroid')
-    rb7 = Radiobutton(options_pane, text='Intra Regional TSP', variable=sorting_variable, value='Intra Regional TSP')
+    rb7 = Radiobutton(options_pane, text='TSP Intra Regional', variable=sorting_variable, value='TSP Intra Regional')
     rb4.pack(anchor='w')
     rb5.pack(anchor='w')
     rb6.pack(anchor='w')
