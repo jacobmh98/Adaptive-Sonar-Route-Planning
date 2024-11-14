@@ -5,7 +5,7 @@ from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
 
 # Pop plot out of IDE
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 
 
 def plot_antipodal_points(polygon, antipodal_vertices):
@@ -93,7 +93,6 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, show_cove
         x_coords, y_coords = polygon.get_coords()
         ax.plot(x_coords, y_coords, f'{color}-', marker='o')
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-        ax.set_aspect('equal')
 
     if plot_sub_polygons:
         for i, poly in enumerate(polygons):
@@ -152,15 +151,15 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, show_cove
                 ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
                         [corner1[1], corner2[1], corner3[1], corner4[1]],
                         'orange', alpha=0.3, label='_nolegend_')
-
     else:
         print("Empty path")
 
-    plt.grid(True)
-    plt.xlabel('X')
-    plt.ylabel('Y')
+    #plt.grid(True)
+    #plt.xlabel('X')
+    #plt.ylabel('Y')
 
     # Show the plot in a separate window
+    ax.set_aspect('equal')
     plt.show()
 
     return fig

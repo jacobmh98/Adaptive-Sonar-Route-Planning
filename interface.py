@@ -231,6 +231,8 @@ def update_stats():
         stats_label.config(text=f'')
     elif stats_dict['type'] == 'coverage_statistics':
         str = (f'Sorting Method = {stats_dict['sorting_variable']} \n'
+               f'Total Execution Time = {round(stats_dict['total_execution_time'], 2)} seconds \n'
+               f'Sorting Time = {round(stats_dict['sorting_time'], 2)} seconds \n'
                f'Coverage Percentage = {round(stats_dict["coverage_percentage"], 2)} % \n'
                f'Covered Area = {round(stats_dict["covered_area"], 2)} m^2 \n'
                f'Distance = {round(stats_dict["distance"], 2)} m \n'
@@ -252,7 +254,7 @@ def update_stats():
                            anchor="w")
 
 def path_planner():
-    global current_plot_index, sorting_variable, tsp_iterations
+    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var
     if len(sub_polygons_list) != 0:
         sub_polygons = sub_polygons_list[current_plot_index]
 
@@ -270,23 +272,21 @@ def path_planner():
 
                     if sorting_variable.get() == 'DFS':
                         print("DFS")
-                        dfs_start_time = time.time()
+                        sorting_start_time = time.time()
                         sorted_sub_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(sub_polygons, intersections)
-                        dfs_end_time = time.time()
-                        dfs_total_time = dfs_end_time - dfs_start_time
+                        sorting_end_time = time.time()
+                        total_sorting_time = sorting_end_time - sorting_start_time
 
                     elif sorting_variable.get() == 'TSP Centroid':
                         print("Centroids")
-                        tsp_centroid_start_time = time.time()
+                        sorting_start_time = time.time()
                         sorted_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(sub_polygons, intersections)
-                        tsp_centroid_end_time = time.time()
-                        tsp_centroid_total_time = tsp_centroid_end_time - tsp_centroid_start_time
+                        sorting_end_time = time.time()
+                        total_sorting_time = sorting_end_time - sorting_start_time
 
                     elif sorting_variable.get() == 'TSP Intra Regional':
                         print("Intra Regional")
-                        # TODO: Get number of trials values from textfield
-                        tsp_intra_reg_start_time = time.time()
-
+                        sorting_start_time = time.time()
                         value = tsp_iterations.get()
 
                         if value:
@@ -296,15 +296,15 @@ def path_planner():
                             else:
                                 sorted_sub_polygons = sub_polygons
                                 sorted_intersections = intersections
-                        tsp_intra_reg_end_time = time.time()
-                        tsp_intra_reg_total_time = tsp_intra_reg_end_time - tsp_intra_reg_start_time
+                        sorting_end_time = time.time()
+                        total_sorting_time = sorting_end_time - sorting_start_time
                     else:
                         print("Unordered")
                         sorted_sub_polygons = sub_polygons
                         sorted_intersections = intersections
+                        total_sorting_time = 0
 
-                    # TODO: Get show_coverage value from a box in UI
-                    show_coverage = False
+                    show_coverage = show_coverage_var.get()
 
                     path = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
                     fig = plot_cpp.plot_multi_polys_path(region, path_width, sorted_sub_polygons, path, show_coverage)
@@ -314,7 +314,9 @@ def path_planner():
                     total_execution_time = total_end_time - total_start_time
 
                     stats_dict = compute_path_data(region, path, obstacles,total_execution_time)
+                    stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()
+                    stats_dict['sorting_time'] = total_sorting_time
                     stats.append(stats_dict)
                     plots.append(fig)
                     sub_polygons_list.append(None)
@@ -397,7 +399,7 @@ def toggle_sorting_method():
 
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry, sorting_variable, tsp_iterations
+    global label, decomposition_variable, path_width_entry, sorting_variable, tsp_iterations, show_coverage_var
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
@@ -445,6 +447,10 @@ def setup_option_pane():
     tsp_iterations.config(state="disabled")
 
     Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
+
+    show_coverage_var = IntVar()
+
+    Checkbutton(options_pane, text="Show Coverage", variable=show_coverage_var).pack(anchor='w')
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
 
 # Initialize main Tkinter window
@@ -454,12 +460,10 @@ root.title('Adaptive Route Planning')
 # Register the validation function with Tkinter
 validate_cmd = root.register(validate_integer_input)
 
-# Get the screen width and height
+# Set the window size to the screen size (maximized window)
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
-
-# Set the geometry to fill the screen
-root.geometry("%dx%d" % (screen_width, screen_height))
+root.geometry(f"{screen_width}x{screen_height}+0+0")
 
 paned_window = PanedWindow(root, orient=HORIZONTAL)
 paned_window.pack(fill=BOTH, expand=1)
