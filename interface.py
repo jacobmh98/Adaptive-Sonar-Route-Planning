@@ -85,37 +85,7 @@ def select_file():
 def decompose():
     global current_plot_index
     if region is not None:
-        if len(obstacles) == 0 or decomposition_variable.get() == 'Greedy Recursive':
-            # Decompose the region without considering obstacles
-            sub_polygons = generate_new_data(copy.deepcopy(region))
-            sub_polygons_list.append(sub_polygons)
-            fig = plot_obstacles(sub_polygons, obstacles, False)
-            plots.append(fig)
-
-            decomposition_stats = {
-                'type': 'decomposition_statistics',
-                'method': 'Greedy Recursive',
-                'number_of_polygons': len(sub_polygons),
-                'sum_of_widths': sum_of_widths(sub_polygons)
-            }
-
-            stats.append(decomposition_stats)
-        elif decomposition_variable.get() == 'Sweep Line':
-            # Decompose the region without considering obstacles
-            sub_polygons = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
-            sub_polygons_list.append(sub_polygons)
-            fig = plot_obstacles(sub_polygons, obstacles, False)
-            plots.append(fig)
-
-            decomposition_stats = {
-                'type': 'decomposition_statistics',
-                'method': 'Sweep Line',
-                'number_of_polygons': len(sub_polygons),
-                'sum_of_widths': sum_of_widths(sub_polygons)
-            }
-
-            stats.append(decomposition_stats)
-        elif decomposition_variable.get() == 'Combination':
+        if len(obstacles) > 0 and decomposition_variable.get() == 'Combination':
             sub_polygons = generate_new_data(copy.deepcopy(region))
 
             # Divide the sub-polygons into clusters that are affected by the obstacles
@@ -196,6 +166,37 @@ def decompose():
             }
 
             stats.append(decomposition_stats)
+        elif decomposition_variable.get() == 'Greedy Recursive' or (len(obstacles) == 0 and decomposition_variable.get() == 'Combination'):
+            # Decompose the region without considering obstacles
+            sub_polygons = generate_new_data(copy.deepcopy(region))
+            sub_polygons_list.append(sub_polygons)
+            fig = plot_obstacles(sub_polygons, obstacles, False)
+            plots.append(fig)
+
+            decomposition_stats = {
+                'type': 'decomposition_statistics',
+                'method': 'Greedy Recursive',
+                'number_of_polygons': len(sub_polygons),
+                'sum_of_widths': sum_of_widths(sub_polygons)
+            }
+
+            stats.append(decomposition_stats)
+        elif decomposition_variable.get() == 'Sweep Line':
+            # Decompose the region without considering obstacles
+            sub_polygons = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
+            sub_polygons_list.append(sub_polygons)
+            fig = plot_obstacles(sub_polygons, obstacles, False)
+            plots.append(fig)
+
+            decomposition_stats = {
+                'type': 'decomposition_statistics',
+                'method': 'Sweep Line',
+                'number_of_polygons': len(sub_polygons),
+                'sum_of_widths': sum_of_widths(sub_polygons)
+            }
+
+            stats.append(decomposition_stats)
+
 
         current_plot_index = len(plots) - 1
 
@@ -230,15 +231,16 @@ def update_stats():
         stats_label.config(text=f'')
     elif stats_dict['type'] == 'coverage_statistics':
         str = (f'Sorting Method = {stats_dict['sorting_variable']} \n'
-               f'Total Execution Time = {round(stats_dict['total_execution_time'], 2)} seconds \n'
-               f'Sorting Time = {round(stats_dict['sorting_time'], 2)} seconds \n'
+               f'Total Execution Time = {round(stats_dict['total_execution_time'], 2)} s \n'
+               f'Sorting Time = {round(stats_dict['sorting_time'], 2)} s \n'
+               f'Path Width = {stats_dict['path_width']} m \n'
                f'Coverage Percentage = {round(stats_dict["coverage_percentage"], 2)} % \n'
                f'Covered Area = {round(stats_dict["covered_area"], 2)} m^2 \n'
                f'Distance = {round(stats_dict["distance"], 2)} m \n'
-               f'Total Turns = {stats_dict["total_turns"]} \n'
-               f'Hard Turns (<45) = {stats_dict["hard_turns"]} \n'
-               f'Medium Turns (45-90) = {stats_dict["medium_turns"]} \n'
-               f'Soft Turns (>90) = {stats_dict["soft_turns"]}')
+               f'Total Turns = {stats_dict["total_turns"]} \n')
+               #f'Hard Turns (<45) = {stats_dict["hard_turns"]} \n'
+               #f'Medium Turns (45-90) = {stats_dict["medium_turns"]} \n'
+               #f'Soft Turns (>90) = {stats_dict["soft_turns"]}')
 
         stats_label.config(text=str,
                             justify="left",  # Justify text to the left
@@ -316,6 +318,7 @@ def path_planner():
                     stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()
                     stats_dict['sorting_time'] = total_sorting_time
+                    stats_dict['path_width'] = path_width
                     stats.append(stats_dict)
                     plots.append(fig)
                     sub_polygons_list.append(None)

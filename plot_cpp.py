@@ -5,7 +5,7 @@ from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
 
 # Pop plot out of IDE
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 
 
 def plot_antipodal_points(polygon, antipodal_vertices):
