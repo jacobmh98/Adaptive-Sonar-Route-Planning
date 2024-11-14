@@ -104,6 +104,7 @@ def solve_tsp_with_routing(distance_matrix):
         print("No solution found.")
         return None
 
+
 def multi_start_tsp(polygons, all_intersections, max_trials=10, selective_pairs=4):
     """ Perform multi-start TSP optimization to minimize path cost, trying multiple random initial orders.
 
@@ -117,6 +118,9 @@ def multi_start_tsp(polygons, all_intersections, max_trials=10, selective_pairs=
     best_cost = float('inf')
     trial = 0
 
+    # Memoization dictionary to store solutions for each unique order
+    memoized_solutions = {}
+
     while trial < max_trials:
         trial += 1
         print(f"Trial {trial}...")
@@ -126,27 +130,41 @@ def multi_start_tsp(polygons, all_intersections, max_trials=10, selective_pairs=
         random.shuffle(random_order)
         print(f"New order: {random_order}")
 
-        # Get start-end pairs for each polygon with selective evaluation of top pairs
-        pairs = [get_pairs(all_intersections[i], top_pairs=selective_pairs) for i in random_order]
+        # Convert random_order to a tuple so it can be used as a key
+        random_order_tuple = tuple(random_order)
 
-        # Build distance matrix for this specific setup
-        distance_matrix = build_distance_matrix(pairs)
+        # Check if this order has already been computed
+        if random_order_tuple in memoized_solutions:
+            print("Order already solved. Retrieving stored solution.")
+            optimal_order, current_cost = memoized_solutions[random_order_tuple]
 
-        # Solve TSP for the current setup
-        optimal_order = solve_tsp_with_routing(distance_matrix)
+        else:
+            # Get start-end pairs for each polygon with selective evaluation of top pairs
+            pairs = [get_pairs(all_intersections[i], top_pairs=selective_pairs) for i in random_order]
 
-        if optimal_order is not None:
-            current_cost = sum(
-                distance_matrix[optimal_order[i]][optimal_order[i + 1]]
-                for i in range(len(optimal_order) - 1)
-            )
+            # Build distance matrix for this specific setup
+            distance_matrix = build_distance_matrix(pairs)
 
-            # Update the best solution if the current solution is better
-            if current_cost < best_cost:
-                best_cost = current_cost
-                best_order = [random_order[idx] for idx in optimal_order]
-                print(f"New best cost found: {best_cost}")
+            # Solve TSP for the current setup
+            optimal_order = solve_tsp_with_routing(distance_matrix)
 
+            if optimal_order is not None:
+                # Calculate the cost for this order
+                current_cost = sum(
+                    distance_matrix[optimal_order[i]][optimal_order[i + 1]]
+                    for i in range(len(optimal_order) - 1)
+                )
+
+                # Store the solution in memoized_solutions
+                memoized_solutions[random_order_tuple] = (optimal_order, current_cost)
+
+        # Update the best solution if the current solution is better
+        if optimal_order is not None and current_cost < best_cost:
+            best_cost = current_cost
+            best_order = [random_order[idx] for idx in optimal_order]
+            print(f"New best cost found: {best_cost}")
+
+    # Final sorted polygons and intersections based on the best order found
     sorted_polys = [polygons[i] for i in best_order] if best_order else polygons
     sorted_inters = [all_intersections[i] for i in best_order]
 
