@@ -367,6 +367,7 @@ def decompose_sweep_line(sub_polygon, obstacles):
             combined_edges.append(Edge(intersection_edge.v_from, v_up))
             combined_edges.append(Edge(v_up, intersection_edge.v_to))
         elif v.type == MERGE:
+            print(f'MERGE at {v}')
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
