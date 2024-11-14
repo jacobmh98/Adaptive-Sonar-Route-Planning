@@ -5,7 +5,8 @@ from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
 
 # Pop plot out of IDE
-#matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
+
 
 def plot_antipodal_points(polygon, antipodal_vertices):
     """ Plot the polygon and highlight the antipodal points.
@@ -63,7 +64,7 @@ def plot_simple_poly_path(polygon, path):
     plt.show()
 
 
-def plot_multi_polys_path(polygon, current_path_width, polygons, path):
+def plot_multi_polys_path(polygon, current_path_width, polygons, path, show_coverage = False):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
@@ -73,7 +74,6 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path):
     :param polygons: List of the sub-polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
     """
-    coverage = False
     plot_sub_polygons = True
 
     hard_edges = []
@@ -131,7 +131,7 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path):
         ax.plot(path_x[-1], path_y[-1], 'ro', markersize=8, label='End Point')  # End point
 
         # Compute and plot coverage area along the path
-        if coverage:
+        if show_coverage:
             for i in range(len(path) - 1):
                 p1 = path[i]
                 p2 = path[i + 1]

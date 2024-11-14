@@ -54,11 +54,12 @@ def compute_sweep_direction(v1, v2, a):
     # Calculate the vector from b to a
     vector_v1_a = create_vector(v1, a)
 
-    # Find the perpendicular direction from v1-v2 towards a
+    # Find the perpendicular direction from v1-v2
     perp_vector = np.array([-vector_v1_v2[1], vector_v1_v2[0]])
 
     # Normalize the perpendicular vector and calculate direction towards a
     perp_vector_normalized = perp_vector / np.linalg.norm(perp_vector)
+
     sweep_direction = np.sign(
         np.dot(perp_vector_normalized.flatten(), vector_v1_a.flatten()))  # -1 or +1 depending on which side a is
 

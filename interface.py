@@ -229,21 +229,36 @@ def path_planner():
 
                 if sorting_variable.get() == 'DFS':
                     print("DFS")
+                    dfs_start_time = time.time()
                     sorted_sub_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(sub_polygons, intersections)
+                    dfs_end_time = time.time()
+                    dfs_total_time = dfs_end_time - dfs_start_time
+
                 elif sorting_variable.get() == 'TSP Centroid':
                     print("Centroids")
+                    tsp_centroid_start_time = time.time()
                     sorted_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(sub_polygons, intersections)
+                    tsp_centroid_end_time = time.time()
+                    tsp_centroid_total_time = tsp_centroid_end_time - tsp_centroid_start_time
+
                 elif sorting_variable.get() == 'TSP Intra Regional':
                     print("Intra Regional")
                     # TODO: Get number of trials values from textfield
+                    tsp_intra_reg_start_time = time.time()
                     sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(sub_polygons, intersections, number_of_tsp_trials)
+                    tsp_intra_reg_end_time = time.time()
+                    tsp_intra_reg_total_time = tsp_intra_reg_end_time - tsp_intra_reg_start_time
+
                 else:
                     print("Unordered")
                     sorted_sub_polygons = sub_polygons
                     sorted_intersections = intersections
 
+                # TODO: Get show_coverage value from a box in UI
+                show_coverage = False
+
                 path = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
-                fig = plot_cpp.plot_multi_polys_path(region, path_width, sorted_sub_polygons, path)
+                fig = plot_cpp.plot_multi_polys_path(region, path_width, sorted_sub_polygons, path, show_coverage)
 
                 # Ending timer and computing total execution time
                 total_end_time = time.time()
