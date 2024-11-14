@@ -5,7 +5,6 @@ import time
 from tkinter import *
 from tkinter import filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from pygame.display import update
 
 import cpp_connect_path
 import cpp_path_planning
@@ -82,6 +81,7 @@ def select_file():
             sub_polygons_list.append(sub_polygons)
 
             update_plot()
+
 def decompose():
     global current_plot_index
 
@@ -252,7 +252,7 @@ def update_stats():
                            anchor="w")
 
 def path_planner():
-    global current_plot_index, sorting_variable
+    global current_plot_index, sorting_variable, tsp_iterations
     if len(sub_polygons_list) != 0:
         sub_polygons = sub_polygons_list[current_plot_index]
 
@@ -286,10 +286,18 @@ def path_planner():
                         print("Intra Regional")
                         # TODO: Get number of trials values from textfield
                         tsp_intra_reg_start_time = time.time()
-                        sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(sub_polygons, intersections, number_of_tsp_trials)
+
+                        value = tsp_iterations.get()
+
+                        if value:
+                            value = int(value)
+                            if value > 0:
+                                sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(sub_polygons, intersections, value)
+                            else:
+                                sorted_sub_polygons = sub_polygons
+                                sorted_intersections = intersections
                         tsp_intra_reg_end_time = time.time()
                         tsp_intra_reg_total_time = tsp_intra_reg_end_time - tsp_intra_reg_start_time
-
                     else:
                         print("Unordered")
                         sorted_sub_polygons = sub_polygons
@@ -380,9 +388,16 @@ def setup_plot_pane():
     else:
         print("Checkbox is unchecked")"""
 
+def toggle_sorting_method():
+    global tsp_iterations, sorting_variable
+    if sorting_variable.get() == 'TSP Intra Regional':
+        tsp_iterations.config(state="normal")
+    else:
+        tsp_iterations.config(state="disabled")
+
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry, sorting_variable
+    global label, decomposition_variable, path_width_entry, sorting_variable, tsp_iterations
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
@@ -410,14 +425,24 @@ def setup_option_pane():
 
     Label(options_pane, text='Sorting Method', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
     sorting_variable = StringVar(value='Unordered')
-    rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered')
-    rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS')
-    rb6 = Radiobutton(options_pane, text='TSP Centroid', variable=sorting_variable, value='TSP Centroid')
-    rb7 = Radiobutton(options_pane, text='TSP Intra Regional', variable=sorting_variable, value='TSP Intra Regional')
+    rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered', command=toggle_sorting_method)
+    rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS', command=toggle_sorting_method)
+    rb6 = Radiobutton(options_pane, text='TSP Centroid', variable=sorting_variable, value='TSP Centroid', command=toggle_sorting_method)
+    rb7 = Radiobutton(options_pane, text='TSP Intra Regional', variable=sorting_variable, value='TSP Intra Regional', command=toggle_sorting_method)
     rb4.pack(anchor='w')
     rb5.pack(anchor='w')
     rb6.pack(anchor='w')
     rb7.pack(anchor='w')
+
+    #tsp_iterations = Text(options_pane)
+    #tsp_iterations.pack(anchor='w')
+    #tsp_iterations.insert(END, '10')
+    Label(options_pane, text='Iterations', font=("Arial", 10)).pack(anchor='w')
+
+    tsp_iterations = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
+    tsp_iterations.pack(anchor='w')
+    tsp_iterations.insert(0, '10')
+    tsp_iterations.config(state="disabled")
 
     Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
