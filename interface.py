@@ -84,9 +84,8 @@ def select_file():
 
 def decompose():
     global current_plot_index
-
     if region is not None:
-        if decomposition_variable.get() == 'Greedy Recursive':
+        if len(obstacles) == 0 or decomposition_variable.get() == 'Greedy Recursive':
             # Decompose the region without considering obstacles
             sub_polygons = generate_new_data(copy.deepcopy(region))
             sub_polygons_list.append(sub_polygons)
