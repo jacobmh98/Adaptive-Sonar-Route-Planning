@@ -38,6 +38,7 @@ def find_nearest_to_vertex(poly, first_intersection, last_intersection):
             dist = np.linalg.norm(np.array(vertex.v) - intersection_point)
 
             if dist < min_distance:
+                nearest_vertex = vertex
                 min_distance = dist
                 nearest_intersection_point = intersection_point
                 nearest_intersection = 0 if i < 2 else 1  # 0 for first intersection, 1 for last
@@ -86,7 +87,6 @@ def add_intersection_points_to_path(path, intersection):
 def connect_first_path(next_poly, intersections):
     # Find nearest vertex in next_poly to either first or last intersection
     nearest_intersection_point, nearest_intersection_index = find_nearest_to_vertex(next_poly, intersections[0], intersections[-1])
-
     first_path = [nearest_intersection_point]  # Initialize path with the nearest intersection point
 
     # Getting index of nearest intersection in intersection list (can only be first or last element)

@@ -8,6 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import cpp_connect_path
 import cpp_path_planning
+import decomposition
 import plot_cpp
 import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
@@ -16,7 +17,8 @@ from decomposition import sum_of_widths
 from global_variables import number_of_tsp_trials
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
-from cpp_path_data import compute_path_data
+from cpp_path_data import compute_path_data, compute_covered_area_with_obstacles, compute_outlier_area, \
+    compute_overlap_area
 
 file_path = None
 plots = []
@@ -234,10 +236,13 @@ def update_stats():
                f'Total Execution Time = {round(stats_dict['total_execution_time'], 2)} s \n'
                f'Sorting Time = {round(stats_dict['sorting_time'], 2)} s \n'
                f'Path Width = {stats_dict['path_width']} m \n'
+               f'Overlap Distance = {stats_dict['overlap_distance']} m \n'
+               f'Path Distance = {round(stats_dict["distance"], 2)} m \n'
+               f'Total number of Turns = {stats_dict["total_turns"]} \n'
                f'Coverage Percentage = {round(stats_dict["coverage_percentage"], 2)} % \n'
-               f'Covered Area = {round(stats_dict["covered_area"], 2)} m^2 \n'
-               f'Distance = {round(stats_dict["distance"], 2)} m \n'
-               f'Total Turns = {stats_dict["total_turns"]} \n')
+               f'Covered Area = {round(stats_dict["covered_area"], 2)} m\u00B2 \n'
+               f'Overlapped Area = {round(stats_dict["overlapped_area"], 2)} m\u00B2 \n'
+               f'Outlying Area = {round(stats_dict["outlying_area"], 2)} m\u00B2 \n')
                #f'Hard Turns (<45) = {stats_dict["hard_turns"]} \n'
                #f'Medium Turns (45-90) = {stats_dict["medium_turns"]} \n'
                #f'Soft Turns (>90) = {stats_dict["soft_turns"]}')
@@ -254,22 +259,41 @@ def update_stats():
                            justify="left",  # Justify text to the left
                            anchor="w")
 
+def show_coverage():
+    """
+    covered_area, coverage_percentage = compute_covered_area_with_obstacles(region, obstacles, path, chosen_path_width)
+    outlier_area = compute_outlier_area(region, path, chosen_path_width)
+    overlap_area = compute_overlap_area(region, obstacles, path, chosen_path_width)
+
+    fig = plot_cpp.plot_coverage(region, path, chosen_path_width, covered_area, outlier_area, overlap_area, obstacles,
+                                 sorted_sub_polygons)
+    """
+
+
 def path_planner():
     global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var
     if len(sub_polygons_list) != 0:
         sub_polygons = sub_polygons_list[current_plot_index]
 
         if sub_polygons is not None:
-            value = path_width_entry.get()
-            print(f'{value=}')
-            if value:  # Check if it's not empty
+            path_width_value = path_width_entry.get()
+            overlap_value = overlap_distance_entry.get()
+            print(f'{path_width_value=}')
+            if path_width_value:  # Check if it's not empty
                 try:
                     # Convert to integer
-                    global path_width
-                    path_width = float(value)
+                    global chosen_path_width, chosen_overlap_distance
+                    chosen_path_width = float(path_width_value)
+                    chosen_overlap_distance = float(overlap_value)
+
+                    # Removing collinear vertices
+                    removed_col_sub_polygons = []
+                    for poly in sub_polygons:
+                        removed_col_sub_polygons.append(decomposition.remove_collinear_vertices(poly))
+                    sub_polygons = removed_col_sub_polygons
 
                     total_start_time = time.time()
-                    intersections = cpp_path_planning.multi_intersection_planning(sub_polygons, path_width)
+                    intersections = cpp_path_planning.multi_intersection_planning(sub_polygons, chosen_path_width, chosen_overlap_distance)
 
                     if sorting_variable.get() == 'DFS':
                         print("DFS")
@@ -297,6 +321,7 @@ def path_planner():
                             else:
                                 sorted_sub_polygons = sub_polygons
                                 sorted_intersections = intersections
+
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
                     else:
@@ -305,20 +330,35 @@ def path_planner():
                         sorted_intersections = intersections
                         total_sorting_time = 0
 
+                    # Computing path
+                    path = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
+
+                    # Checking if user wants to see coverage of path
                     show_coverage = show_coverage_var.get()
 
-                    path = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
-                    fig = plot_cpp.plot_multi_polys_path(region, path_width, sorted_sub_polygons, path, show_coverage)
+                    if show_coverage:
+                        covered_area, coverage_percentage = compute_covered_area_with_obstacles(region, obstacles, path,
+                                                                                                chosen_path_width)
+                        outlier_area = compute_outlier_area(region, path, chosen_path_width)
+                        overlap_area = compute_overlap_area(region, obstacles, path, chosen_path_width)
+
+                        fig = plot_cpp.plot_coverage(region, path, chosen_path_width, covered_area, outlier_area,
+                                                     overlap_area, obstacles,
+                                                     sorted_sub_polygons)
+
+                    else:
+                        fig = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, show_coverage)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
                     total_execution_time = total_end_time - total_start_time
 
-                    stats_dict = compute_path_data(region, path, obstacles,total_execution_time)
+                    stats_dict = compute_path_data(region, sorted_sub_polygons, path, chosen_path_width, obstacles, total_execution_time)
                     stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()
                     stats_dict['sorting_time'] = total_sorting_time
-                    stats_dict['path_width'] = path_width
+                    stats_dict['path_width'] = chosen_path_width
+                    stats_dict['overlap_distance'] = chosen_overlap_distance
                     stats.append(stats_dict)
                     plots.append(fig)
                     sub_polygons_list.append(None)
@@ -401,7 +441,7 @@ def toggle_sorting_method():
 
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry, sorting_variable, tsp_iterations, show_coverage_var
+    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, show_coverage_var
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
@@ -426,6 +466,11 @@ def setup_option_pane():
     path_width_entry = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
     path_width_entry.pack(anchor='w')
     path_width_entry.insert(0, '10')
+
+    Label(options_pane, text='Path Overlap Distance', font=('Arial, 12')).pack(anchor='w', pady=(10, 0))
+    overlap_distance_entry = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
+    overlap_distance_entry.pack(anchor='w')
+    overlap_distance_entry.insert(0, '0')
 
     Label(options_pane, text='Sorting Method', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
     sorting_variable = StringVar(value='Unordered')
@@ -454,6 +499,10 @@ def setup_option_pane():
 
     Checkbutton(options_pane, text="Show Coverage", variable=show_coverage_var).pack(anchor='w')
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
+
+    # Showing coverage plot
+    #Button(options_pane, text='Show Coverage', command=show_coverage).pack(anchor='w')
+
 
 # Initialize main Tkinter window
 root = Tk()

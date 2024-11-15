@@ -59,7 +59,7 @@ def compute_turns(path):
     return total_turns, hard_turns, medium_turns, soft_turns
 
 
-def compute_covered_area_with_obstacles(region, obstacles, path):
+def compute_covered_area_with_obstacles(region, obstacles, path, current_path_width):#, current_overlap_distance):
     """
     Compute the coverage of the path inside the region, excluding obstacle areas.
 
@@ -70,7 +70,7 @@ def compute_covered_area_with_obstacles(region, obstacles, path):
     """
     # Convert path points to a LineString and buffer it to create a coverage area
     path = LineString(path)
-    buffered_path = path.buffer((path_width + overlap_distance) / 2.0)
+    buffered_path = path.buffer((current_path_width) / 2.0)
 
     # Convert the main region polygon to a Shapely Polygon
     region_coords = [(v.x, v.y) for v in region.vertices]
@@ -89,7 +89,7 @@ def compute_covered_area_with_obstacles(region, obstacles, path):
     return covered_area, coverage_percentage
 
 
-def compute_outlier_area(polygon, path):
+def compute_outlier_area(polygon, path, current_path_width):
     """ Computes the path area outside the polygon
 
     :param polygon: Polygon
@@ -97,7 +97,7 @@ def compute_outlier_area(polygon, path):
     :return outlying_area: Shapely Polygon that lies outside the given polygon
     """
     path = LineString(path)
-    buffered_path = path.buffer((path_width + overlap_distance) / 2.0)
+    buffered_path = path.buffer((current_path_width) / 2.0)
 
     # Convert your Polygon class to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
@@ -109,29 +109,37 @@ def compute_outlier_area(polygon, path):
     return outlying_area
 
 
-def compute_overlap_area(polygon, path):
-    """ Computes the path overlap area inside the polygon
+def compute_overlap_area(polygon, obstacles, path, current_path_width):
+    """ Computes the path overlap area inside the polygon, excluding obstacles.
 
     :param polygon: Polygon
+    :param obstacles: List of Polygon instances representing obstacles
     :param path: List of points
     :return overlap_area: Shapely Polygon of the path overlap inside the polygon
     """
-    # Convert the list of path points to a LineString object
+    # Convert the path into buffered segments
     path_segments = [LineString([path[i], path[i + 1]]) for i in range(len(path) - 1)]
-    buffered_segments = [seg.buffer((path_width + overlap_distance) / 2.0) for seg in path_segments]
+    buffered_segments = [seg.buffer((current_path_width) / 2.0) for seg in path_segments]
 
-    # Convert your Polygon class to a Shapely Polygon
+    # Convert the main polygon and obstacles to Shapely shapes
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
     poly_shape = ShapelyPolygon(poly_coords)
+    obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
 
+    # Subtract obstacles from each buffered segment directly
+    effective_segments = [segment.difference(obstacles_shapes) for segment in buffered_segments]
+
+    # Calculate overlaps only within the effective region (polygon without obstacles)
+    effective_region = poly_shape.difference(obstacles_shapes)
     overlap_areas = []
-    for i in range(len(buffered_segments)):
-        for j in range(i + 1, len(buffered_segments)):
-            # Detect overlaps between buffered segments
-            segment_overlap = buffered_segments[i].intersection(buffered_segments[j])
+
+    for i in range(len(effective_segments)):
+        for j in range(i + 1, len(effective_segments)):
+            # Find intersections (overlaps) between effective segments
+            segment_overlap = effective_segments[i].intersection(effective_segments[j])
             if not segment_overlap.is_empty:
-                # Only count overlap areas that are strictly within the polygon
-                actual_overlap_within_polygon = segment_overlap.intersection(poly_shape)
+                # Restrict overlap area to within the effective region
+                actual_overlap_within_polygon = segment_overlap.intersection(effective_region)
                 if not actual_overlap_within_polygon.is_empty and actual_overlap_within_polygon.area > 0:
                     overlap_areas.append(actual_overlap_within_polygon)
 
@@ -144,12 +152,12 @@ def compute_overlap_area(polygon, path):
     return overlap_area
 
 
-def compute_path_data(poly, path, obstacles, time):
+def compute_path_data(poly, polygons, path, current_path_width, obstacles, time):
     distance = compute_total_distance(path)
 
-    covered_area, coverage_percentage = compute_covered_area_with_obstacles(poly, obstacles, path)
-    outlier_area = compute_outlier_area(poly, path)
-    overlap_area = compute_overlap_area(poly, path)
+    covered_area, coverage_percentage = compute_covered_area_with_obstacles(poly, obstacles, path, current_path_width)
+    outlier_area = compute_outlier_area(poly, path, current_path_width)
+    overlap_area = compute_overlap_area(poly, obstacles, path, current_path_width)
 
     print(f'Execution time: {time}')
     print(f'Distance: {distance}')
@@ -166,7 +174,7 @@ def compute_path_data(poly, path, obstacles, time):
     print(f'Medium turns (45-90): {medium_turns}')
     print(f'Soft turns (>90): {soft_turns}')
 
-    #plot_cpp.plot_coverage(poly, path, covered_area, outlier_area, overlap_area)
+    plot_cpp.plot_coverage(poly, path, current_path_width, covered_area, outlier_area, overlap_area, obstacles, polygons)
 
     if store_data:
         output_file = "coverage_results.txt"
@@ -185,9 +193,11 @@ def compute_path_data(poly, path, obstacles, time):
 
     result = {
         'type': 'coverage_statistics',
+        'distance': distance,
         'coverage_percentage': coverage_percentage,
         'covered_area': covered_area.area,
-        'distance': distance,
+        'overlapped_area': overlap_area.area,
+        'outlying_area': outlier_area.area,
         'total_turns': total_turns,
         'hard_turns': hard_turns,
         'medium_turns': medium_turns,

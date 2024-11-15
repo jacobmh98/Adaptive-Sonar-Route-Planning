@@ -7,7 +7,6 @@ from shapely.geometry import Polygon as ShapelyPolygon
 # Pop plot out of IDE
 #matplotlib.use('TkAgg')
 
-
 def plot_antipodal_points(polygon, antipodal_vertices):
     """ Plot the polygon and highlight the antipodal points.
 
@@ -64,18 +63,23 @@ def plot_simple_poly_path(polygon, path):
     plt.show()
 
 
-def plot_multi_polys_path(polygon, current_path_width, polygons, path, show_coverage = False):
+def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles=None, show_coverage=False):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
+    Obstacles are plotted with red edges.
 
     :param polygon: Polygon of the region
     :param current_path_width: Width of the path
     :param polygons: List of the sub-polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
+    :param obstacles: List of obstacle polygons
+    :param show_coverage: Boolean indicating whether to show coverage areas around the path
     """
     plot_sub_polygons = True
+    marker_size = 3  # Consistent marker size for vertices
 
+    # Collect hard edges for each sub-polygon
     hard_edges = []
     for poly in polygons:
         sub_list = []
@@ -86,80 +90,163 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, show_cove
 
     # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
-    color = "k"
 
-    # Plot the polygon
+    # Plot the main polygon or sub-polygons with consistent edge and vertex sizes
     if not plot_sub_polygons:
         x_coords, y_coords = polygon.get_coords()
-        ax.plot(x_coords, y_coords, f'{color}-', marker='o')
-        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
-
-    if plot_sub_polygons:
+        ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
+        ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+    else:
         for i, poly in enumerate(polygons):
             x_coords, y_coords = poly.get_coords()
-            ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=3, label='Polygon')
+            ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size, label='Polygon')
             ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
 
-            # Label each vertex with its index
-            for idx, (x, y) in enumerate(zip(x_coords, y_coords)):
-                ax.text(x, y, f'{idx}', fontsize=8, color='green', ha='right', va='bottom')
-
-            # Plot hard edges
+            # Plot hard edges with the same style for both options
             if i < len(hard_edges):
                 for vertex_index in hard_edges[i]:
                     start_idx = vertex_index
-                    end_idx = (vertex_index + 1) % len(x_coords)  # Next vertex, looping back if it's the last vertex
+                    end_idx = (vertex_index + 1) % len(x_coords)  # Loop back if it's the last vertex
                     ax.plot([x_coords[start_idx], x_coords[end_idx]],
                             [y_coords[start_idx], y_coords[end_idx]],
                             'r-', linewidth=3, label='_nolegend_')
 
-            # Find the center of the polygon to place the label
+            # Label the centroid of each sub-polygon
             centroid_x = np.mean(x_coords)
             centroid_y = np.mean(y_coords)
-
-            # Label the polygon with its number (the order number)
             ax.text(centroid_x, centroid_y, f'{i}', fontsize=10, color='blue')
 
-    # Plot the path
+    # Plot obstacles with red edges
+    if obstacles:
+        for obstacle in obstacles:
+            x_coords, y_coords = obstacle.get_coords()
+            ax.plot(x_coords, y_coords, 'r-', marker='o', markersize=marker_size, label='Obstacle')
+            ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'r-')
+
+    # Plot the path with consistent style
     if len(path) > 0:
         path_x, path_y = path[:, 0], path[:, 1]
         ax.plot(path_x, path_y, 'g-', label='Path', linewidth=1)
 
-        # Highlight the start and end points of the path
-        ax.plot(path_x[0], path_y[0], 'go', markersize=8, label='Start Point')  # Start point
-        ax.plot(path_x[-1], path_y[-1], 'ro', markersize=8, label='End Point')  # End point
+        # Highlight start and end points of the path
+        ax.plot(path_x[0], path_y[0], 'go', markersize=6, label='Start Point')
+        ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6, label='End Point')
 
-        # Compute and plot coverage area along the path
+        # Plot coverage area along the path if enabled
         if show_coverage:
             for i in range(len(path) - 1):
                 p1 = path[i]
                 p2 = path[i + 1]
-                # Vector along the path segment
                 segment_vector = p2 - p1
-                # Normalize the vector to get the perpendicular direction
                 perp_vector = np.array([-segment_vector[1], segment_vector[0]])
                 if np.linalg.norm(perp_vector) != 0:
                     perp_vector = perp_vector / np.linalg.norm(perp_vector) * current_path_width / 2
 
-                # Create four corners of the coverage area for this segment
+                # Define the four corners of the coverage area for this segment
                 corner1 = p1 + perp_vector
                 corner2 = p1 - perp_vector
                 corner3 = p2 - perp_vector
                 corner4 = p2 + perp_vector
 
-                # Plot the coverage area for this segment as a filled polygon
+                # Plot the coverage area for this segment
                 ax.fill([corner1[0], corner2[0], corner3[0], corner4[0]],
                         [corner1[1], corner2[1], corner3[1], corner4[1]],
                         'orange', alpha=0.3, label='_nolegend_')
     else:
         print("Empty path")
 
-    #plt.grid(True)
-    #plt.xlabel('X')
-    #plt.ylabel('Y')
-
-    # Show the plot in a separate window
+    # Show the plot with equal aspect ratio
     ax.set_aspect('equal')
+    plt.show()
+
+    return fig
+
+
+def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, overlap_area, obstacles, sub_polygons=None):
+    """
+    Plot the main polygon, path, covered area, outlier area, overlap area, obstacles, and optional sub-polygons.
+
+    :param polygon: Polygon of the region
+    :param path_points: List of points representing the path [[x1, y1], [x2, y2], ...]
+    :param covered_area: Shapely Polygon of the covered area
+    :param outlier_area: Shapely Polygon of the outlier area
+    :param overlap_area: Shapely Polygon of the overlap area
+    :param obstacles: List of obstacle polygons
+    :param sub_polygons: Optional list of sub-polygons to be plotted
+    """
+    # Create the plot
+    fig, ax = plt.subplots()
+    marker_size = 3  # Consistent marker size for vertices
+
+    # Convert the main Polygon class to a Shapely Polygon and plot it
+    poly_coords = [(v.x, v.y) for v in polygon.vertices]
+    poly_shape = ShapelyPolygon(poly_coords)
+    x_poly, y_poly = poly_shape.exterior.xy
+    ax.plot(x_poly, y_poly, 'k-', linewidth=2, marker='o', markersize=marker_size)
+
+    # Plot sub-polygons if provided
+    if sub_polygons:
+        for i, sub_poly in enumerate(sub_polygons):
+            sub_coords = [(v.x, v.y) for v in sub_poly.vertices]
+            sub_shape = ShapelyPolygon(sub_coords)
+            x_sub, y_sub = sub_shape.exterior.xy
+            ax.plot(x_sub, y_sub, 'k-', linewidth=1.5, marker='o', markersize=marker_size)
+
+            # Label each sub-polygon with its index
+            centroid_x = np.mean(x_sub)
+            centroid_y = np.mean(y_sub)
+            ax.text(centroid_x, centroid_y, f'{i}', fontsize=10, color='blue')
+
+    # Plot obstacles as red outlines with consistent marker size
+    for obstacle in obstacles:
+        obstacle_coords = [(v.x, v.y) for v in obstacle.vertices]
+        obstacle_shape = ShapelyPolygon(obstacle_coords)
+        x, y = obstacle_shape.exterior.xy
+        ax.plot(x, y, 'r-', linewidth=2, marker='o', markersize=marker_size)
+
+    # Plot the path as a line with start and end points highlighted
+    path_x, path_y = zip(*path_points)
+    ax.plot(path_x, path_y, 'g-', linewidth=1)
+    ax.plot(path_x[0], path_y[0], 'go', markersize=6)  # Start point
+    ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6)  # End point
+
+    # Plot covered area inside the polygon
+    if not covered_area.is_empty:
+        if covered_area.geom_type == 'Polygon':
+            x, y = covered_area.exterior.xy
+            ax.fill(x, y, color='#4CAF50', alpha=0.5, label='Covered Area')  # Slightly darker green
+        elif covered_area.geom_type == 'MultiPolygon':
+            for sub_polygon in covered_area.geoms:
+                x, y = sub_polygon.exterior.xy
+                ax.fill(x, y, color='#4CAF50', alpha=0.5)
+
+    # Plot outlier area outside the polygon
+    if not outlier_area.is_empty:
+        labeled = False
+        if outlier_area.geom_type == 'Polygon':
+            x, y = outlier_area.exterior.xy
+            ax.fill(x, y, color='red', alpha=0.5, label='Outlier Area')
+        elif outlier_area.geom_type == 'MultiPolygon':
+            for i, sub_polygon in enumerate(outlier_area.geoms):
+                x, y = sub_polygon.exterior.xy
+                ax.fill(x, y, color='red', alpha=0.5, label='Outlier Area' if not labeled else None)
+                labeled = True
+
+    # Plot the overlap area
+    if not overlap_area.is_empty:
+        labeled = False
+        if overlap_area.geom_type == 'Polygon':
+            x, y = overlap_area.exterior.xy
+            ax.fill(x, y, color='orange', alpha=0.5, label='Overlap Area')
+        elif overlap_area.geom_type == 'MultiPolygon':
+            for i, sub_polygon in enumerate(overlap_area.geoms):
+                x, y = sub_polygon.exterior.xy
+                ax.fill(x, y, color='orange', alpha=0.5, label='Overlap Area' if not labeled else None)
+                labeled = True
+
+    # Ensure proper aspect ratio and add legend
+    ax.set_aspect('equal')
+    ax.legend()
     plt.show()
 
     return fig
@@ -240,7 +327,6 @@ def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, 
         ax.legend(loc='best')
 
     plt.show()  # Display the plot
-
 
 def plot_path(poly, b, b_mate, a, path):
     """
@@ -323,9 +409,7 @@ def plot_path(poly, b, b_mate, a, path):
     plt.ylabel('Y')
     plt.show()
 
-
-def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, best_path_output, score1,
-                          score2):
+def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, best_path_output, score1,score2):
     """
     Plot the two back-and-forth paths (path1 and path2) in separate subplots for comparison,
     and show the best path in a third subplot.
@@ -357,7 +441,6 @@ def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, 
 
     plt.tight_layout()
     plt.show()
-
 
 def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
     """
@@ -422,58 +505,31 @@ def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
 
+def plot_lines(v_initial, last_intersection,title):
+    # Extract points from the data
+    p1, p2 = v_initial[0], v_initial[1]  # Line from v_initial
+    q1, q2 = last_intersection  # Line from last_intersection
 
-def plot_coverage(polygon, path_points, covered_area, wasted_area, overlap_area):
-    # Create the plot
-    fig, ax = plt.subplots()
+    # Create a new figure
+    plt.figure()
 
-    # Convert your Polygon class to a Shapely Polygon
-    poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = ShapelyPolygon(poly_coords)
+    # Plot the first line
+    plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', label="v_initial Line", linewidth=2)
 
-    # Plot the original polygon
-    x_poly, y_poly = poly_shape.exterior.xy
-    ax.plot(x_poly, y_poly, 'k-', label='Polygon Boundary')
+    # Plot the second line
+    plt.plot([q1[0], q2[0]], [q1[1], q2[1]], 'b-', label="last_intersection Line", linewidth=2)
 
-    # Plot the path as a line
-    path_x, path_y = zip(*path_points)
-    ax.plot(path_x, path_y, 'b-', linewidth=2, label='Path')
+    # Add labels and title
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title(title)
+    plt.legend()
 
-    # Plot the covered area inside the polygon
-    if not covered_area.is_empty:
-        if covered_area.geom_type == 'Polygon':
-            x, y = covered_area.exterior.xy
-            ax.fill(x, y, color='green', alpha=0.5, label='Covered Area')
-        elif covered_area.geom_type == 'MultiPolygon':
-            for sub_polygon in covered_area.geoms:
-                x, y = sub_polygon.exterior.xy
-                ax.fill(x, y, color='green', alpha=0.5)
+    # Set equal scaling for both axes
+    plt.gca().set_aspect('equal', adjustable='box')
 
-    # Plot the wasted area outside the polygon, with label only once
-    if not wasted_area.is_empty:
-        labeled = False
-        if wasted_area.geom_type == 'Polygon':
-            x, y = wasted_area.exterior.xy
-            ax.fill(x, y, color='red', alpha=0.5, label='Wasted Area')
-        elif wasted_area.geom_type == 'MultiPolygon':
-            for i, sub_polygon in enumerate(wasted_area.geoms):
-                x, y = sub_polygon.exterior.xy
-                ax.fill(x, y, color='red', alpha=0.5, label='Wasted Area' if not labeled else None)
-                labeled = True
+    # Show grid
+    plt.grid(True)
 
-    # Plot the overlap area, with label only once
-    if not overlap_area.is_empty:
-        labeled = False
-        if overlap_area.geom_type == 'Polygon':
-            x, y = overlap_area.exterior.xy
-            ax.fill(x, y, color='orange', alpha=0.5, label='Overlap Area')
-        elif overlap_area.geom_type == 'MultiPolygon':
-            for i, sub_polygon in enumerate(overlap_area.geoms):
-                x, y = sub_polygon.exterior.xy
-                ax.fill(x, y, color='orange', alpha=0.5, label='Overlap Area' if not labeled else None)
-                labeled = True
-
-    # Ensure proper aspect ratio and add legend
-    ax.set_aspect('equal', 'box')
-    ax.legend()
+    # Show the plot
     plt.show()

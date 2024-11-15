@@ -176,35 +176,6 @@ def get_smallest_diameter(polygon):
 
         return min_distance
 
-def plot_lines(v_initial, last_intersection,title):
-    # Extract points from the data
-    p1, p2 = v_initial[0], v_initial[1]  # Line from v_initial
-    q1, q2 = last_intersection  # Line from last_intersection
-
-    # Create a new figure
-    plt.figure()
-
-    # Plot the first line
-    plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-', label="v_initial Line", linewidth=2)
-
-    # Plot the second line
-    plt.plot([q1[0], q2[0]], [q1[1], q2[1]], 'b-', label="last_intersection Line", linewidth=2)
-
-    # Add labels and title
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.title(title)
-    plt.legend()
-
-    # Set equal scaling for both axes
-    plt.gca().set_aspect('equal', adjustable='box')
-
-    # Show grid
-    plt.grid(True)
-
-    # Show the plot
-    plt.show()
-
 
 # Function to check if two lines are parallel in 2D
 def are_lines_parallel_2d(p1, p2, q1, q2, epsilon=1e-9):
@@ -245,7 +216,7 @@ def find_closest_parallel_intersection(v_initial, intersections, epsilon=1e-9):
     return closest_intersection
 
 
-def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_index, boundary):
+def get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, b_mate_index, a_index, boundary):
     """ Algorithm 1 - GetPath algorithm from page 5 in Coverage Path Planning for 2D Convex Regions,
         Adjusted for multi polygons. Just returns the list of intersection pairs
 
@@ -257,6 +228,7 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
     :param boundary: List of polygon's boundaries
     :return intersections: A multidim list of intersection points, as pairs
     """
+
     # Getting the three vertices as points from the polygon
     b = poly.vertices[b_index].v.flatten()
     b_mate = poly.vertices[b_mate_index].v.flatten()
@@ -277,8 +249,14 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
 
     # Creating a vector from vertex b to b_mate
     v_initial = np.array([b, b_mate])
+
+    # Checking if overlap distance does not make delta_init negative, if so, overlap dist is halved and checked again.
+    while delta_init - current_overlap_distance <= 0:
+        current_overlap_distance = current_overlap_distance / 2
+        print("Halved overlap distance")
+
     # Offsetting vector b to b_mate with delta_init towards point a
-    v_offset = compute_offset_vector(v_initial, sweep_direction, delta_init)
+    v_offset = compute_offset_vector(v_initial, sweep_direction, delta_init - current_overlap_distance)
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
     v_extended = extend_vector_to_boundary(v_offset, boundary)
 
@@ -293,6 +271,7 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
 
     all_intersections = []
 
+
     # Loop until no intersections are found
     while True:
         # Find the new intersections
@@ -300,21 +279,34 @@ def get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_in
 
         # Check if no new intersections are found
         if not new_intersections:
+            # Checking if overlap distance does not make delta_init negative, if so, overlap dist is halved and checked again.
+            while current_path_width/2 - current_overlap_distance <= 0:
+                current_overlap_distance = current_overlap_distance / 2
+                print("Halved overlap distance")
+
             # Create new vector with half current path width distance, to ensure complete coverage near the far edge
-            v_offset = compute_offset_vector(v_extended, -sweep_direction, current_path_width/2-overlap_distance)  # Offset vector backwards
-            v_extended = extend_vector_to_boundary(v_offset, boundary)
-            check_near_edge_intersections = poly.find_intersections(v_extended)
-            if not check_near_edge_intersections:
-                break
-            else:
+            v_half_offset = compute_offset_vector(v_extended, -sweep_direction, current_path_width/2 -current_overlap_distance)  # Offset vector backwards
+            v_half_extended = extend_vector_to_boundary(v_half_offset, boundary)
+            check_near_edge_intersections = poly.find_intersections(v_half_extended)
+
+            if check_near_edge_intersections:
                 # Create tuples of two consecutive points and append to all_intersections
                 all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
+                break
+            else:
+                break
+
         else:
             # Create tuples of two consecutive points and append to all_intersections
             all_intersections.append((new_intersections[0], new_intersections[1]))
 
+        # Checking if overlap distance does not make delta_init negative, if so, overlap dist is halved and checked again.
+        while current_path_width / 2 - current_overlap_distance <= 0:
+            current_overlap_distance = current_overlap_distance / 2
+            print("Halved overlap distance")
+
         # Computing next extended offset vector, offset with full path width dx
-        v_offset = compute_offset_vector(v_extended, sweep_direction, current_path_width-overlap_distance)
+        v_offset = compute_offset_vector(v_extended, sweep_direction, current_path_width-current_overlap_distance)
         v_extended = extend_vector_to_boundary(v_offset, boundary)
 
         # Avoid infinite while loop
@@ -339,7 +331,7 @@ def compute_angle(i, j):
     return np.arctan2(delta_y, delta_x)
 
 
-def best_intersection(poly, current_path_width, i, j):
+def best_intersection(poly, current_path_width, current_overlap_distance, i, j):
     """
     :param poly: Polygon
     :param current_path_width:
@@ -359,7 +351,7 @@ def best_intersection(poly, current_path_width, i, j):
         else:
             a_index = poly.get_mate(b_index)
 
-        intersections = get_path_intersections(poly, current_path_width, b_index, b_mate_index, a_index, boundary)
+        intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, b_mate_index, a_index, boundary)
 
     else:
         # Rotating the caliper in clockwise direction
@@ -384,13 +376,13 @@ def best_intersection(poly, current_path_width, i, j):
 
         # Finding path that holds the least flight lines (smallest dist between point b and a creates longer and fewer lines)
         if distance_between_points(poly.vertices[b_index].v, poly.vertices[a_index].v) < distance_between_points(poly.vertices[b2_index].v, poly.vertices[a2_index].v):
-            intersections = get_path_intersections(poly, current_path_width, b_index, poly.get_mate(b_index), a_index, boundary)
+            intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
         else:
-            intersections = get_path_intersections(poly, current_path_width, b2_index, poly.get_mate(b2_index), a2_index, boundary)
+            intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b2_index, poly.get_mate(b2_index), a2_index, boundary)
 
         # Check for a few edge cases where rotating caliper does not compute optimal path
-        edge_case_one_intersections = get_path_intersections(poly, current_path_width, b_index, poly.get_mate(b_index), a_index, boundary)
-        edge_case_two_intersections = get_path_intersections(poly, current_path_width, b2_index, poly.get_mate(b2_index), a2_index, boundary)
+        edge_case_one_intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
+        edge_case_two_intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b2_index, poly.get_mate(b2_index), a2_index, boundary)
         if len(edge_case_one_intersections) < len(edge_case_two_intersections):
             if len(edge_case_one_intersections) < len(intersections):
                 intersections = edge_case_one_intersections

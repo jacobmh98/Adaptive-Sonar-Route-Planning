@@ -1,5 +1,6 @@
 import time
 import cpp_connect_path
+import decomposition
 import plot_cpp
 import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
@@ -87,7 +88,7 @@ for i, filtered in enumerate(sub_polygons_filtered):
     #plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
 
 # Combining all the decomposed sub-polygons with obstacles
-combined_polygons = extracted_sub_polygons + decomposed_polygons
+combined_polygons = sub_polygons#extracted_sub_polygons + decomposed_polygons
 
 # Optimize the sub-polygons by merging when possible
 #optimized_sub_polygons = compute_optimized_data(combined_polygons)
@@ -108,7 +109,13 @@ combined_polygons = extracted_sub_polygons + decomposed_polygons
 
 # Starting timer for all cpp functions
 total_start_time = time.time()
-intersections = cpp_path_planning.multi_intersection_planning(combined_polygons, path_width)
+
+removed_col_sub_polygons = []
+for poly in combined_polygons:
+    removed_col_sub_polygons.append(decomposition.remove_collinear_vertices(poly))
+combined_polygons = removed_col_sub_polygons
+
+intersections = cpp_path_planning.multi_intersection_planning(combined_polygons, global_path_width, global_overlap_distance)
 
 # Choosing sorting method
 if dfs_sorting:
@@ -140,6 +147,6 @@ total_end_time = time.time()
 total_execution_time = total_end_time - total_start_time
 
 if get_path_data:
-    cpp_path_data.compute_path_data(region, path, obstacles, total_execution_time)
+    cpp_path_data.compute_path_data(region, sorted_combined_polygons, path, global_path_width, obstacles, total_execution_time)
 
-plot_cpp.plot_multi_polys_path(region, path_width, sorted_combined_polygons, path)
+plot_cpp.plot_multi_polys_path(region, global_path_width, sorted_combined_polygons, path, obstacles)
