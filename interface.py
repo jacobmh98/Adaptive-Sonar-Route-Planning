@@ -13,7 +13,7 @@ import plot_cpp
 import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
 import sorting_tsp_intra_regional
-from decomposition import sum_of_widths
+from decomposition import sum_of_widths, optimize_polygons
 from global_variables import number_of_tsp_trials
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
@@ -46,7 +46,7 @@ def select_file():
 
     file_path = filedialog.askopenfilename(
         title="Select a File",
-        filetypes=(("JSON files", "*.json"), ("Pickle files", "*.pkl"))
+        filetypes=(("All Files", "*.*"),)
     )
 
     if file_path:
@@ -214,14 +214,16 @@ def update_plot():
 def next_plot():
     """ Function to show the next plot """
     global current_plot_index
-    current_plot_index = (current_plot_index + 1) % len(plots)
-    update_plot()
+    if len(plots) > 0:
+        current_plot_index = (current_plot_index + 1) % len(plots)
+        update_plot()
 
 def prev_plot():
     """ Function to show the previous plot """
     global current_plot_index
-    current_plot_index = (current_plot_index - 1) % len(plots)
-    update_plot()
+    if len(plots) > 0:
+        current_plot_index = (current_plot_index - 1) % len(plots)
+        update_plot()
 
 def update_stats():
     global plot_index, stats_label
@@ -272,6 +274,7 @@ def show_coverage():
 
 def path_planner():
     global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var
+
     if len(sub_polygons_list) != 0:
         sub_polygons = sub_polygons_list[current_plot_index]
 
@@ -279,6 +282,7 @@ def path_planner():
             path_width_value = path_width_entry.get()
             overlap_value = overlap_distance_entry.get()
             print(f'{path_width_value=}')
+
             if path_width_value:  # Check if it's not empty
                 try:
                     # Convert to integer
@@ -387,16 +391,23 @@ def save_data():
 
     if file_path is not None:
         if sub_polygons_list[current_plot_index] is not None:
-            data = sub_polygons_list[current_plot_index] + [region] + [obstacles] + [stats[current_plot_index]]
-
             # Get the file extension
-            file_name, file_extension = os.path.splitext(file_path)
+            file_name = os.path.splitext(os.path.basename(file_path))[0]
 
-            print(f'{file_name=}')
+            # Open a file dialog to choose the location and filename to save
+            save_file_path = filedialog.asksaveasfilename(defaultextension=".pkl",
+                                                      filetypes=[("Pickle Files", "*.pkl")],
+                                                      initialfile=file_name)
 
-            with open(f'{file_name}.pkl', 'wb') as file:
-                pickle.dump(data, file)
-            print('Data saved successfully')
+
+            if save_file_path is not None and save_file_path != '':
+                data = sub_polygons_list[current_plot_index] + [region] + [obstacles] + [stats[current_plot_index]]
+
+                #print(f'{file_name=}')
+
+                with open(f'{save_file_path}', 'wb') as file:
+                    pickle.dump(data, file)
+                print('Data saved successfully')
 
 def setup_plot_pane():
     """ Set up the initial canvas with the first plot """
@@ -439,6 +450,32 @@ def toggle_sorting_method():
     else:
         tsp_iterations.config(state="disabled")
 
+def optimize():
+    global current_plot_index
+
+    if len(plots) > 0:
+        sub_polygons = sub_polygons_list[current_plot_index]
+
+        if sub_polygons is not None:
+            optimized_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
+
+            if len(sub_polygons) != len(optimized_polygons):
+                fig = plot_obstacles(optimized_polygons, obstacles, False)
+
+                decomposition_stats = {
+                    'type': 'decomposition_statistics',
+                    'method': f'{stats[current_plot_index]['method']} (Optimized)',
+                    'number_of_polygons': len(optimized_polygons),
+                    'sum_of_widths': sum_of_widths(optimized_polygons)
+                }
+
+                sub_polygons_list.append(optimized_polygons)
+                plots.append(fig)
+                stats.append(decomposition_stats)
+
+                current_plot_index = len(plots) - 1
+                update_plot()
+
 def setup_option_pane():
     """ Creating the options pane """
     global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, show_coverage_var
@@ -449,7 +486,7 @@ def setup_option_pane():
     label = Label(options_pane, text='', font=("Arial", 10))
     label.pack(anchor='w')
 
-    Label(options_pane, text='Decomposition Algorithm', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
+    Label(options_pane, text='Decomposition Algorithm', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
     decomposition_variable = StringVar(value='Greedy Recursive')
     rb1 = Radiobutton(options_pane, text='Greedy Recursive', variable=decomposition_variable, value='Greedy Recursive')
@@ -460,19 +497,21 @@ def setup_option_pane():
     rb3.pack(anchor='w')
 
     Button(options_pane, text="Decompose", command=decompose).pack(anchor='w')
+    Button(options_pane, text='Optimize', command=optimize).pack(anchor='w', pady=(5, 0))
 
-    Label(options_pane, text='Path Width', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
+    Label(options_pane, text='Path Width', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
     path_width_entry = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
     path_width_entry.pack(anchor='w')
     path_width_entry.insert(0, '10')
 
-    Label(options_pane, text='Path Overlap Distance', font=('Arial, 12')).pack(anchor='w', pady=(10, 0))
+    Label(options_pane, text='Path Overlap Distance', font=('Arial, 14')).pack(anchor='w', pady=(10, 0))
     overlap_distance_entry = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
     overlap_distance_entry.pack(anchor='w')
     overlap_distance_entry.insert(0, '0')
 
-    Label(options_pane, text='Sorting Method', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
+    Label(options_pane, text='Sorting Method', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
+
     sorting_variable = StringVar(value='Unordered')
     rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered', command=toggle_sorting_method)
     rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS', command=toggle_sorting_method)
@@ -493,7 +532,7 @@ def setup_option_pane():
     tsp_iterations.insert(0, '10')
     tsp_iterations.config(state="disabled")
 
-    Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(25, 0))
+    Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
     show_coverage_var = IntVar()
 
