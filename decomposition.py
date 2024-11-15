@@ -637,12 +637,12 @@ def polygons_are_adjacent(P1, P2, i, j):
             # Check for complete adjacency between the polygons
             if (points_are_equal(e.v_from.get_array(), e2.v_from.get_array()) and points_are_equal(e.v_to.get_array(), e2.v_to.get_array())) or \
                     (points_are_equal(e.v_from.get_array(), e2.v_to.get_array()) and points_are_equal(e.v_to.get_array(), e2.v_from.get_array())):
-                #print(f'complete overlap between {i} and {j}')
+                print(f'complete overlap between {j} and {j}')
                 return True
 
             # Define the vector for each edge
-            vec1 = e.v_to.get_array() - e.v_from.get_array()+1e-6
-            vec2 = e2.v_to.get_array() - e2.v_from.get_array()+1e-6
+            vec1 = (e.v_to.get_array()) - e.v_from.get_array()
+            vec2 = (e2.v_to.get_array()) - e2.v_from.get_array()
 
             dot_product = dot(vec1, vec2)
             neg_mag = -np.linalg.norm(vec1) * np.linalg.norm(vec2)
@@ -650,24 +650,53 @@ def polygons_are_adjacent(P1, P2, i, j):
             # Check if the vectors are collinear
             if dot_product - epsilon_xl <= neg_mag <= dot_product + epsilon_xl:
                 # Parametrize the line from vec1: l(t) = P + t v
+                print(f'P{i} collinear with P{j}')
 
-                # Compute the intersection with the y-axis for each line
-                t1 = - e.v_from.x / vec1[0]
-                e_intersects_y = e.v_from.y + t1 * vec1[1]
+                # Check for partial adjacency between the polygons (if the projected intervals overlap)
+                t1 = 0
+                t2 = dot(e.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+                s1 = dot(e2.v_from.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+                s2 = dot(e2.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
 
-                t2 = - e2.v_from.x / vec2[0]
-                e2_intersects_y = e2.v_from.y + t2 * vec2[1]
+                # Check for partial adjacency between the polygons (if the projected intervals overlap)
+                if max(t1, t2) > min(s1, s2) and max(s1, s2) > min(t1, t2):
+                    print(f'\toverlap between P{i} and P{j} edges {e} and {e2}')
 
-                # Check if the two lines intersects y in the same point
-                if points_are_equal(e_intersects_y, e2_intersects_y, epsilon_xl):
-                    # Check for partial adjacency between the polygons (if the projected intervals overlap)
-                    t1 = 0
-                    t2 = dot(e.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
-                    s1 = dot(e2.v_from.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
-                    s2 = dot(e2.v_to.get_array() - e.v_from.get_array(), vec1) / dot(vec1, vec1)
+                    if not (vec1[0] == 0 and vec2[0] == 0):
+                        # Compute the intersection with the y-axis for each line
+                        t1 = - e.v_from.x / vec1[0]
+                        e_intersects_y = e.v_from.y + t1 * vec1[1]
 
-                    if max(t1, t2) > min(s1, s2) and max(s1, s2) > min(t1, t2):
-                        return True
+                        t2 = - e2.v_from.x / vec2[0]
+                        e2_intersects_y = e2.v_from.y + t2 * vec2[1]
+
+                        # Check if the two lines intersects y in the same point
+                        if points_are_equal(e_intersects_y, e2_intersects_y, epsilon_xl):
+                            print(f'\t\tshared edge between P{i} and P{j}')
+                            return True
+                    else:
+                        # Rotation angle in radians
+                        theta = np.radians(5)  # Example: Rotate 45 degrees
+
+                        # Rotation matrix
+                        R = np.array([
+                            [np.cos(theta), -np.sin(theta)],
+                            [np.sin(theta), np.cos(theta)]
+                        ])
+
+                        rotated_vec1 = np.dot(R, vec1)
+                        rotated_vec2 = np.dot(R, vec2)
+
+                        # Compute the intersection with the y-axis for each line
+                        t1 = - e.v_from.x / rotated_vec1[0]
+                        e_intersects_y = e.v_from.y + t1 * rotated_vec1[1]
+
+                        t2 = - e2.v_from.x / rotated_vec2[0]
+                        e2_intersects_y = e2.v_from.y + t2 * rotated_vec2[1]
+
+                        if abs(abs(e_intersects_y - e2_intersects_y) - abs(e.v_from.y - e2.v_from.y)) < epsilon:
+                            print(f'\t\tshared edge between P{i} and P{j}')
+                            return True
 
     return False
 
