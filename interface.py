@@ -341,17 +341,19 @@ def path_planner():
                     show_coverage = show_coverage_var.get()
 
                     if show_coverage:
+                        fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles, False)
+
                         covered_area, coverage_percentage = compute_covered_area_with_obstacles(region, obstacles, path,
                                                                                                 chosen_path_width)
                         outlier_area = compute_outlier_area(region, path, chosen_path_width)
                         overlap_area = compute_overlap_area(region, obstacles, path, chosen_path_width)
 
-                        fig = plot_cpp.plot_coverage(region, path, chosen_path_width, covered_area, outlier_area,
+                        fig_coverage = plot_cpp.plot_coverage(region, path, chosen_path_width, covered_area, outlier_area,
                                                      overlap_area, obstacles,
                                                      sorted_sub_polygons)
 
                     else:
-                        fig = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, show_coverage)
+                        fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles, show_coverage)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
@@ -364,8 +366,14 @@ def path_planner():
                     stats_dict['path_width'] = chosen_path_width
                     stats_dict['overlap_distance'] = chosen_overlap_distance
                     stats.append(stats_dict)
-                    plots.append(fig)
                     sub_polygons_list.append(None)
+                    plots.append(fig_path)
+
+                    if show_coverage:
+                        plots.append(fig_coverage)
+                        sub_polygons_list.append(None)
+                        stats.append(stats_dict)
+
                     current_plot_index = len(plots) - 1
                     update_plot()
 
@@ -536,7 +544,7 @@ def setup_option_pane():
 
     show_coverage_var = IntVar()
 
-    Checkbutton(options_pane, text="Show Coverage", variable=show_coverage_var).pack(anchor='w')
+    Checkbutton(options_pane, text="Show Coverage Plot", variable=show_coverage_var).pack(anchor='w')
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
 
     # Showing coverage plot
