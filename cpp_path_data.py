@@ -174,7 +174,7 @@ def compute_path_data(poly, polygons, path, current_path_width, obstacles, time)
     print(f'Medium turns (45-90): {medium_turns}')
     print(f'Soft turns (>90): {soft_turns}')
 
-    plot_cpp.plot_coverage(poly, path, current_path_width, covered_area, outlier_area, overlap_area, obstacles, polygons)
+    #plot_cpp.plot_coverage(poly, path, current_path_width, covered_area, outlier_area, overlap_area, obstacles, polygons)
 
     if store_data:
         output_file = "coverage_results.txt"
@@ -195,9 +195,9 @@ def compute_path_data(poly, polygons, path, current_path_width, obstacles, time)
         'type': 'coverage_statistics',
         'distance': distance,
         'coverage_percentage': coverage_percentage,
-        'covered_area': covered_area.area,
-        'overlapped_area': overlap_area.area,
-        'outlying_area': outlier_area.area,
+        'covered_area': covered_area,
+        'overlapped_area': overlap_area,
+        'outlying_area': outlier_area,
         'total_turns': total_turns,
         'hard_turns': hard_turns,
         'medium_turns': medium_turns,

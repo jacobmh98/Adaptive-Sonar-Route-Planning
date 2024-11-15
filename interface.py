@@ -242,9 +242,9 @@ def update_stats():
                f'Path Distance = {round(stats_dict["distance"], 2)} m \n'
                f'Total number of Turns = {stats_dict["total_turns"]} \n'
                f'Coverage Percentage = {round(stats_dict["coverage_percentage"], 2)} % \n'
-               f'Covered Area = {round(stats_dict["covered_area"], 2)} m\u00B2 \n'
-               f'Overlapped Area = {round(stats_dict["overlapped_area"], 2)} m\u00B2 \n'
-               f'Outlying Area = {round(stats_dict["outlying_area"], 2)} m\u00B2 \n')
+               f'Covered Area = {round(stats_dict["covered_area"].area, 2)} m\u00B2 \n'
+               f'Overlapped Area = {round(stats_dict["overlapped_area"].area, 2)} m\u00B2 \n'
+               f'Outlying Area = {round(stats_dict["outlying_area"].area, 2)} m\u00B2 \n')
                #f'Hard Turns (<45) = {stats_dict["hard_turns"]} \n'
                #f'Medium Turns (45-90) = {stats_dict["medium_turns"]} \n'
                #f'Soft Turns (>90) = {stats_dict["soft_turns"]}')
@@ -335,30 +335,16 @@ def path_planner():
                         total_sorting_time = 0
 
                     # Computing path
-                    path = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
+                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
 
-                    # Checking if user wants to see coverage of path
-                    show_coverage = show_coverage_var.get()
-
-                    if show_coverage:
-                        fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles, False)
-
-                        covered_area, coverage_percentage = compute_covered_area_with_obstacles(region, obstacles, path,
-                                                                                                chosen_path_width)
-                        outlier_area = compute_outlier_area(region, path, chosen_path_width)
-                        overlap_area = compute_overlap_area(region, obstacles, path, chosen_path_width)
-
-                        fig_coverage = plot_cpp.plot_coverage(region, path, chosen_path_width, covered_area, outlier_area,
-                                                     overlap_area, obstacles,
-                                                     sorted_sub_polygons)
-
-                    else:
-                        fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles, show_coverage)
+                    # Computing plot for path
+                    fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles, False, transit_flags)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
                     total_execution_time = total_end_time - total_start_time
 
+                    # Computing data about path
                     stats_dict = compute_path_data(region, sorted_sub_polygons, path, chosen_path_width, obstacles, total_execution_time)
                     stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()
@@ -369,7 +355,12 @@ def path_planner():
                     sub_polygons_list.append(None)
                     plots.append(fig_path)
 
-                    if show_coverage:
+                    # Checking if user wants to see coverage plot
+                    if show_coverage_var.get():
+                        fig_coverage = plot_cpp.plot_coverage(region, path, chosen_path_width, stats_dict["covered_area"],
+                                                              stats_dict["outlying_area"],
+                                                              stats_dict["overlapped_area"], obstacles,
+                                                              sorted_sub_polygons, transit_flags)
                         plots.append(fig_coverage)
                         sub_polygons_list.append(None)
                         stats.append(stats_dict)

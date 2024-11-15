@@ -220,7 +220,8 @@ def extract_hard_edges(polygons):
 
 
 def connect_path(polygons, total_intersections, region):
-    path = np.empty((0,2))
+    path = np.empty((0, 2))
+    flags = []  # List to store flags for each point in the path
 
     for i, poly in enumerate(polygons):
         current_path = []
@@ -231,7 +232,7 @@ def connect_path(polygons, total_intersections, region):
 
         # First poly case, has no start point, so start at closest point in next polygon's intersections and reverse its path
         elif i == 0 and len(polygons) > 1:
-            current_path = connect_first_path(polygons[i+1], total_intersections[i])
+            current_path = connect_first_path(polygons[i + 1], total_intersections[i])
 
         # Going through the middle polygons
         elif i < len(polygons) - 1:
@@ -248,16 +249,26 @@ def connect_path(polygons, total_intersections, region):
             if i > 0 and len(hard_edges) > 0:
                 last_path_point = path[-1]
                 current_first_point = current_path[0]
-                intermediate_points = cpp_hard_edges.avoid_hard_edges(last_path_point, current_first_point, poly, polygons, region, hard_edges)
+                intermediate_points = cpp_hard_edges.avoid_hard_edges(
+                    last_path_point, current_first_point, poly, polygons, region, hard_edges
+                )
 
                 if intermediate_points:
-                    # Append the intermediate points to the path
+                    # Append the intermediate points to the path and mark as transit
                     for point in intermediate_points:
                         path = np.vstack([path, point])
+                        flags.append("transit")  # Mark as transit
 
-
-        # Should never be an empty path, but just in case check to avoid error
+        # Mark the first and last points of the current path as transit
         if len(current_path) > 0:
+            # Append the current path to the main path
             path = np.vstack([path, current_path])
 
-    return path
+            # Add flags for the first and last points
+            for idx, point in enumerate(current_path):
+                if idx == 0 or idx == len(current_path) - 1:
+                    flags.append("transit")  # Mark as transit
+                else:
+                    flags.append(None)  # Regular point
+
+    return path, flags

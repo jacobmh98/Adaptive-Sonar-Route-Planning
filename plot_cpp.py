@@ -1,8 +1,12 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as pe
 from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import tkinter as tk
+
 
 # Pop plot out of IDE
 #matplotlib.use('TkAgg')
@@ -63,11 +67,12 @@ def plot_simple_poly_path(polygon, path):
     plt.show()
 
 
-def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles=None, show_coverage=False):
+def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
     Obstacles are plotted with red edges.
+    Transit edges are highlighted differently.
 
     :param polygon: Polygon of the region
     :param current_path_width: Width of the path
@@ -75,9 +80,10 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
     :param obstacles: List of obstacle polygons
     :param show_coverage: Boolean indicating whether to show coverage areas around the path
+    :param transit_flags: List of flags indicating whether a point is part of a transit segment
     """
     plot_sub_polygons = True
-    marker_size = 3  # Consistent marker size for vertices
+    marker_size = 3  # Marker size for vertices
 
     # Collect hard edges for each sub-polygon
     hard_edges = []
@@ -96,6 +102,7 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
         x_coords, y_coords = polygon.get_coords()
         ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-')
+
     else:
         for i, poly in enumerate(polygons):
             x_coords, y_coords = poly.get_coords()
@@ -126,7 +133,14 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
     # Plot the path with consistent style
     if len(path) > 0:
         path_x, path_y = path[:, 0], path[:, 1]
-        ax.plot(path_x, path_y, 'g-', label='Path', linewidth=1)
+
+        for i in range(len(path) - 1):
+            # Check if the current edge is a transit edge
+            if transit_flags and transit_flags[i] == "transit" and transit_flags[i + 1] == "transit":
+                ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'y--', linewidth=1.5,
+                        path_effects=[pe.Stroke(linewidth=3, foreground='black'), pe.Normal()])
+            else:
+                ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'g-', linewidth=1, label='Path')
 
         # Highlight start and end points of the path
         ax.plot(path_x[0], path_y[0], 'go', markersize=6, label='Start Point')
@@ -162,27 +176,31 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
     return fig
 
 
-def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, overlap_area, obstacles, sub_polygons=None):
+def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, overlap_area, obstacles, sub_polygons=None, transit_flags=None):
     """
     Plot the main polygon, path, covered area, outlier area, overlap area, obstacles, and optional sub-polygons.
+    Transit edges are highlighted differently.
 
     :param polygon: Polygon of the region
     :param path_points: List of points representing the path [[x1, y1], [x2, y2], ...]
+    :param path_width: Width of the path
     :param covered_area: Shapely Polygon of the covered area
     :param outlier_area: Shapely Polygon of the outlier area
     :param overlap_area: Shapely Polygon of the overlap area
     :param obstacles: List of obstacle polygons
     :param sub_polygons: Optional list of sub-polygons to be plotted
+    :param transit_flags: List of flags indicating whether a point is part of a transit segment
     """
     # Create the plot
     fig, ax = plt.subplots()
     marker_size = 3  # Consistent marker size for vertices
+    line_width = 1   # Consistent line width for polygons and edges
 
     # Convert the main Polygon class to a Shapely Polygon and plot it
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
     poly_shape = ShapelyPolygon(poly_coords)
     x_poly, y_poly = poly_shape.exterior.xy
-    ax.plot(x_poly, y_poly, 'k-', linewidth=2, marker='o', markersize=marker_size)
+    ax.plot(x_poly, y_poly, 'k-', linewidth=line_width, marker='o', markersize=marker_size)
 
     # Plot sub-polygons if provided
     if sub_polygons:
@@ -190,11 +208,10 @@ def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, 
             sub_coords = [(v.x, v.y) for v in sub_poly.vertices]
             sub_shape = ShapelyPolygon(sub_coords)
             x_sub, y_sub = sub_shape.exterior.xy
-            ax.plot(x_sub, y_sub, 'k-', linewidth=1.5, marker='o', markersize=marker_size)
+            ax.plot(x_sub, y_sub, 'k-', linewidth=line_width, marker='o', markersize=marker_size)
 
-            # Label each sub-polygon with its index
-            centroid_x = np.mean(x_sub)
-            centroid_y = np.mean(y_sub)
+            # Label each sub-polygon with its index at the centroid
+            centroid_x, centroid_y = sub_shape.centroid.x, sub_shape.centroid.y
             ax.text(centroid_x, centroid_y, f'{i}', fontsize=10, color='blue')
 
     # Plot obstacles as red outlines with consistent marker size
@@ -202,19 +219,26 @@ def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, 
         obstacle_coords = [(v.x, v.y) for v in obstacle.vertices]
         obstacle_shape = ShapelyPolygon(obstacle_coords)
         x, y = obstacle_shape.exterior.xy
-        ax.plot(x, y, 'r-', linewidth=2, marker='o', markersize=marker_size)
+        ax.plot(x, y, 'r-', linewidth=line_width, marker='o', markersize=marker_size)
 
-    # Plot the path as a line with start and end points highlighted
+    # Plot the path with transit edges highlighted differently
     path_x, path_y = zip(*path_points)
-    ax.plot(path_x, path_y, 'g-', linewidth=1)
-    ax.plot(path_x[0], path_y[0], 'go', markersize=6)  # Start point
-    ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6)  # End point
+    for i in range(len(path_points) - 1):
+        if transit_flags and transit_flags[i] == "transit" and transit_flags[i + 1] == "transit":
+            ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'y--', linewidth=1.5,
+                    path_effects=[pe.Stroke(linewidth=3, foreground='black'), pe.Normal()])
+        else:
+            ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'g-', linewidth=1)
+
+    # Highlight start and end points of the path
+    ax.plot(path_x[0], path_y[0], 'go', markersize=6)
+    ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6)
 
     # Plot covered area inside the polygon
     if not covered_area.is_empty:
         if covered_area.geom_type == 'Polygon':
             x, y = covered_area.exterior.xy
-            ax.fill(x, y, color='#4CAF50', alpha=0.5, label='Covered Area')  # Slightly darker green
+            ax.fill(x, y, color='#4CAF50', alpha=0.5, label='Covered Area')
         elif covered_area.geom_type == 'MultiPolygon':
             for sub_polygon in covered_area.geoms:
                 x, y = sub_polygon.exterior.xy
@@ -250,6 +274,8 @@ def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, 
     plt.show()
 
     return fig
+
+
 
 
 def plot_vectors_simple(poly, b, b_mate, a, v_initial, v_extended, v_extended2, boundary, show_legend=True):
