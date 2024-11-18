@@ -482,7 +482,7 @@ def setup_plot_pane():
     next_btn = Button(button_frame, text='Next', command=next_plot)
     next_btn.pack(side='right', anchor='e')
 
-    plot_index = Label(button_frame, text=f'{current_plot_index + 1} / {len(plots)}', font=("Arial", 10))
+    plot_index = Label(button_frame, text=f'{current_plot_index} / {len(plots)}', font=("Arial", 10))
     plot_index.place(relx=0.5, rely=0.5, anchor="center")  # Anchor to center
 
     Button(button_frame, text='Save Data', command=save_data).place(relx=0.6, rely=0.5, anchor="center")
