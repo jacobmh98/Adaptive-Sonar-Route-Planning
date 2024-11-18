@@ -5,9 +5,12 @@ import time
 from tkinter import *
 from tkinter import filedialog
 
+import matplotlib
 import networkx as nx
 from matplotlib import pyplot as plt
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 import cpp_connect_path
 import cpp_path_planning
@@ -205,12 +208,21 @@ def decompose():
         current_plot_index = len(plots) - 1
         update_plot()
 
-
 def update_plot():
-    global current_plot_index, canvas
-    canvas.figure = plots[current_plot_index]
+    global current_plot_index, canvas, toolbar, canvas_frame
 
+    # Remove the old canvas widget
+    canvas.get_tk_widget().pack_forget()
+
+    canvas = FigureCanvasTkAgg(plots[current_plot_index], master=canvas_frame)
     canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    # Reinitialize the toolbar with the new canvas
+    toolbar.destroy()  # Remove the old toolbar
+    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+    toolbar.pack(side=TOP, fill=X)
+
     update_stats()
 
 def next_plot():
@@ -306,7 +318,6 @@ def update_stats():
         ]
         for i, text in enumerate(decomposition_data, start=1):
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=5, pady=1)
-
 
 def path_planner():
     global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var
@@ -446,11 +457,20 @@ def save_data():
 
 def setup_plot_pane():
     """ Set up the initial canvas with the first plot """
-    global canvas, plot_index, stats_frame, scrollable_content, stats_canvas, scrollbar
+    global canvas, plot_index, stats_frame, scrollable_content, toolbar, stats_canvas, canvas_frame, scrollbar
+   # global canvas, plot_index, stats_label, toolbar, canvas_frame
 
-    canvas = FigureCanvasTkAgg(None, master=plot_pane)
+    canvas_frame = Frame(plot_pane, bg='white')
+    canvas_frame.pack(fill='both')
+
+    canvas = FigureCanvasTkAgg(None, master=canvas_frame)
     canvas.draw()
-    canvas.get_tk_widget().pack()
+    canvas.get_tk_widget().pack(side='top', fill='both', expand=True)
+
+    # Add a matplotlib navigation toolbar
+    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+    toolbar.update()
+    toolbar.pack(side='bottom', fill='x')
 
     # Frame to contain the buttons
     button_frame = Frame(plot_pane)
