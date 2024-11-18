@@ -4,6 +4,9 @@ import pickle
 import time
 from tkinter import *
 from tkinter import filedialog
+
+import networkx as nx
+from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import cpp_connect_path
@@ -19,6 +22,7 @@ from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
 from cpp_path_data import compute_path_data, compute_covered_area_with_obstacles, compute_outlier_area, \
     compute_overlap_area
+from sorting_dfs_adjacency_graph import create_adjacency
 
 file_path = None
 plots = []
@@ -175,6 +179,8 @@ def decompose():
             fig = plot_obstacles(sub_polygons, obstacles, False)
             plots.append(fig)
 
+
+
             decomposition_stats = {
                 'type': 'decomposition_statistics',
                 'method': 'Greedy Recursive',
@@ -203,6 +209,7 @@ def decompose():
         current_plot_index = len(plots) - 1
 
         update_plot()
+
 
 def update_plot():
     global current_plot_index, canvas
