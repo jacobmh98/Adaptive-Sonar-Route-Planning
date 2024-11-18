@@ -252,8 +252,8 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
 
     # Checking if overlap distance does not make delta_init negative, if so, overlap dist is halved and checked again.
     while delta_init - current_overlap_distance <= 0:
-        current_overlap_distance = current_overlap_distance / 2
-        print("Halved overlap distance")
+        current_overlap_distance = current_overlap_distance - 1
+        #print("Minimized overlap distance 1")
 
     # Offsetting vector b to b_mate with delta_init towards point a
     v_offset = compute_offset_vector(v_initial, sweep_direction, delta_init - current_overlap_distance)
@@ -280,9 +280,9 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
         # Check if no new intersections are found
         if not new_intersections:
             # Checking if overlap distance does not make delta_init negative, if so, overlap dist is halved and checked again.
-            while current_path_width/2 - current_overlap_distance <= 0:
-                current_overlap_distance = current_overlap_distance / 2
-                print("Halved overlap distance")
+            while current_path_width / 2 - current_overlap_distance <= 0:
+                current_overlap_distance = current_overlap_distance - 1
+                #print("Minimized overlap distance")
 
             # Create new vector with half current path width distance, to ensure complete coverage near the far edge
             v_half_offset = compute_offset_vector(v_extended, -sweep_direction, current_path_width/2 -current_overlap_distance)  # Offset vector backwards
@@ -302,8 +302,9 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
 
         # Checking if overlap distance does not make delta_init negative, if so, overlap dist is halved and checked again.
         while current_path_width / 2 - current_overlap_distance <= 0:
-            current_overlap_distance = current_overlap_distance / 2
-            print("Halved overlap distance")
+            current_overlap_distance = current_overlap_distance - 1
+            #print("Minimized overlap distance")
+
 
         # Computing next extended offset vector, offset with full path width dx
         v_offset = compute_offset_vector(v_extended, sweep_direction, current_path_width-current_overlap_distance)

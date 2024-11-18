@@ -5,18 +5,31 @@ from shapely.ops import unary_union
 from shapely.geometry import Polygon as ShapelyPolygon, LineString
 
 
-def compute_total_distance(path):
+def compute_distance(path, transit_flags):
     """ Function to compute the length of the path
 
     :param path: List of points
     :return: Total distance between all the points in the path
     """
     total_distance = 0.0
-    # Loop through each consecutive pair of points and compute the distance
-    for i in range(len(path) - 1):
-        total_distance += np.linalg.norm(path[i + 1] - path[i])
-    return total_distance
+    path_distance = 0.0
+    transit_distance = 0.0
 
+    # Iterate over consecutive points in the path
+    for i in range(len(path) - 1):
+        # Compute the Euclidean distance between consecutive points
+        dist = np.linalg.norm(path[i + 1] - path[i])
+        total_distance += dist
+
+        # Check flags for current and next points
+        is_transit = transit_flags[i] == "transit" or transit_flags[i + 1] == "transit"
+
+        if is_transit:
+            transit_distance += dist
+        else:
+            path_distance += dist
+
+    return total_distance, path_distance, transit_distance
 
 def compute_turns(path):
     """ Function to compute the number of turns in the path, and classify them as three different turn types
@@ -152,15 +165,17 @@ def compute_overlap_area(polygon, obstacles, path, current_path_width):
     return overlap_area
 
 
-def compute_path_data(poly, polygons, path, current_path_width, obstacles, time):
-    distance = compute_total_distance(path)
+def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
+    total_distance, path_distance, transit_distance = compute_distance(path, transit_flags)
 
     covered_area, coverage_percentage = compute_covered_area_with_obstacles(poly, obstacles, path, current_path_width)
     outlier_area = compute_outlier_area(poly, path, current_path_width)
     overlap_area = compute_overlap_area(poly, obstacles, path, current_path_width)
 
     print(f'Execution time: {time}')
-    print(f'Distance: {distance}')
+    print(f'Total Distance: {total_distance}')
+    print(f'Path Distance: {path_distance}')
+    print(f'Transit Distance: {transit_distance}')
     print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
     print(f'Covered area: {covered_area.area}')
     print(f'Outlier area: {outlier_area.area}')
@@ -185,7 +200,9 @@ def compute_path_data(poly, polygons, path, current_path_width, obstacles, time)
             file.write(f"Covered area: {covered_area.area}\n")
             file.write(f"Wasted area: {outlier_area.area}\n")
             file.write(f"Overlap area: {overlap_area.area}\n\n")
-            file.write(f"Distance: {distance}\n")
+            file.write(f"Total Distance: {total_distance}\n")
+            file.write(f"Path Distance: {path_distance}\n")
+            file.write(f"Transit Distance: {transit_distance}\n")
             file.write(f"Total turns: {total_turns}\n")
             file.write(f"Hard turns (<45): {hard_turns}\n")
             file.write(f"Medium turns (45-90): {medium_turns}\n")
@@ -193,11 +210,13 @@ def compute_path_data(poly, polygons, path, current_path_width, obstacles, time)
 
     result = {
         'type': 'coverage_statistics',
-        'distance': distance,
         'coverage_percentage': coverage_percentage,
         'covered_area': covered_area,
         'overlapped_area': overlap_area,
         'outlying_area': outlier_area,
+        'total_distance': total_distance,
+        'path_distance': path_distance,
+        'transit_distance': transit_distance,
         'total_turns': total_turns,
         'hard_turns': hard_turns,
         'medium_turns': medium_turns,

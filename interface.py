@@ -54,7 +54,7 @@ def select_file():
     )
 
     if file_path:
-        label.config(text=f"{file_path}")
+        #label.config(text=f"{file_path}")
 
         # Get the file extension
         file_name, file_extension = os.path.splitext(file_path)
@@ -147,8 +147,6 @@ def decompose():
                 merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles_affected[i])
                 decomposed_polygons += merged_sub_polygon_decomposed
 
-                # plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-
                 for p in sub_polygons_extract:
                     if p not in extracted_sub_polygons_mask and p not in dont_include_mask:
                         extracted_sub_polygons_mask.append(p)
@@ -172,6 +170,7 @@ def decompose():
             }
 
             stats.append(decomposition_stats)
+
         elif decomposition_variable.get() == 'Greedy Recursive' or (len(obstacles) == 0 and decomposition_variable.get() == 'Combination'):
             # Decompose the region without considering obstacles
             sub_polygons = generate_new_data(copy.deepcopy(region))
@@ -179,16 +178,14 @@ def decompose():
             fig = plot_obstacles(sub_polygons, obstacles, False)
             plots.append(fig)
 
-
-
             decomposition_stats = {
                 'type': 'decomposition_statistics',
                 'method': 'Greedy Recursive',
                 'number_of_polygons': len(sub_polygons),
                 'sum_of_widths': sum_of_widths(sub_polygons)
             }
-
             stats.append(decomposition_stats)
+
         elif decomposition_variable.get() == 'Sweep Line':
             # Decompose the region without considering obstacles
             sub_polygons = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
@@ -205,9 +202,7 @@ def decompose():
 
             stats.append(decomposition_stats)
 
-
         current_plot_index = len(plots) - 1
-
         update_plot()
 
 
@@ -233,50 +228,84 @@ def prev_plot():
         update_plot()
 
 def update_stats():
-    global plot_index, stats_label
+    global plot_index, scrollable_content
+
+    # Clear any previous content from the scrollable_content
+    for widget in scrollable_content.winfo_children():
+        widget.destroy()
+
     plot_index.config(text=f"{current_plot_index + 1} / {len(plots)}")
 
     stats_dict = stats[current_plot_index]
 
     if stats_dict is None:
-        stats_label.config(text=f'')
+        # Title for the chosen file
+        Label(scrollable_content, text="Chosen File", font=("Arial", 12, "bold"), anchor="w").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+        # Display the file name if a file is chosen
+        if file_path:
+            file_name = os.path.basename(file_path)  # Extract the file name from the path
+            Label(scrollable_content, text=file_name, font=("Arial", 10), anchor="w").grid(row=1, column=0, padx=5, pady=2, sticky="w")
+        else:
+            Label(scrollable_content, text="No File Selected", font=("Arial", 10), anchor="w").grid(row=1, column=0, padx=5, pady=2, sticky="w")
+
     elif stats_dict['type'] == 'coverage_statistics':
-        str = (f'Sorting Method = {stats_dict['sorting_variable']} \n'
-               f'Total Execution Time = {round(stats_dict['total_execution_time'], 2)} s \n'
-               f'Sorting Time = {round(stats_dict['sorting_time'], 2)} s \n'
-               f'Path Width = {stats_dict['path_width']} m \n'
-               f'Overlap Distance = {stats_dict['overlap_distance']} m \n'
-               f'Path Distance = {round(stats_dict["distance"], 2)} m \n'
-               f'Total number of Turns = {stats_dict["total_turns"]} \n'
-               f'Coverage Percentage = {round(stats_dict["coverage_percentage"], 2)} % \n'
-               f'Covered Area = {round(stats_dict["covered_area"].area, 2)} m\u00B2 \n'
-               f'Overlapped Area = {round(stats_dict["overlapped_area"].area, 2)} m\u00B2 \n'
-               f'Outlying Area = {round(stats_dict["outlying_area"].area, 2)} m\u00B2 \n')
-               #f'Hard Turns (<45) = {stats_dict["hard_turns"]} \n'
-               #f'Medium Turns (45-90) = {stats_dict["medium_turns"]} \n'
-               #f'Soft Turns (>90) = {stats_dict["soft_turns"]}')
+        # Titles for columns
+        general_title = Label(scrollable_content, text="General Data", font=("Arial", 12, "bold"), anchor="w")
+        path_title = Label(scrollable_content, text="Path Data", font=("Arial", 12, "bold"), anchor="w")
+        coverage_title = Label(scrollable_content, text="Coverage Data", font=("Arial", 12, "bold"), anchor="w")
 
-        stats_label.config(text=str,
-                            justify="left",  # Justify text to the left
-                            anchor="w")
+        general_title.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        path_title.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+        coverage_title.grid(row=0, column=2, sticky="w", padx=5, pady=5)
+
+        # General data
+        general_data = [
+            f"Sorting Method: {stats_dict['sorting_variable']}",
+            f"Path Width: {stats_dict['path_width']}m",
+            f"Overlap Distance: {stats_dict['overlap_distance']}m",
+            f"Total Execution Time: {round(stats_dict['total_execution_time'], 2)}s",
+            f"Sorting Time: {round(stats_dict['sorting_time'], 2)}s",
+        ]
+        for i, text in enumerate(general_data, start=1):
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=5, pady=1)
+
+        # Path data
+        path_data = [
+            f"Total Distance: {round(stats_dict['total_distance'], 2)}m",
+            f"Path Distance: {round(stats_dict['path_distance'], 2)}m",
+            f"Transit Distance: {round(stats_dict['transit_distance'], 2)}m",
+            f"Total number of Turns: {stats_dict['total_turns']}",
+            f"Sharp Turns (<45°): {stats_dict['hard_turns']}",
+            f"Moderate Turns (45° - 90°): {stats_dict['medium_turns']}",
+            f"Gentle Turns (>90°): {stats_dict['soft_turns']}"
+        ]
+        for i, text in enumerate(path_data, start=1):
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=1, sticky="w", padx=5, pady=1)
+
+        # Coverage data
+        coverage_data = [
+            f"Coverage Percentage: {round(stats_dict['coverage_percentage'], 2)}%",
+            f"Covered Area: {round(stats_dict['covered_area'].area, 2)}m²",
+            f"Overlapped Area: {round(stats_dict['overlapped_area'].area, 2)}m²",
+            f"Outlying Area: {round(stats_dict['outlying_area'].area, 2)}m²",
+        ]
+        for i, text in enumerate(coverage_data, start=1):
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=2, sticky="w", padx=5, pady=1)
+
     elif stats_dict['type'] == 'decomposition_statistics':
-        str = (f'Method = {stats_dict["method"]} \n'
-               f'Number of Polygons = {stats_dict["number_of_polygons"]} \n'
-               f'Sum of Widths = {round(stats_dict["sum_of_widths"], 2)}')
+        # Title for decomposition statistics
+        title = Label(scrollable_content, text="Decomposition Statistics", font=("Arial", 12, "bold"), anchor="w")
+        title.grid(row=0, column=0, sticky="w", padx=5, pady=5)
 
-        stats_label.config(text=str,
-                           justify="left",  # Justify text to the left
-                           anchor="w")
-
-def show_coverage():
-    """
-    covered_area, coverage_percentage = compute_covered_area_with_obstacles(region, obstacles, path, chosen_path_width)
-    outlier_area = compute_outlier_area(region, path, chosen_path_width)
-    overlap_area = compute_overlap_area(region, obstacles, path, chosen_path_width)
-
-    fig = plot_cpp.plot_coverage(region, path, chosen_path_width, covered_area, outlier_area, overlap_area, obstacles,
-                                 sorted_sub_polygons)
-    """
+        # Decomposition data
+        decomposition_data = [
+            f"Method: {stats_dict['method']}",
+            f"Number of Polygons: {stats_dict['number_of_polygons']}",
+            f"Sum of Widths: {round(stats_dict['sum_of_widths'], 2)}",
+        ]
+        for i, text in enumerate(decomposition_data, start=1):
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=5, pady=1)
 
 
 def path_planner():
@@ -352,7 +381,7 @@ def path_planner():
                     total_execution_time = total_end_time - total_start_time
 
                     # Computing data about path
-                    stats_dict = compute_path_data(region, sorted_sub_polygons, path, chosen_path_width, obstacles, total_execution_time)
+                    stats_dict = compute_path_data(region, path, transit_flags, chosen_path_width, obstacles, total_execution_time)
                     stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()
                     stats_dict['sorting_time'] = total_sorting_time
@@ -417,7 +446,7 @@ def save_data():
 
 def setup_plot_pane():
     """ Set up the initial canvas with the first plot """
-    global canvas, plot_index, stats_label
+    global canvas, plot_index, stats_frame, scrollable_content, stats_canvas, scrollbar
 
     canvas = FigureCanvasTkAgg(None, master=plot_pane)
     canvas.draw()
@@ -433,21 +462,51 @@ def setup_plot_pane():
     next_btn = Button(button_frame, text='Next', command=next_plot)
     next_btn.pack(side='right', anchor='e')
 
-    plot_index = Label(button_frame, text=f'{current_plot_index} / {len(plots)}', font=("Arial", 10))
+    plot_index = Label(button_frame, text=f'{current_plot_index + 1} / {len(plots)}', font=("Arial", 10))
     plot_index.place(relx=0.5, rely=0.5, anchor="center")  # Anchor to center
 
     Button(button_frame, text='Save Data', command=save_data).place(relx=0.6, rely=0.5, anchor="center")
 
-    stats_label = Label(plot_pane, text='', font=("Arial", 10))
-    stats_label.pack(anchor='w')
+    # Create a frame for stats with scrollbar
+    stats_frame = Frame(plot_pane)
+    stats_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-"""def show_checkbox_state():
-    global checkbox_var
+    # Add canvas and scrollbar for scrolling
+    stats_canvas = Canvas(stats_frame)
+    stats_canvas.pack(side="left", fill="both", expand=True)
 
-    if checkbox_var.get() == 1:
-        print("Checkbox is checked")
-    else:
-        print("Checkbox is unchecked")"""
+    scrollbar = Scrollbar(stats_frame, orient="vertical", command=stats_canvas.yview)
+    scrollbar.pack(side="right", fill="y")
+
+    # Configure the canvas to work with the scrollbar
+    stats_canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Frame inside the canvas for the actual stats content
+    scrollable_content = Frame(stats_canvas)
+    stats_canvas.create_window((0, 0), window=scrollable_content, anchor="nw")
+
+    # Update scroll region whenever the content changes
+    def update_scrollregion(event=None):
+        stats_canvas.update_idletasks()
+        bbox = stats_canvas.bbox("all")
+        stats_canvas.configure(scrollregion=bbox)
+
+        # Check if the content fits inside the canvas
+        content_height = bbox[3] - bbox[1] if bbox else 0  # Height of content
+        canvas_height = stats_canvas.winfo_height()        # Height of visible canvas
+
+        if content_height <= canvas_height:  # If content fits, disable scrolling
+            stats_canvas.unbind_all("<MouseWheel>")
+            stats_canvas.configure(yscrollcommand=None)
+            scrollbar.pack_forget()  # Hide the scrollbar
+        else:  # If content exceeds, enable scrolling
+            stats_canvas.bind_all("<MouseWheel>", lambda event: stats_canvas.yview_scroll(-1 * int(event.delta / 120), "units"))
+            stats_canvas.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side="right", fill="y")  # Show the scrollbar
+
+    # Bind the <Configure> event of the `scrollable_content` frame
+    scrollable_content.bind("<Configure>", update_scrollregion)
+
 
 def toggle_sorting_method():
     global tsp_iterations, sorting_variable
@@ -528,9 +587,6 @@ def setup_option_pane():
     rb6.pack(anchor='w')
     rb7.pack(anchor='w')
 
-    #tsp_iterations = Text(options_pane)
-    #tsp_iterations.pack(anchor='w')
-    #tsp_iterations.insert(END, '10')
     Label(options_pane, text='Iterations', font=("Arial", 10)).pack(anchor='w')
 
     tsp_iterations = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
@@ -544,10 +600,6 @@ def setup_option_pane():
 
     Checkbutton(options_pane, text="Show Coverage Plot", variable=show_coverage_var).pack(anchor='w')
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
-
-    # Showing coverage plot
-    #Button(options_pane, text='Show Coverage', command=show_coverage).pack(anchor='w')
-
 
 # Initialize main Tkinter window
 root = Tk()
