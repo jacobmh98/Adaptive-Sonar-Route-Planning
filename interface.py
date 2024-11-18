@@ -252,14 +252,14 @@ def update_stats():
 
     if stats_dict is None:
         # Title for the chosen file
-        Label(scrollable_content, text="Chosen File", font=("Arial", 12, "bold"), anchor="w").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        Label(scrollable_content, text="Chosen File", font=("Arial", 12, "bold"), anchor="w").grid(row=0, column=0, padx=0, pady=5, sticky="w")
 
         # Display the file name if a file is chosen
         if file_path:
             file_name = os.path.basename(file_path)  # Extract the file name from the path
-            Label(scrollable_content, text=file_name, font=("Arial", 10), anchor="w").grid(row=1, column=0, padx=5, pady=2, sticky="w")
+            Label(scrollable_content, text=file_name, font=("Arial", 10), anchor="w").grid(row=1, column=0, padx=(0,5), pady=2, sticky="w")
         else:
-            Label(scrollable_content, text="No File Selected", font=("Arial", 10), anchor="w").grid(row=1, column=0, padx=5, pady=2, sticky="w")
+            Label(scrollable_content, text="No File Selected", font=("Arial", 10), anchor="w").grid(row=1, column=0, padx=(0,5), pady=2, sticky="w")
 
     elif stats_dict['type'] == 'coverage_statistics':
         # Titles for columns
@@ -267,9 +267,9 @@ def update_stats():
         path_title = Label(scrollable_content, text="Path Data", font=("Arial", 12, "bold"), anchor="w")
         coverage_title = Label(scrollable_content, text="Coverage Data", font=("Arial", 12, "bold"), anchor="w")
 
-        general_title.grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        path_title.grid(row=0, column=1, sticky="w", padx=5, pady=5)
-        coverage_title.grid(row=0, column=2, sticky="w", padx=5, pady=5)
+        general_title.grid(row=0, column=0, sticky="w", padx=(0,5), pady=5)
+        path_title.grid(row=0, column=1, sticky="w", padx=(0,5), pady=5)
+        coverage_title.grid(row=0, column=2, sticky="w", padx=(0,5), pady=5)
 
         # General data
         general_data = [
@@ -280,7 +280,7 @@ def update_stats():
             f"Sorting Time: {round(stats_dict['sorting_time'], 2)}s",
         ]
         for i, text in enumerate(general_data, start=1):
-            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=5, pady=1)
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
 
         # Path data
         path_data = [
@@ -293,7 +293,7 @@ def update_stats():
             f"Gentle Turns (>90°): {stats_dict['soft_turns']}"
         ]
         for i, text in enumerate(path_data, start=1):
-            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=1, sticky="w", padx=5, pady=1)
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=1, sticky="w", padx=(0,5), pady=1)
 
         # Coverage data
         coverage_data = [
@@ -303,12 +303,12 @@ def update_stats():
             f"Outlying Area: {round(stats_dict['outlying_area'].area, 2)}m²",
         ]
         for i, text in enumerate(coverage_data, start=1):
-            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=2, sticky="w", padx=5, pady=1)
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=2, sticky="w", padx=(0,5), pady=1)
 
     elif stats_dict['type'] == 'decomposition_statistics':
         # Title for decomposition statistics
         title = Label(scrollable_content, text="Decomposition Statistics", font=("Arial", 12, "bold"), anchor="w")
-        title.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        title.grid(row=0, column=0, sticky="w", padx=(0,5), pady=5)
 
         # Decomposition data
         decomposition_data = [
@@ -317,7 +317,7 @@ def update_stats():
             f"Sum of Widths: {round(stats_dict['sum_of_widths'], 2)}",
         ]
         for i, text in enumerate(decomposition_data, start=1):
-            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=5, pady=1)
+            Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
 
 def path_planner():
     global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var
