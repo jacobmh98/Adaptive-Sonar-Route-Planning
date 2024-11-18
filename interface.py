@@ -474,7 +474,7 @@ def setup_plot_pane():
 
     # Frame to contain the buttons
     button_frame = Frame(plot_pane)
-    button_frame.pack(fill="x", padx=10, pady=10)
+    button_frame.pack(fill="x", padx=10, pady=2)
 
     prev_btn = Button(button_frame, text='Previous', command=prev_plot)
     prev_btn.pack(side="left", anchor='w')
@@ -489,7 +489,7 @@ def setup_plot_pane():
 
     # Create a frame for stats with scrollbar
     stats_frame = Frame(plot_pane)
-    stats_frame.pack(fill="both", expand=True, padx=10, pady=10)
+    stats_frame.pack(fill="both", expand=True, padx=10, pady=1)
 
     # Add canvas and scrollbar for scrolling
     stats_canvas = Canvas(stats_frame)
@@ -567,9 +567,6 @@ def setup_option_pane():
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
-
-    label = Label(options_pane, text='', font=("Arial", 10))
-    label.pack(anchor='w')
 
     Label(options_pane, text='Decomposition Algorithm', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
