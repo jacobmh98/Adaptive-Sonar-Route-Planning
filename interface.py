@@ -5,9 +5,12 @@ import time
 from tkinter import *
 from tkinter import filedialog
 
+import matplotlib
 import networkx as nx
 from matplotlib import pyplot as plt
+from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 import cpp_connect_path
 import cpp_path_planning
@@ -210,12 +213,21 @@ def decompose():
 
         update_plot()
 
-
 def update_plot():
-    global current_plot_index, canvas
-    canvas.figure = plots[current_plot_index]
+    global current_plot_index, canvas, toolbar, canvas_frame
 
+    # Remove the old canvas widget
+    canvas.get_tk_widget().pack_forget()
+
+    canvas = FigureCanvasTkAgg(plots[current_plot_index], master=canvas_frame)
     canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    # Reinitialize the toolbar with the new canvas
+    toolbar.destroy()  # Remove the old toolbar
+    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+    toolbar.pack(side=TOP, fill=X)
+
     update_stats()
 
 def next_plot():
@@ -277,7 +289,6 @@ def show_coverage():
     fig = plot_cpp.plot_coverage(region, path, chosen_path_width, covered_area, outlier_area, overlap_area, obstacles,
                                  sorted_sub_polygons)
     """
-
 
 def path_planner():
     global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var
@@ -417,11 +428,19 @@ def save_data():
 
 def setup_plot_pane():
     """ Set up the initial canvas with the first plot """
-    global canvas, plot_index, stats_label
+    global canvas, plot_index, stats_label, toolbar, canvas_frame
 
-    canvas = FigureCanvasTkAgg(None, master=plot_pane)
+    canvas_frame = Frame(plot_pane, bg='white')
+    canvas_frame.pack(fill='both')
+
+    canvas = FigureCanvasTkAgg(None, master=canvas_frame)
     canvas.draw()
-    canvas.get_tk_widget().pack()
+    canvas.get_tk_widget().pack(side='top', fill='both', expand=True)
+
+    # Add a matplotlib navigation toolbar
+    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+    toolbar.update()
+    toolbar.pack(side='bottom', fill='x')
 
     # Frame to contain the buttons
     button_frame = Frame(plot_pane)
@@ -547,7 +566,6 @@ def setup_option_pane():
 
     # Showing coverage plot
     #Button(options_pane, text='Show Coverage', command=show_coverage).pack(anchor='w')
-
 
 # Initialize main Tkinter window
 root = Tk()

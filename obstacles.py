@@ -766,6 +766,7 @@ def decompose_around_obstacle(filtered_sub_polygons, obstacle):
 
 def plot_obstacles(sub_polygons, obstacles, include_points=True):
     fig, ax = plt.subplots(1, 1)
+
     count = 0
     for i, p in enumerate(sub_polygons):
         for e in p.edges:
@@ -806,7 +807,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
                     plt.scatter(v.x, v.y, color='red')
                 else:
                     plt.scatter(v.x, v.y, color='black')
-
+    fig.tight_layout()
     ax.set_aspect('equal')
     plt.show()
     return fig
