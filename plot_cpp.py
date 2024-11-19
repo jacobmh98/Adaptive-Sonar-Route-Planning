@@ -123,7 +123,7 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
         # Highlight start and end points of the path
         start_label = 'Start point' if not labels_used["Start point"] else None
         end_label = 'End point' if not labels_used["End point"] else None
-        ax.plot(path_x[0], path_y[0], 'go', markersize=6, label=start_label)
+        ax.plot(path_x[0], path_y[0], 'bo', markersize=6, label=start_label)
         ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6, label=end_label)
         labels_used["Start point"] = True
         labels_used["End point"] = True
@@ -215,7 +215,7 @@ def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, 
             ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'g-', linewidth=1)
 
     # Highlight start and end points of the path
-    ax.plot(path_x[0], path_y[0], 'go', markersize=6)
+    ax.plot(path_x[0], path_y[0], 'bo', markersize=6)
     ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6)
 
     # Plot covered area inside the polygon

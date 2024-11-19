@@ -489,6 +489,12 @@ def path_planner():
                     sub_polygons_list.append(None)
                     plots.append(fig_path)
 
+                    #TODO set canvas here
+                    canvas = FigureCanvasTkAgg(fig_path, master=canvas_frame)
+                    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+                    canvas_list.append(canvas)
+                    toolbar_list.append(toolbar)
+
                     # Checking if user wants to see coverage plot
                     if show_coverage_var.get():
                         fig_coverage = plot_cpp.plot_coverage(region, path, chosen_path_width, stats_dict["covered_area"],
@@ -498,6 +504,12 @@ def path_planner():
                         plots.append(fig_coverage)
                         sub_polygons_list.append(None)
                         stats.append(stats_dict)
+
+                        # TODO set canvas here
+                        canvas = FigureCanvasTkAgg(fig_coverage, master=canvas_frame)
+                        toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+                        canvas_list.append(canvas)
+                        toolbar_list.append(toolbar)
 
                     current_plot_index = len(plots) - 1
                     update_plot()
@@ -547,7 +559,7 @@ def setup_plot_pane():
     global canvas, plot_index, stats_frame, scrollable_content, toolbar, stats_canvas, canvas_frame, scrollbar
    # global canvas, plot_index, stats_label, toolbar, canvas_frame
 
-    canvas_frame = Frame(plot_pane, bg='white', width='600')
+    canvas_frame = Frame(plot_pane, bg='white', width='600', height='480')
     canvas_frame.pack(fill='both', expand=True)
 
     # Frame to contain the buttons
