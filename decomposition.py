@@ -1,6 +1,10 @@
+import copy
+
 from Polygon import *
 from scipy.spatial import ConvexHull
 from global_variables import *
+from plot_functions import save_polygon
+
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """
@@ -258,6 +262,9 @@ def remove_equal_points(P):
     return Polygon(vertices)
 
 def is_well_formed(polygon):
+    # TODO might be unnecesary
+    polygon = remove_collinear_vertices(copy.deepcopy(polygon))
+
     # 1. Check if the polygon has at least 3 vertices
     if len(polygon.vertices) < 3:
         return False, "Polygon must have at least 3 vertices."
