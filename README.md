@@ -66,12 +66,13 @@ Launch the Python script by running the "interface" Python class or the provided
 - Use the plot toolbar to zoom, move, or save the plot.
 
 ### 9. Save Data (Optional)
-- Click the **"Save Data"** button to save the generated plot as a Pickle file.  
+- Click the **"Save Data"** button to save the generated plot as a Pickle file.
+- Only the region and the decomposed sub-polygons of the plot that is currently being shown is saved.
 - Enter a filename for the saved object. You can reload this file later.
 
 ### 10. Redo Options
 #### Redo Decomposition
-- Go back to the region plot and repeat from Step 3.
+- Select a decomposition algorithm and repeat from Step 3.
 
 #### Redo Path Generation
 - Navigate to the plot showing the decomposed sub-polygons and repeat from Step 5.
