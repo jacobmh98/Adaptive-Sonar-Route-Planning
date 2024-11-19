@@ -1,5 +1,4 @@
 from enum import Enum
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -155,6 +154,12 @@ class Polygon:
         centroid_x = sum(x_coords) / len(x_coords)
         centroid_y = sum(y_coords) / len(y_coords)
         return np.array([centroid_x, centroid_y])
+
+    def compute_boundary(self):
+        coords = self.vertices_matrix()
+        boundary = (np.min(coords[0, :]), np.max(coords[0, :]),
+                    np.min(coords[1, :]), np.max(coords[1, :]))
+        return boundary
 
     def line_intersection(self, p1, p2, q1, q2, epsilon=1e-9):
         """ Find intersection between two line segments (p1, p2) and (q1, q2) with floating-point tolerance """

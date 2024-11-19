@@ -1,15 +1,11 @@
 import copy
-
 import numpy as np
 from matplotlib import pyplot as plt
-
 from decomposition import dot, cross, get_center_of_polygon, optimize_polygons, find_shared_edge, polygons_are_adjacent, \
     points_are_equal, remove_collinear_vertices, remove_equal_points
 from Polygon import Edge, Vertex, Polygon
 from global_variables import *
-
 from rtree import index
-
 from load_data import generate_new_data
 
 def compute_intersection(ray_start, ray_dir, seg_A, seg_B):

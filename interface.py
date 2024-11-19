@@ -5,13 +5,8 @@ import time
 from tkinter import *
 from tkinter import filedialog
 
-import matplotlib
-import networkx as nx
-from matplotlib import pyplot as plt
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-
 import cpp_connect_path
 import cpp_path_planning
 import decomposition
@@ -20,12 +15,9 @@ import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
 import sorting_tsp_intra_regional
 from decomposition import sum_of_widths, optimize_polygons
-from global_variables import number_of_tsp_trials
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
-from cpp_path_data import compute_path_data, compute_covered_area_with_obstacles, compute_outlier_area, \
-    compute_overlap_area
-from sorting_dfs_adjacency_graph import create_adjacency
+from cpp_path_data import compute_path_data
 
 file_path = None
 plots = []
@@ -320,7 +312,7 @@ def update_stats():
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
 
 def path_planner():
-    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var
+    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var
 
     if len(sub_polygons_list) != 0:
         sub_polygons = sub_polygons_list[current_plot_index]
@@ -341,22 +333,25 @@ def path_planner():
                     removed_col_sub_polygons = []
                     for poly in sub_polygons:
                         removed_col_sub_polygons.append(decomposition.remove_collinear_vertices(poly))
-                    sub_polygons = removed_col_sub_polygons
 
                     total_start_time = time.time()
-                    intersections = cpp_path_planning.multi_intersection_planning(sub_polygons, chosen_path_width, chosen_overlap_distance)
+                    intersections = cpp_path_planning.multi_intersection_planning(removed_col_sub_polygons, chosen_path_width, chosen_overlap_distance)
+
+                    #for inter in intersections:
+                    #    print(inter)
+
 
                     if sorting_variable.get() == 'DFS':
                         print("DFS")
                         sorting_start_time = time.time()
-                        sorted_sub_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(sub_polygons, intersections)
+                        sorted_sub_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
 
                     elif sorting_variable.get() == 'TSP Centroid':
                         print("Centroids")
                         sorting_start_time = time.time()
-                        sorted_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(sub_polygons, intersections)
+                        sorted_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
 
@@ -368,9 +363,9 @@ def path_planner():
                         if value:
                             value = int(value)
                             if value > 0:
-                                sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(sub_polygons, intersections, value)
+                                sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(removed_col_sub_polygons, intersections, value)
                             else:
-                                sorted_sub_polygons = sub_polygons
+                                sorted_sub_polygons = removed_col_sub_polygons
                                 sorted_intersections = intersections
 
                         sorting_end_time = time.time()
@@ -384,12 +379,18 @@ def path_planner():
                     # Computing path
                     path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
 
-                    # Computing plot for path
-                    fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles, False, transit_flags)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
                     total_execution_time = total_end_time - total_start_time
+
+                    # Don't differentiate from transit and normal path points
+                    if not use_transit_lines_var.get():
+                        transit_flags = [None] * len(transit_flags)
+
+                    # Computing plot for path
+                    fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path,
+                                                                  obstacles, False, transit_flags)
 
                     # Computing data about path
                     stats_dict = compute_path_data(region, path, transit_flags, chosen_path_width, obstacles, total_execution_time)
@@ -563,7 +564,7 @@ def optimize():
 
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, show_coverage_var
+    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
@@ -614,8 +615,11 @@ def setup_option_pane():
     Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
     show_coverage_var = IntVar()
+    use_transit_lines_var = IntVar()
 
     Checkbutton(options_pane, text="Show Coverage Plot", variable=show_coverage_var).pack(anchor='w')
+    Checkbutton(options_pane, text="Use Transit Lines", variable=use_transit_lines_var).pack(anchor='w')
+
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
 
 # Initialize main Tkinter window

@@ -1,15 +1,6 @@
-import matplotlib.pyplot as plt
-import networkx as nx
-import numpy as np
-
 from Polygon import *
 from scipy.spatial import ConvexHull
-import pandas as pd
 from global_variables import *
-from plot_functions import plot_results, save_polygon
-
-
-#from global_variables import epsilon#, optimizing_epsilon
 
 def compute_concave_vertices(P):
     """ Function to compute the concave vertices in a polygon """

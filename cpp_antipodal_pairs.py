@@ -1,5 +1,4 @@
 import numpy as np
-import plot_cpp
 
 def dist(p1, p2):
     """ Distance function to calculate distance between two points
@@ -8,6 +7,7 @@ def dist(p1, p2):
     :return: float, distance between p1 and p2
     """
     return np.linalg.norm(np.array(p1) - np.array(p2))
+
 
 def compute_antipodal_pairs(polygon):
     """ Computes antipodal pairs for a given polygon.
@@ -40,8 +40,7 @@ def compute_antipodal_pairs(polygon):
 
 
 def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
-    """
-    Filter out neighboring antipodal pairs and remove redundant pairs (i, j) and (j, i).
+    """ Filter out neighboring antipodal pairs and remove redundant pairs (i, j) and (j, i).
 
     For a triangle (3 vertices), neighboring points along the hypotenuse are not removed.
 
@@ -128,8 +127,7 @@ def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
 
     :param polygon: Polygon object with vertices.
     :param antipodal_pairs: List of tuples representing antipodal pairs.
-
-    :returns: List of tuples representing only the diametric antipodal pairs.
+    :return: List of tuples representing only the diametric antipodal pairs.
     """
     diametric_pairs = set()  # Using a set to avoid duplicates
 
@@ -143,8 +141,6 @@ def filter_diametric_antipodal_pairs(polygon, antipodal_pairs):
             sorted_pair = tuple(sorted([b, diametric_pair]))
             diametric_pairs.add(sorted_pair)
 
-    #plot.cpp.plot_antipodal_points(polygon, diametric_pairs)
-
     # Convert the set to a list for the final output
     return list(diametric_pairs)
 
@@ -154,7 +150,7 @@ def get_diametric_antipodal_point_index(diametric_antipodal_pairs, b):
 
     :param diametric_antipodal_pairs: List of tuples representing diametric antipodal pairs.
     :param b: The index of the point for which to find the diametric antipodal pair.
-    :returns: The index of the diametric antipodal point for b, or None if not found.
+    :return: The index of the diametric antipodal point for b, or None if not found.
     """
     for (i, j) in diametric_antipodal_pairs:
         if i == b:

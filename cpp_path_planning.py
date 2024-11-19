@@ -1,11 +1,8 @@
-import networkx as nx
-import numpy as np
-import decomposition
 import cpp_path_intersections
 import cpp_antipodal_pairs
 
 
-def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_distance, d_pq):
+def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_distance, d_pq, boundary_box):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
 
@@ -21,9 +18,9 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_
     # Iterate over all antipodal pairs (b, a) in the current polygon
     for (i, j) in d_pq:
         # Compute the best path for the current antipodal pair
-        current_intersections = cpp_path_intersections.best_intersection(polygon, current_path_width, current_overlap_distance, i, j)
+        current_intersections = cpp_path_intersections.best_intersection(polygon, current_path_width, current_overlap_distance, i, j, boundary_box)
 
-        # TODO: Create a better cost function?
+        # TODO: Create a better cost function finding an optimal mix between distance and turn heuristics
         current_cost = len(current_intersections)
 
         # Update the optimal path if the current path has a lower cost
@@ -40,15 +37,16 @@ def multi_intersection_planning(polygons, current_path_width, current_overlap_di
     :param current_path_width: Width of the planned path
     :return: List of lists containing intersection points for each polygon.
     """
-    # Removing collinear vertices before planning intersections
-    #removed_col_sub_polygons = []
-    ##for poly in polygons:
-     #   removed_col_sub_polygons.append(decomposition.remove_collinear_vertices(poly))
 
     # Creating the list to store intersections for each polygon
     total_intersections = []
 
     for i, current_poly in enumerate(polygons):
+        #print()
+        #print(i)
+        # Computing boundary box for the polygon
+        boundary_box = current_poly.compute_boundary()
+
         # Computing current polygon's antipodal points
         antipodal_vertices = cpp_antipodal_pairs.compute_antipodal_pairs(current_poly)
 
@@ -63,13 +61,13 @@ def multi_intersection_planning(polygons, current_path_width, current_overlap_di
         )
 
         # Computing the intersections for the current polygon
-        #intersections = rotating_calipers_path_planner(current_poly, current_path_width, diametric_antipodal_pairs, total_intersections)
-        intersections = rotating_calipers_path_planner(current_poly, current_path_width, current_overlap_distance, filtered_antipodal_vertices)
+        intersections = rotating_calipers_path_planner(current_poly, current_path_width, current_overlap_distance, diametric_antipodal_pairs, boundary_box)
 
         # Check if intersections found, otherwise initialize an empty list
         if not intersections:
             intersections = []
 
         total_intersections.append(intersections)
+
 
     return total_intersections

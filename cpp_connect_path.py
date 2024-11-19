@@ -1,5 +1,4 @@
 import numpy as np
-import plot_cpp
 import cpp_hard_edges
 
 
@@ -9,6 +8,7 @@ def compute_total_distance(path):
     for i in range(len(path) - 1):
         total_distance += np.linalg.norm(path[i + 1] - path[i])
     return total_distance
+
 
 def find_nearest_vertex_to_point(poly, point):
     nearest_vertex = None
@@ -23,6 +23,7 @@ def find_nearest_vertex_to_point(poly, point):
             nearest_vertex = vertex
 
     return nearest_vertex
+
 
 def find_nearest_to_vertex(poly, first_intersection, last_intersection):
     # Combine the two points from both intersections into a single list
@@ -45,6 +46,7 @@ def find_nearest_to_vertex(poly, first_intersection, last_intersection):
 
     return nearest_intersection_point, nearest_intersection
 
+
 def find_nearest_to_point(point, first_intersection, last_intersection):
     # Combine the two points from both intersections into a single list
     intersection_points = [first_intersection[0], first_intersection[1], last_intersection[0], last_intersection[1]]
@@ -63,6 +65,7 @@ def find_nearest_to_point(point, first_intersection, last_intersection):
             nearest_intersection = 0 if i < 2 else 1  # 0 for first intersection, 1 for last
 
     return nearest_intersection_point, nearest_intersection
+
 
 def add_intersection_points_to_path(path, intersection):
     last_point = path[-1]  # The last point in the current path
@@ -84,10 +87,9 @@ def add_intersection_points_to_path(path, intersection):
 
     return path
 
-def connect_first_path(next_poly, intersections):
-    # Find nearest vertex in next_poly to either first or last intersection
-    nearest_intersection_point, nearest_intersection_index = find_nearest_to_vertex(next_poly, intersections[0], intersections[-1])
-    first_path = [nearest_intersection_point]  # Initialize path with the nearest intersection point
+
+def compute_path(nearest_intersection_point, nearest_intersection_index,intersections):
+    path = [nearest_intersection_point]  # Initialize path with the nearest intersection point
 
     # Getting index of nearest intersection in intersection list (can only be first or last element)
     if nearest_intersection_index != 0:
@@ -95,56 +97,50 @@ def connect_first_path(next_poly, intersections):
 
     # Add the second point from the nearest intersection
     if np.array_equal(np.array(intersections[nearest_intersection_index][0]), np.array(nearest_intersection_point)):
-        first_path.append(intersections[nearest_intersection_index][1])
+        path.append(intersections[nearest_intersection_index][1])
     else:
-        first_path.append(intersections[nearest_intersection_index][0])
+        path.append(intersections[nearest_intersection_index][0])
 
     # Go through the intersection list in normal order (first to last)
     if nearest_intersection_index == 0:
         for intersection in intersections[1:]:  # Iterate through remaining intersections and add to the first path
-            first_path = add_intersection_points_to_path(first_path, intersection)
+            path = add_intersection_points_to_path(path, intersection)
 
     else:  # Iterate through the intersection list backwards
         for intersection in reversed(intersections[:-1]):
-            first_path = add_intersection_points_to_path(first_path, intersection)
+            path = add_intersection_points_to_path(path, intersection)
 
-    return first_path[::-1] # For first path, the start point is the nearest point in next polygon, so must be reversed
+    return path
+
+
+def connect_first_path(next_poly, intersections):
+    # Find nearest vertex in next_poly to either first or last intersection
+    nearest_intersection_point, nearest_intersection_index = find_nearest_to_vertex(next_poly, intersections[0], intersections[-1])
+
+    # Computing the path
+    path = compute_path(nearest_intersection_point, nearest_intersection_index,intersections)
+
+    return path[::-1] # For first path, the start point is the nearest point in next polygon, so must be reversed
+
 
 def connect_middle_path(polygons, total_intersections, i, path):
     last_path_point = path[-1]
     intersections = total_intersections[i]
     nearest_intersection_point, nearest_intersection_index = find_nearest_to_point(last_path_point, intersections[0], intersections[-1])
-    middle_path = [nearest_intersection_point]
 
-    # Getting index of nearest intersection in intersection list (can only be first or last element)
-    if nearest_intersection_index != 0:
-        nearest_intersection_index = len(intersections) - 1
-
-    # Add the second point from the nearest intersection
-    if np.array_equal(np.array(intersections[nearest_intersection_index][0]), np.array(nearest_intersection_point)):
-        middle_path.append(intersections[nearest_intersection_index][1])
-    else:
-        middle_path.append(intersections[nearest_intersection_index][0])
-
-    # Go through the intersection list in normal order (first to last)
-    if nearest_intersection_index == 0:
-        for inter in intersections[1:]:  # Iterate through remaining intersections and add to the first path
-            middle_path = add_intersection_points_to_path(middle_path, inter)
-
-    else:  # Iterate through the intersection list backwards
-        for inter in reversed(intersections[:-1]):
-            middle_path = add_intersection_points_to_path(middle_path, inter)
+    # Computing the path
+    path = compute_path(nearest_intersection_point, nearest_intersection_index, intersections)
 
     # Check for better path in opposite direction
     opposite_path = connect_first_path(polygons[i+1], intersections)
 
     # Finding the path's start and end points
     start_point = last_path_point  # Must always start at last path's end
-    end_point1 = find_nearest_vertex_to_point(polygons[i+1], middle_path[-1]).v.flatten()
+    end_point1 = find_nearest_vertex_to_point(polygons[i+1], path[-1]).v.flatten()
     end_point2 = find_nearest_vertex_to_point(polygons[i+1], opposite_path[-1]).v.flatten()
 
     # Appending start and end points to both paths and calculating the total distances
-    check_middle = [start_point] + middle_path + [end_point1]
+    check_middle = [start_point] + path + [end_point1]
     check_opposite = [start_point] + opposite_path + [end_point2]
 
     # Checking total distances travelled in each path
@@ -152,36 +148,20 @@ def connect_middle_path(polygons, total_intersections, i, path):
     dist2 = compute_total_distance(check_opposite)
 
     if dist1 <= dist2:
-        return middle_path
+        return path
     else:
         return opposite_path
 
+
 def connect_last_path(path, intersections):
     last_path_point = path[-1]
-
     nearest_intersection_point, nearest_intersection_index = find_nearest_to_point(last_path_point, intersections[0], intersections[-1])
-    last_path = [nearest_intersection_point]
 
-    # Getting index of nearest intersection in intersection list (can only be first or last element)
-    if nearest_intersection_index != 0:
-        nearest_intersection_index = len(intersections) - 1
+    # Computing the path
+    path = compute_path(nearest_intersection_point, nearest_intersection_index, intersections)
 
-    # Add the second point from the nearest intersection
-    if np.array_equal(np.array(intersections[nearest_intersection_index][0]), np.array(nearest_intersection_point)):
-        last_path.append(intersections[nearest_intersection_index][1])
-    else:
-        last_path.append(intersections[nearest_intersection_index][0])
+    return path
 
-    # Go through the intersection list in normal order (first to last)
-    if nearest_intersection_index == 0:
-        for intersection in intersections[1:]:  # Iterate through remaining intersections and add to the first path
-            last_path = add_intersection_points_to_path(last_path, intersection)
-
-    else:  # Iterate through the intersection list backwards
-        for intersection in reversed(intersections[:-1]):
-            last_path = add_intersection_points_to_path(last_path, intersection)
-
-    return last_path
 
 def connect_solo_path(intersections):  # Any point can be used as first point for the optimal path in solo paths
     solo_path = [intersections[0][0],intersections[0][1]] # Manually adding first intersection

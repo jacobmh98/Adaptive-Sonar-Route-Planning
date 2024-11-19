@@ -13,19 +13,12 @@ from load_data import *
 # Loading the region and obstacles
 data_path = 'C:/Users/andre/Documents/Adaptive-Sonar-Route-Planning/test_data/complex_polygon.json'
 region, obstacles = get_region(data_path)
-#plot_obstacles([region], obstacles, False)
 
 # Decompose the region using the sweep line algorithm
 sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
 
-#sub_polygons_sweep_line = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
-#plot_obstacles(sub_polygons_sweep_line, obstacles, False)
-
 # Decompose the region without considering obstacles
 sub_polygons = generate_new_data(copy.deepcopy(region))
-
-#%% Plot the decomposed sub_polygons without considered obstacles
-#plot_obstacles(sub_polygons, obstacles, False)
 
 # Divide the sub-polygons into clusters that are affected by the obstacles
 sub_polygons_filtered_masks = []
@@ -35,8 +28,6 @@ obstacles_affected = []
 for o in obstacles:
     filtered_mask, filtered = find_bounding_polygons(sub_polygons, o)
     common_found = False
-
-    #plot_obstacles(filtered, obstacles, False)
 
     for index, mask in enumerate(sub_polygons_filtered_masks):
         for i in mask:
@@ -78,34 +69,16 @@ for i, filtered in enumerate(sub_polygons_filtered):
     merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles_affected[i])
     decomposed_polygons += merged_sub_polygon_decomposed
 
-    #plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-
     for p in sub_polygons_extract:
         if p not in extracted_sub_polygons_mask and p not in dont_include_mask:
             extracted_sub_polygons_mask.append(p)
             extracted_sub_polygons.append(sub_polygons[p])
-
-    #plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
 
 # Combining all the decomposed sub-polygons with obstacles
 combined_polygons = sub_polygons#extracted_sub_polygons + decomposed_polygons
 
 # Optimize the sub-polygons by merging when possible
 #optimized_sub_polygons = compute_optimized_data(combined_polygons)
-#plot_obstacles(combined_polygons, obstacles, False)
-
-
-#%% Plot the sub_polygons computed only with the sweep line algorithm
-#plot_obstacles(sub_polygons_sweep_line, obstacles, False)
-#%% Plot the region and obstacles
-#plot_obstacles([region], obstacles, False)
-
-#%% Plot the optimized sub_polygons without considered obstacles
-#plot_obstacles(optimized_sub_polygons, obstacles)
-
-#%% Plot the sub_polygons while considered obstacles
-#plot_obstacles(sub_polygons_extract + merged_sub_polygon_decomposed, obstacles, False)
-#plot_obstacles(combined_polygons, obstacles, False)
 
 # Starting timer for all cpp functions
 total_start_time = time.time()
@@ -137,8 +110,7 @@ else:
     sorted_intersections = intersections
 
 # Computing new intersections (if running intra regional) using the sorted combined polygons
-path = cpp_connect_path.connect_path(sorted_combined_polygons, sorted_intersections, region)
-distance = cpp_path_data.compute_total_distance(path)
+path, transit_flags = cpp_connect_path.connect_path(sorted_combined_polygons, sorted_intersections, region)
 
 print(f'Number of polygons = {len(sorted_combined_polygons)}')
 
@@ -147,6 +119,6 @@ total_end_time = time.time()
 total_execution_time = total_end_time - total_start_time
 
 if get_path_data:
-    cpp_path_data.compute_path_data(region, sorted_combined_polygons, path, global_path_width, obstacles, total_execution_time)
+    cpp_path_data.compute_path_data(region, path, transit_flags, global_path_width, obstacles, total_execution_time)
 
 plot_cpp.plot_multi_polys_path(region, global_path_width, sorted_combined_polygons, path, obstacles)
