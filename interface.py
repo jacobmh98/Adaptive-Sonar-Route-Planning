@@ -161,8 +161,8 @@ def decompose():
                                 mask.append(p)
                                 sub_polygons_filtered[index].append(filtered[i])
 
-                                if o not in obstacles_affected[index]:
-                                    obstacles_affected[index].append(o)
+                            if o not in obstacles_affected[index]:
+                                obstacles_affected[index].append(o)
 
                 if not common_found:
                     sub_polygons_filtered_masks.append(filtered_mask)
