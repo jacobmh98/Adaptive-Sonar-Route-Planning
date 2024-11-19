@@ -105,7 +105,7 @@ def split_polygon_single(e2, intersection_p, cv):
 
     for e in P2:
         None"""
-    return remove_collinear_vertices(P1), remove_collinear_vertices(P2)
+    #return remove_collinear_vertices(P1), remove_collinear_vertices(P2)
     return P1, P2
 
 def compute_intersection2(e, cv, e2):
@@ -766,10 +766,10 @@ def optimize_polygons(sub_polygons):
                         e2 = e2.next
 
                     P = Polygon(combined_polygon_vertices)
-                    P = remove_collinear_vertices(P)
+                    """P = remove_collinear_vertices(P)
 
                     if not is_well_formed(P):
-                        break
+                        break"""
 
                     if len(compute_concave_vertices(P)) == 0:
                         sub_polygons[i] = P

@@ -14,11 +14,13 @@ import plot_cpp
 import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
 import sorting_tsp_intra_regional
-from decomposition import sum_of_widths, optimize_polygons
+from decomposition import sum_of_widths, optimize_polygons, remove_collinear_vertices
+from global_variables import number_of_tsp_trials
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
 from cpp_path_data import compute_path_data
 
+# Define global variables
 file_path = None
 plots = []
 current_plot_index = 0
@@ -26,9 +28,15 @@ region = None
 obstacles = None
 sub_polygons_list = []
 stats = []
+initial_xlim = None
+initial_ylim = None
+initial_data = None
+canvas_list = []
+toolbar_list = []
 
 def reset():
-    global file_path, plots, current_plot_index, stats, region, obstacles, sub_polygons_list
+    """ Reset the global variables """
+    global file_path, plots, current_plot_index, stats, region, obstacles, sub_polygons_list, initial_xlim, initial_ylim, canvas_list, toolbar_list, canvas_frame
 
     file_path = None
     plots = []
@@ -37,9 +45,16 @@ def reset():
     region = None
     obstacles = None
     sub_polygons_list = []
+    initial_xlim = None
+    initial_ylim = None
+    canvas_list = []
+    toolbar_list = []
+
+    for widget in canvas_frame.winfo_children():
+        widget.destroy()
 
 def select_file():
-    global file_path, region, obstacles
+    global file_path, region, initial_xlim, initial_ylim, obstacles
 
     reset()
 
@@ -49,20 +64,30 @@ def select_file():
     )
 
     if file_path:
-        #label.config(text=f"{file_path}")
-
         # Get the file extension
         file_name, file_extension = os.path.splitext(file_path)
 
         if file_extension == '.json':
+            # Loading the region from a JSON file
             region, obstacles = get_region(file_path)
             fig = plot_obstacles([region], obstacles, False)
             plots.append(fig)
+
+            canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
+            toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+            canvas_list.append(canvas)
+            toolbar_list.append(toolbar)
+
             sub_polygons_list.append(None)
             stats.append(None)
+
+            initial_xlim = fig.get_axes()[0].get_xlim()
+            initial_ylim = fig.get_axes()[0].get_ylim()
+
             update_plot()
+
         elif file_extension == '.pkl':
-            # Loading the list back from the file
+            # Loading the region and decomposition from a pickle file
             with open(f'{file_path}', "rb") as file:
                 loaded_data = pickle.load(file)
 
@@ -73,18 +98,38 @@ def select_file():
 
             fig = plot_obstacles([region], obstacles, False)
             plots.append(fig)
+
+            canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
+            toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+            canvas_list.append(canvas)
+            toolbar_list.append(toolbar)
+
             stats.append(None)
             sub_polygons_list.append(None)
 
+            initial_xlim = fig.get_axes()[0].get_xlim()
+            initial_ylim = fig.get_axes()[0].get_ylim()
+
             fig = plot_obstacles(sub_polygons, obstacles, False)
             plots.append(fig)
+
+            canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
+            toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+            canvas_list.append(canvas)
+            toolbar_list.append(toolbar)
+
             stats.append(statistics)
             sub_polygons_list.append(sub_polygons)
 
             update_plot()
+        else:
+            # Handle non compatible file-types
+            None
 
 def decompose():
-    global current_plot_index
+    """ When user presset decompose button """
+    global obstacles, current_plot_index
+
     if region is not None:
         if len(obstacles) > 0 and decomposition_variable.get() == 'Combination':
             sub_polygons = generate_new_data(copy.deepcopy(region))
@@ -159,7 +204,7 @@ def decompose():
 
             decomposition_stats = {
                 'type': 'decomposition_statistics',
-                'method': 'Sweep Line',
+                'method': 'Combination',
                 'number_of_polygons': len(combined_polygons),
                 'sum_of_widths': sum_of_widths(combined_polygons)
             }
@@ -203,17 +248,58 @@ def decompose():
 def update_plot():
     global current_plot_index, canvas, toolbar, canvas_frame
 
-    # Remove the old canvas widget
-    canvas.get_tk_widget().pack_forget()
+    #fig.get_axes()[0].set_xlim(initial_xlim)
+    #fig.get_axes()[0].set_ylim(initial_ylim)
+    #fig.tight_layout()
+    #fig.get_axes()[0].set_aspect('equal')
 
-    canvas = FigureCanvasTkAgg(plots[current_plot_index], master=canvas_frame)
+    if current_plot_index >= len(canvas_list):
+        fig = plots[current_plot_index]
+
+        canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
+        toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+        canvas_list.append(canvas)
+        toolbar_list.append(toolbar)
+
+    for i, (canvas, toolbar) in enumerate(zip(canvas_list, toolbar_list)):
+        if i == current_plot_index:
+            canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=True)
+            toolbar.pack(side=BOTTOM, fill=X)
+        else:
+            canvas.get_tk_widget().pack_forget()
+            toolbar.pack_forget()
+
+    #canvas = canvas_list[current_plot_index]
+    #canvas.draw()
+    #canvas.get_tk_widget().pack(side='top', fill='both', expand=True)
+
+    # Add a matplotlib navigation toolbar
+    ##toolbar = toolbar_list[current_plot_index]
+    #toolbar.update()
+    #toolbar.pack(side='bottom', fill='x')
+
+
+    """        # Update the canvas with the new figure
+        canvas.figure = fig
+        canvas.draw()  # Redraw the canvas efficiently
+
+    # Update the toolbar to reflect the new figure
+    toolbar.destroy()  # Destroy the old toolbar
+    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
+    toolbar.update()
+    toolbar.pack(side='bottom', fill='x')"""
+
+    # Remove the old canvas widget
+    """canvas.get_tk_widget().pack_forget()
+
+    canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
     canvas.draw()
     canvas.get_tk_widget().pack()
 
     # Reinitialize the toolbar with the new canvas
     toolbar.destroy()  # Remove the old toolbar
     toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
-    toolbar.pack(side=TOP, fill=X)
+    toolbar.pack(side=TOP, fill=X)"""
 
     update_stats()
 
@@ -437,7 +523,7 @@ def save_data():
     global file_path
 
     if file_path is not None:
-        if sub_polygons_list[current_plot_index] is not None:
+        if len(sub_polygons_list) > 0 and sub_polygons_list[current_plot_index] is not None:
             # Get the file extension
             file_name = os.path.splitext(os.path.basename(file_path))[0]
 
@@ -461,17 +547,8 @@ def setup_plot_pane():
     global canvas, plot_index, stats_frame, scrollable_content, toolbar, stats_canvas, canvas_frame, scrollbar
    # global canvas, plot_index, stats_label, toolbar, canvas_frame
 
-    canvas_frame = Frame(plot_pane, bg='white')
-    canvas_frame.pack(fill='both')
-
-    canvas = FigureCanvasTkAgg(None, master=canvas_frame)
-    canvas.draw()
-    canvas.get_tk_widget().pack(side='top', fill='both', expand=True)
-
-    # Add a matplotlib navigation toolbar
-    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
-    toolbar.update()
-    toolbar.pack(side='bottom', fill='x')
+    canvas_frame = Frame(plot_pane, bg='white', width='600')
+    canvas_frame.pack(fill='both', expand=True)
 
     # Frame to contain the buttons
     button_frame = Frame(plot_pane)
@@ -527,7 +604,6 @@ def setup_plot_pane():
 
     # Bind the <Configure> event of the `scrollable_content` frame
     scrollable_content.bind("<Configure>", update_scrollregion)
-
 
 def toggle_sorting_method():
     global tsp_iterations, sorting_variable
@@ -637,10 +713,10 @@ root.geometry(f"{screen_width}x{screen_height}+0+0")
 paned_window = PanedWindow(root, orient=HORIZONTAL)
 paned_window.pack(fill=BOTH, expand=1)
 
-plot_pane = Frame(paned_window, width=500, height=600)
+plot_pane = Frame(paned_window)
 paned_window.add(plot_pane)
 
-options_pane = Frame(paned_window, width=300, height=600)
+options_pane = Frame(paned_window)
 paned_window.add(options_pane)
 
 # Set up the plot pane
