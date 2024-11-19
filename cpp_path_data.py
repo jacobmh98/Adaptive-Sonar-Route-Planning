@@ -23,7 +23,7 @@ def compute_distance(path, transit_flags):
         total_distance += dist
 
         # Check flags for current and next points
-        is_transit = transit_flags[i] == "transit" or transit_flags[i + 1] == "transit"
+        is_transit = transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"
 
         if is_transit:
             transit_distance += dist
@@ -88,8 +88,6 @@ def compute_covered_area(region, obstacles, path, transit_flags, current_path_wi
     for i in range(len(path) - 1):
         if transit_flags[i] != "transit" or transit_flags[i + 1] != "transit":
             active_path_segments.append(LineString([path[i], path[i + 1]]))
-        #else:
-        #    print(f"Excluding transit segment: {path[i]} -> {path[i+1]}")
 
     if not active_path_segments:
         return ShapelyPolygon(), 0.0  # No active segments, return empty polygon and 0%
@@ -101,12 +99,16 @@ def compute_covered_area(region, obstacles, path, transit_flags, current_path_wi
     region_coords = [(v.x, v.y) for v in region.vertices]
     region_shape = ShapelyPolygon(region_coords)
 
-    # Subtract obstacle areas from the main region
+    # Subtract obstacle areas from the buffered path
     obstacles_shapes = [ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles]
-    effective_region = region_shape.difference(unary_union(obstacles_shapes))
+    obstacle_union = unary_union(obstacles_shapes)
+    buffered_path_excluding_obstacles = buffered_path.difference(obstacle_union)
+
+    # Subtract obstacle areas from the main region
+    effective_region = region_shape.difference(obstacle_union)
 
     # Compute the area covered within the effective region (region - obstacles)
-    covered_area = effective_region.intersection(buffered_path)
+    covered_area = effective_region.intersection(buffered_path_excluding_obstacles)
 
     # Calculate the coverage percentage of the effective area
     coverage_percentage = (covered_area.area / effective_region.area) * 100 if effective_region.area > 0 else 0

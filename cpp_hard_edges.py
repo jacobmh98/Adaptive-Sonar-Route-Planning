@@ -507,10 +507,12 @@ def avoid_hard_edges(start_point, end_point, current_polygon, polygons, region, 
 
     # Start point is on a hard edge
     if start_on_hard_edge:
+        #print("Starting on hard edge")
 
         # Check if the line from the start point to the end point is moving into polygon and not crossing the hard edge
         if is_line_moving_into_polygon(start_point, end_point, start_hard_edge, previous_polygon):
             start_is_clear = True
+            #print("Start is clear")
 
             # Check for intersections with hard edges, ignoring the edge where the start point lies
             intersecting_edge = find_closest_hard_edge_intersection(start_point, end_point, hard_edges_list, previous_polygon, [start_hard_edge])
@@ -528,17 +530,19 @@ def avoid_hard_edges(start_point, end_point, current_polygon, polygons, region, 
                     if in_first or in_last:
                         return []
 
-         # Line from start to end is moving
+         # Line from start to end is moving into obstacle
         else:
+            #print("Start not clear")
             # The intersecting edge is the start edge, as it get crossed
             intersecting_edge = start_hard_edge
+            #print(start_hard_edge)
 
     # Not starting on a hard edge
     else:
+        #print("Not starting on hard edge")
         intersecting_edge = find_closest_hard_edge_intersection(start_point, end_point, hard_edges_list, previous_polygon)
 
         if intersecting_edge:
-
             # Check if end point is on a hard edge
             on_hard_edge, end_hard_edge = is_point_on_hard_edge(end_point, hard_edges_list)
 
@@ -548,9 +552,11 @@ def avoid_hard_edges(start_point, end_point, current_polygon, polygons, region, 
                 in_last = is_line_moving_into_polygon(end_point, start_point, intersecting_edge, current_polygon)
 
                 if in_first or in_last:
+                    #print("Moving inside, Clear path")
                     return []
 
         else:
+            #print("Clear path")
             return []
 
     # Computing path around hard edges in both directions

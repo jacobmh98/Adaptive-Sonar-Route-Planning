@@ -1,6 +1,7 @@
 import copy
 import os
 import pickle
+import sys
 import time
 from tkinter import *
 from tkinter import filedialog
@@ -398,7 +399,7 @@ def update_stats():
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
 
 def path_planner():
-    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var
+    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var, hide_plot_legend_var
 
     if len(sub_polygons_list) != 0:
         sub_polygons = sub_polygons_list[current_plot_index]
@@ -469,9 +470,13 @@ def path_planner():
                     if not use_transit_lines_var.get():
                         transit_flags = [None] * len(transit_flags)
 
+                    # No transit lines when single polygon
+                    if len(sorted_sub_polygons) == 1:
+                        transit_flags = [None] * len(transit_flags)
+
                     # Computing plot for path
-                    fig_path = plot_cpp.plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path,
-                                                                  obstacles, False, transit_flags)
+                    fig_path = plot_cpp.plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path,
+                                                                  obstacles, False, transit_flags, hide_plot_legend_var.get())
 
                     # Computing data about path
                     stats_dict = compute_path_data(region, path, transit_flags, chosen_path_width, obstacles, total_execution_time)
@@ -495,7 +500,7 @@ def path_planner():
                         fig_coverage = plot_cpp.plot_coverage(region, path, chosen_path_width, stats_dict["covered_area"],
                                                               stats_dict["outlying_area"],
                                                               stats_dict["overlapped_area"], obstacles,
-                                                              sorted_sub_polygons, transit_flags)
+                                                              sorted_sub_polygons, transit_flags, hide_plot_legend_var.get())
                         plots.append(fig_coverage)
                         sub_polygons_list.append(None)
                         stats.append(stats_dict)
@@ -629,7 +634,7 @@ def optimize():
             optimized_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
 
             if len(sub_polygons) != len(optimized_polygons):
-                fig = plot_obstacles(optimized_polygons, obstacles, True)
+                fig = plot_obstacles(optimized_polygons, obstacles, False)
 
                 decomposition_stats = {
                     'type': 'decomposition_statistics',
@@ -647,7 +652,7 @@ def optimize():
 
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var
+    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var, hide_plot_legend_var
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
@@ -699,9 +704,11 @@ def setup_option_pane():
 
     show_coverage_var = IntVar()
     use_transit_lines_var = IntVar()
+    hide_plot_legend_var = IntVar()
 
     Checkbutton(options_pane, text="Show Coverage Plot", variable=show_coverage_var).pack(anchor='w')
     Checkbutton(options_pane, text="Use Transit Lines", variable=use_transit_lines_var).pack(anchor='w')
+    Checkbutton(options_pane, text="Hide Plot legend", variable=hide_plot_legend_var).pack(anchor='w')
 
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
 
@@ -736,4 +743,45 @@ setup_option_pane()
 #plots = create_plots()
 #current_plot_index = 0
 
-root.mainloop()
+def on_closing():
+    """Handle the application closing."""
+    root.quit()  # Stops the Tkinter mainloop
+    root.destroy()  # Destroys all Tkinter widgets and exits the app
+    sys.exit()  # Ensures the Python process exits
+
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
+import sys
+import logging
+import os
+
+"""# Create a logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+
+# Configure logging
+logging.basicConfig(
+    filename="logs/application.log",
+    filemode="a",
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
+# Redirect stdout and stderr to logging
+class StreamToLogger:
+    def __init__(self, logger, level):
+        self.logger = logger
+        self.level = level
+
+    def write(self, message):
+        if message.strip():  # Avoid blank lines
+            self.logger.log(self.level, message.strip())
+
+    def flush(self):
+        pass  # Required for compatibility with file-like objects
+
+sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
+sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)"""
+
+
+if __name__ == "__main__":
+    root.mainloop()

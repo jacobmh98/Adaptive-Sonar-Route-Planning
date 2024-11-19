@@ -34,7 +34,7 @@ def plot_antipodal_points(polygon, antipodal_vertices):
         plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
 
     # Display the plot
-    plt.show()
+    #plt.show()
 
 def plot_simple_poly_path(polygon, path):
     # Create a figure and axis
@@ -62,10 +62,10 @@ def plot_simple_poly_path(polygon, path):
     plt.ylabel('Y')
 
     # Show the plot in a separate window
-    plt.show()
+    #plt.show()
 
 
-def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None):
+def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend = False):
     """Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
     Obstacles are plotted with red edges.
@@ -81,7 +81,7 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
     :param transit_flags: List of flags indicating whether a point is part of a transit segment
     """
     marker_size = 3  # Marker size for vertices
-    labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False}
+    labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False, "Hard Edge": False}
 
     # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
@@ -95,9 +95,6 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
             x_coords.append(x_coords[0])
             y_coords.append(y_coords[0])
 
-        # Debug: Check polygon coordinates
-        print(f"Polygon {i} coordinates: {list(zip(x_coords, y_coords))}")
-
         # Plot the polygon edges
         ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
 
@@ -106,17 +103,18 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
             centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
             centroid_y = np.mean(y_coords[:-1])
             ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
-        else:
-            print(f"Polygon {i} has insufficient points to calculate a centroid.")
 
-    # Plot obstacles
+    # Plot obstacles with hard edges
     if obstacles:
         for obstacle in obstacles:
             x_coords, y_coords = obstacle.get_coords()
             if len(x_coords) > 0 and len(y_coords) > 0:
                 x_coords.append(x_coords[0])
                 y_coords.append(y_coords[0])
-            ax.plot(x_coords, y_coords, 'r-', marker='o', markersize=marker_size, label='Obstacle')
+            # Label hard edges only once
+            label = "Hard Edge" if not labels_used["Hard Edge"] else None
+            ax.plot(x_coords, y_coords, 'r-', marker='o', markersize=marker_size, linewidth=2, label=label)
+            labels_used["Hard Edge"] = True
 
     # Plot the path
     if len(path) > 0:
@@ -166,15 +164,16 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
         print("Empty path")
 
     # Add legend
-    ax.legend(loc='lower right')
+    if not hide_plot_legend:
+        ax.legend()
     ax.set_aspect('equal')
-    plt.show()
+    #plt.show()
 
     return fig
 
 
 
-def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, overlap_area, obstacles, sub_polygons=None, transit_flags=None):
+def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, overlap_area, obstacles, sub_polygons=None, transit_flags=None, hide_plot_legend = False):
     """ Plot the main polygon, path, covered area, outlier area, overlap area, obstacles, and optional sub-polygons.
     Transit edges are highlighted differently.
 
@@ -268,11 +267,12 @@ def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, 
 
     # Ensure proper aspect ratio and add legend
     ax.set_aspect('equal')
-    ax.legend()
-    plt.show()
+
+    if not hide_plot_legend:
+        ax.legend()
+    #plt.show()
 
     return fig
-
 
 
 def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, show_legend=True):

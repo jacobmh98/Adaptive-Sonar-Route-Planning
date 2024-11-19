@@ -202,9 +202,13 @@ def extract_hard_edges(polygons):
 def connect_path(polygons, total_intersections, region):
     path = np.empty((0, 2))
     flags = []  # List to store flags for each point in the path
+    hard_edges = extract_hard_edges(polygons)
 
     for i, poly in enumerate(polygons):
         current_path = []
+
+        #print()
+        #print(f"Going from {i} to {i + 1}")
 
         # In case of just 1 polygon, then the optimal intersections create the optimal path
         if len(polygons) == 1:
@@ -224,8 +228,6 @@ def connect_path(polygons, total_intersections, region):
 
         avoid_hard_edges_bool = True
         if avoid_hard_edges_bool:
-            hard_edges = extract_hard_edges(polygons)
-
             if i > 0 and len(hard_edges) > 0:
                 last_path_point = path[-1]
                 current_first_point = current_path[0]
