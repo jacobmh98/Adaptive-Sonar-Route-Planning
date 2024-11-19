@@ -423,10 +423,6 @@ def path_planner():
                     total_start_time = time.time()
                     intersections = cpp_path_planning.multi_intersection_planning(removed_col_sub_polygons, chosen_path_width, chosen_overlap_distance)
 
-                    #for inter in intersections:
-                    #    print(inter)
-
-
                     if sorting_variable.get() == 'DFS':
                         print("DFS")
                         sorting_start_time = time.time()
@@ -458,13 +454,12 @@ def path_planner():
                         total_sorting_time = sorting_end_time - sorting_start_time
                     else:
                         print("Unordered")
-                        sorted_sub_polygons = sub_polygons
+                        sorted_sub_polygons = removed_col_sub_polygons
                         sorted_intersections = intersections
                         total_sorting_time = 0
 
                     # Computing path
                     path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
-
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
@@ -634,7 +629,7 @@ def optimize():
             optimized_polygons = optimize_polygons(copy.deepcopy(sub_polygons))
 
             if len(sub_polygons) != len(optimized_polygons):
-                fig = plot_obstacles(optimized_polygons, obstacles, False)
+                fig = plot_obstacles(optimized_polygons, obstacles, True)
 
                 decomposition_stats = {
                     'type': 'decomposition_statistics',
