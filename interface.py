@@ -754,13 +754,16 @@ root.protocol("WM_DELETE_WINDOW", on_closing)
 import sys
 import logging
 import os
-
-"""# Create a logs directory if it doesn't exist
+from datetime import datetime
+# Create a logs directory if it doesn't exist
 os.makedirs("logs", exist_ok=True)
+
+# Generate a unique log filename with a timestamp
+log_filename = f"logs/application_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
 # Configure logging
 logging.basicConfig(
-    filename="logs/application.log",
+    filename=log_filename,
     filemode="a",
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -780,8 +783,7 @@ class StreamToLogger:
         pass  # Required for compatibility with file-like objects
 
 sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
-sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)"""
-
+sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)
 
 if __name__ == "__main__":
     root.mainloop()

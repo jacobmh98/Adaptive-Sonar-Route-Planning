@@ -41,6 +41,10 @@ def solve_dfs(polygons, intersections):
     :return sorted_polys: The sorted list of polygons
     """
 
+    # Cant sort a list of just one polygon
+    if len(polygons) == 1:
+        return polygons, intersections
+
     adjacency_matrix, adjacency_graph = create_adjacency(polygons)
     start = next(iter(adjacency_graph.nodes()))
 
