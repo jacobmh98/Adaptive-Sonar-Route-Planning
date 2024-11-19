@@ -835,8 +835,12 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
             return i, cell
         if v.type == COLLINEAR_FLOOR and (v.prev in cell[0] or v.prev in cell[1]):
             return i, cell
-        if v.type == CLOSE and v.prev in cell[1] and v.next in cell[0]:
-            return i, cell
+        if v.type == CLOSE:
+            if v.prev in cell[1] and v.next in cell[0]:
+                return i, cell
+            if v.next.type == OPEN:
+                if v.prev in cell[1] and v.next in cell[1]:
+                    return i, cell
 
 def combined_algorithms(region, obstacles):
     # Decompose the region without considering obstacles

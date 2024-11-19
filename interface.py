@@ -35,11 +35,11 @@ initial_data = None
 canvas_list = []
 toolbar_list = []
 
-def reset():
+def reset(file_path_local = None):
     """ Reset the global variables """
     global file_path, plots, current_plot_index, stats, region, obstacles, sub_polygons_list, initial_xlim, initial_ylim, canvas_list, toolbar_list, canvas_frame
 
-    file_path = None
+    file_path = file_path_local
     plots = []
     current_plot_index = 0
     stats = []
@@ -55,9 +55,7 @@ def reset():
         widget.destroy()
 
 def select_file():
-    global file_path, region, initial_xlim, initial_ylim, obstacles
-
-    reset()
+    global region, initial_xlim, initial_ylim, obstacles
 
     file_path = filedialog.askopenfilename(
         title="Select a File",
@@ -65,6 +63,7 @@ def select_file():
     )
 
     if file_path:
+        reset(file_path)
         # Get the file extension
         file_name, file_extension = os.path.splitext(file_path)
 
@@ -88,6 +87,7 @@ def select_file():
             update_plot()
 
         elif file_extension == '.pkl':
+
             # Loading the region and decomposition from a pickle file
             with open(f'{file_path}', "rb") as file:
                 loaded_data = pickle.load(file)
@@ -162,8 +162,8 @@ def decompose():
                                 mask.append(p)
                                 sub_polygons_filtered[index].append(filtered[i])
 
-                                if o not in obstacles_affected[index]:
-                                    obstacles_affected[index].append(o)
+                            if o not in obstacles_affected[index]:
+                                obstacles_affected[index].append(o)
 
                 if not common_found:
                     sub_polygons_filtered_masks.append(filtered_mask)
