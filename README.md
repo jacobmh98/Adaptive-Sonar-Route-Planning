@@ -15,26 +15,66 @@ enum
 ortools
 
 
-Using the UI:
-1. Run the "interface" python class or the executable project file.
-2. Click "Select File" and navigate to the "test_data" folder from the .zip file, and pick either a JSON or Pickle file. <br>
-   2.1 If a Pickle file chosen, 2 plots will be showed, one of the region, the other is the stored decomposed sub polygons.
-   2.2 If a JSON file is chosen only the region is shown
-3. If Pickle chosen, go to 4, else pick a decomposition algorithm and click the "Decompose" button. <br>
-   3.1 Note that the "Greedy Recursive can take more than 30 minutes if a large region is chosen.
-4. If "Greedy Recursive" or "Combination" can create redundant sub-polygons that can be merged using the "Optimize" button. <br>
-   4.1 Note that the optimization of the sub polygons can take a couple of minutes for large regions.
-5. Write a path width for the sonar in meters, must be greater than 0
-6. Write a path overlap distance in meters, this will create an overlap in the covered area, must be greater than 0 and less than the chosen path width.
-7. Choose sorting method, this will determine the visiting order of the decomposed sub polygons. <br>
-   7.1 If "TSP Intra Regional" is chosen, then pick the number of iterations for it to run. <br>
-   7.2 0 iterations results in an undordered list. <br>
-   7.3 Each iteration takes roughly 30 seconds to compute, but can vary depending on number of sub polygons. <br>
-8. Click checkbox to include coverage plot, this is a seperate plot showing the path's covered, overlap and outlying area
-9. Inspect the generated plots and path data, use plot toolbar to zoom, move or save the generated plot.
-10. If wanted, click the "Save Data" button and write a filename to save the generated plot as a Pickle object that can be loaded again
-11. If new decompostion method wanted, navigate back to the plot showing the region
-12. Redo from step 3
-13. If new path generation wanted, navigated to the plot showing the decomposed sub polygons
-14. Redo from step 5
-15. If new region wanted, select a new file and redo from 2
+# How to Use the UI
+
+**Note**: All processing times mentioned below may vary depending on your system and the size of the file being processed.
+
+## Steps:
+
+### 1. Run the Application
+Launch the Python script by running the "interface" Python class or the provided executable file.
+
+### 2. Select a File
+- Click the **"Select File"** button.  
+- Navigate to the `test_data` folder (from the provided `.zip` file) and choose either a JSON or Pickle file.  
+  - **If a Pickle file is selected**:  
+    - Two plots will be displayed: one showing the region and another showing the decomposed sub-polygons stored in the file.  
+  - **If a JSON file is selected**:  
+    - Only the region plot will be displayed.
+
+### 3. Decompose the Region
+- **If a Pickle file is selected**, proceed to Step 4.  
+- **If a JSON file is selected**:  
+  - Choose a decomposition algorithm and click the **"Decompose"** button.  
+  - **Note**: The "Greedy Recursive" algorithm can take more than 30 minutes for large regions.
+
+### 4. Optimize the Sub-Polygons
+- If you selected "Greedy Recursive" or "Combination" as the decomposition algorithm, redundant sub-polygons may be created.  
+- Click the **"Optimize"** button to merge these sub-polygons.  
+  - **Note**: Optimization may take several minutes for large regions.
+
+### 5. Set Sonar Path Parameters
+- Enter a path width (in meters) for the sonar. The value must be greater than 0.  
+- Enter a path overlap distance (in meters). This creates an overlap in the covered area. The value must be:  
+  - Greater than 0.  
+  - Less than the chosen path width.
+
+### 6. Choose a Sorting Method
+- Select a sorting method to determine the visiting order of the decomposed sub-polygons.  
+  - If "TSP Intra Regional" is chosen:  
+    - Enter the number of iterations for the algorithm.  
+    - **Notes**:  
+      - Setting 0 iterations results in an unordered list.  
+      - Each iteration takes approximately 30 seconds to compute, though this may vary depending on the number of sub-polygons.
+
+### 7. Include Coverage Plot (Optional)
+- Check the box to include a coverage plot.  
+  - This plot shows the covered area, overlap, and outlying regions for the generated path.
+
+### 8. Inspect the Results
+- View the generated plots and path data.  
+- Use the plot toolbar to zoom, move, or save the plot.
+
+### 9. Save Data (Optional)
+- Click the **"Save Data"** button to save the generated plot as a Pickle file.  
+- Enter a filename for the saved object. You can reload this file later.
+
+### 10. Redo Options
+#### Redo Decomposition
+- Go back to the region plot and repeat from Step 3.
+
+#### Redo Path Generation
+- Navigate to the plot showing the decomposed sub-polygons and repeat from Step 5.
+
+#### Redo Region Selection
+- Select a new file and repeat from Step 2.
