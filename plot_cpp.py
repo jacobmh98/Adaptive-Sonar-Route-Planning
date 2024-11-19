@@ -1,3 +1,4 @@
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
@@ -65,7 +66,7 @@ def plot_simple_poly_path(polygon, path):
 
 
 def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None):
-    """ Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
+    """Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
     Obstacles are plotted with red edges.
     Transit edges are highlighted differently.
@@ -79,8 +80,6 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
     :param show_coverage: Boolean indicating whether to show coverage areas around the path
     :param transit_flags: List of flags indicating whether a point is part of a transit segment
     """
-
-    plot_sub_polygons = True
     marker_size = 3  # Marker size for vertices
     labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False}
 
@@ -90,19 +89,33 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
     # Plot sub-polygons and display their indices at centroids
     for i, poly in enumerate(polygons):
         x_coords, y_coords = poly.get_coords()
+
+        # Ensure the polygon is closed by repeating the first vertex at the end
+        if len(x_coords) > 0 and len(y_coords) > 0:
+            x_coords.append(x_coords[0])
+            y_coords.append(y_coords[0])
+
+        # Debug: Check polygon coordinates
+        print(f"Polygon {i} coordinates: {list(zip(x_coords, y_coords))}")
+
+        # Plot the polygon edges
         ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
 
-        # Calculate centroid
-        centroid_x = np.mean(x_coords)
-        centroid_y = np.mean(y_coords)
-
-        # Add the index as text at the centroid
-        ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
+        # Calculate and plot the centroid
+        if len(x_coords) > 1:
+            centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
+            centroid_y = np.mean(y_coords[:-1])
+            ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
+        else:
+            print(f"Polygon {i} has insufficient points to calculate a centroid.")
 
     # Plot obstacles
     if obstacles:
         for obstacle in obstacles:
             x_coords, y_coords = obstacle.get_coords()
+            if len(x_coords) > 0 and len(y_coords) > 0:
+                x_coords.append(x_coords[0])
+                y_coords.append(y_coords[0])
             ax.plot(x_coords, y_coords, 'r-', marker='o', markersize=marker_size, label='Obstacle')
 
     # Plot the path
@@ -158,6 +171,7 @@ def plot_multi_polys_path(polygon, current_path_width, polygons, path, obstacles
     plt.show()
 
     return fig
+
 
 
 def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, overlap_area, obstacles, sub_polygons=None, transit_flags=None):
