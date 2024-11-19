@@ -807,8 +807,9 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
                     plt.scatter(v.x, v.y, color='red')
                 else:
                     plt.scatter(v.x, v.y, color='black')
-    fig.tight_layout()
-    ax.set_aspect('equal')
+
+    ax.set_aspect('equal', adjustable='box')
+    #fig.tight_layout()
     plt.show()
     return fig
 

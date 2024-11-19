@@ -19,7 +19,7 @@
     ]
   },
   "obstacles": {
-    "num_of_obstacles": 2,
+    "num_of_obstacles": 1,
     "obstacle_1": [
       [464, 532],
       [582, 339],
