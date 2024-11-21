@@ -75,9 +75,15 @@ class Polygon:
 
         self.compute_bounding_box()
 
-        #if hard_edges is not None:
-        #for edge in hard_edges:
-        #    self.edges[edge[0]].is_hard_edge = True
+    def obstacle_edges(self):
+        """Generate edges as tuples of two points."""
+        return [
+            ((self.vertices[i].x, self.vertices[i].y),
+             (self.vertices[(i + 1) % len(self.vertices)].x, self.vertices[(i + 1) % len(self.vertices)].y))
+            for i in range(len(self.vertices))
+        ]
+
+
     def compute_bounding_box(self):
         vertices = self.vertices_matrix()
         # Bounding box: min_x, min_y, max_x, max_y

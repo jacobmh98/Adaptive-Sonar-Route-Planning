@@ -11,7 +11,7 @@ from obstacles import *
 from load_data import *
 
 # Loading the region and obstacles
-data_path = 'C:/Users/andre/Documents/Adaptive-Sonar-Route-Planning/test_data/complex_polygon.json'
+data_path = 'test_data/obstacle_multi_easy.json'
 region, obstacles = get_region(data_path)
 
 # Decompose the region using the sweep line algorithm
@@ -75,7 +75,7 @@ for i, filtered in enumerate(sub_polygons_filtered):
             extracted_sub_polygons.append(sub_polygons[p])
 
 # Combining all the decomposed sub-polygons with obstacles
-combined_polygons = sub_polygons#extracted_sub_polygons + decomposed_polygons
+combined_polygons = extracted_sub_polygons + decomposed_polygons
 
 # Optimize the sub-polygons by merging when possible
 #optimized_sub_polygons = compute_optimized_data(combined_polygons)
@@ -121,4 +121,4 @@ total_execution_time = total_end_time - total_start_time
 if get_path_data:
     cpp_path_data.compute_path_data(region, path, transit_flags, global_path_width, obstacles, total_execution_time)
 
-plot_cpp.plot_multi_polys_path(region, global_path_width, sorted_combined_polygons, path, obstacles)
+plot_cpp.plot_multi_polys_path(global_path_width, sorted_combined_polygons, path, obstacles)

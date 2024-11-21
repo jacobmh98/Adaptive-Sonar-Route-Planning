@@ -167,7 +167,7 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     if not hide_plot_legend:
         ax.legend()
     ax.set_aspect('equal')
-    #plt.show()
+    plt.show()
 
     return fig
 

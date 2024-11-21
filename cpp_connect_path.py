@@ -1,5 +1,6 @@
 import numpy as np
 import cpp_hard_edges
+import cpp_avoid_obstacles
 
 
 def compute_total_distance(path):
@@ -199,16 +200,13 @@ def extract_hard_edges(polygons):
     return all_hard_edges
 
 
-def connect_path(polygons, total_intersections, region):
+def connect_path(polygons, total_intersections, region, obstacles):
     path = np.empty((0, 2))
     flags = []  # List to store flags for each point in the path
     hard_edges = extract_hard_edges(polygons)
 
     for i, poly in enumerate(polygons):
         current_path = []
-
-        #print()
-        #print(f"Going from {i} to {i + 1}")
 
         # In case of just 1 polygon, then the optimal intersections create the optimal path
         if len(polygons) == 1:
@@ -226,20 +224,24 @@ def connect_path(polygons, total_intersections, region):
         elif i == len(polygons) - 1:
             current_path = connect_last_path(path, total_intersections[i])
 
-        avoid_hard_edges_bool = True
-        if avoid_hard_edges_bool:
-            if i > 0 and len(hard_edges) > 0:
-                last_path_point = path[-1]
-                current_first_point = current_path[0]
-                intermediate_points = cpp_hard_edges.avoid_hard_edges(
-                    last_path_point, current_first_point, poly, polygons, region, hard_edges
-                )
+        avoid_region_hard_edges = False
+        avoid_obstacles = True
 
-                if intermediate_points:
-                    # Append the intermediate points to the path and mark as transit
-                    for point in intermediate_points:
-                        path = np.vstack([path, point])
-                        flags.append("transit")  # Mark as transit
+        # Bool to adjust avoiding obstacles (for soft obstacles), first poly not leaving itself, so omitting this
+        if avoid_obstacles and i > 0 and len(obstacles) > 0:
+            print()
+            print(f"Going from {i-1} to {i}")
+            last_path_point = path[-1]
+            current_first_point = current_path[0]
+
+            intermediate_points = cpp_avoid_obstacles.avoid_obstacles(last_path_point, current_first_point, obstacles, polygons[i-1])
+            print(f"connect intermediate_points: {intermediate_points}")
+
+            if intermediate_points:
+                # Append the intermediate points to the path and mark as transit
+                for point in intermediate_points:
+                    path = np.vstack([path, point])
+                    flags.append("transit")  # Mark as transit
 
         # Mark the first and last points of the current path as transit
         if len(current_path) > 0:

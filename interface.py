@@ -5,7 +5,8 @@ import sys
 import time
 from tkinter import *
 from tkinter import filedialog
-
+import logging
+from datetime import datetime
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import cpp_connect_path
@@ -459,8 +460,13 @@ def path_planner():
                         sorted_intersections = intersections
                         total_sorting_time = 0
 
+                    #indices_to_keep = [26,27]
+                    #sorted_sub_polygons = [sorted_sub_polygons[i] for i in indices_to_keep]
+                    #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
+
+
                     # Computing path
-                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region)
+                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region, obstacles)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
@@ -751,39 +757,37 @@ def on_closing():
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
-import sys
-import logging
-import os
-from datetime import datetime
-# Create a logs directory if it doesn't exist
-os.makedirs("logs", exist_ok=True)
+log_data = False
+if log_data:
+    # Create a logs directory if it doesn't exist
+    os.makedirs("logs", exist_ok=True)
 
-# Generate a unique log filename with a timestamp
-log_filename = f"logs/application_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    # Generate a unique log filename with a timestamp
+    log_filename = f"logs/application_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
-# Configure logging
-logging.basicConfig(
-    filename=log_filename,
-    filemode="a",
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+    # Configure logging
+    logging.basicConfig(
+        filename=log_filename,
+        filemode="a",
+        level=logging.DEBUG,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
 
-# Redirect stdout and stderr to logging
-class StreamToLogger:
-    def __init__(self, logger, level):
-        self.logger = logger
-        self.level = level
+    # Redirect stdout and stderr to logging
+    class StreamToLogger:
+        def __init__(self, logger, level):
+            self.logger = logger
+            self.level = level
 
-    def write(self, message):
-        if message.strip():  # Avoid blank lines
-            self.logger.log(self.level, message.strip())
+        def write(self, message):
+            if message.strip():  # Avoid blank lines
+                self.logger.log(self.level, message.strip())
 
-    def flush(self):
-        pass  # Required for compatibility with file-like objects
+        def flush(self):
+            pass  # Required for compatibility with file-like objects
 
-sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
-sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)
+    sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
+    sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)
 
 if __name__ == "__main__":
     root.mainloop()

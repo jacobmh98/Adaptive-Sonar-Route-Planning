@@ -16,7 +16,7 @@ load_existing_optimized_polygons = False
 save_data = False
 
 # Start parameters
-global_path_width = 30.0 # Path width (Must be >0) (1 is 1 meter)
+global_path_width = 10.0 # Path width (Must be >0) (1 is 1 meter)
 global_overlap_distance = 0 # Set to 0 for no overlap, should not be greater than path_width/2
 
 # Path data

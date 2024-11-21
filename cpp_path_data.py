@@ -202,7 +202,6 @@ def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_w
     return overlap_area
 
 
-
 def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
     total_distance, path_distance, transit_distance = compute_distance(path, transit_flags)
 
@@ -210,22 +209,23 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
     outlier_area = compute_outlier_area(poly, path, transit_flags, current_path_width)
     overlap_area = compute_overlap_area(poly, obstacles, path, transit_flags, current_path_width)
 
-    print(f'Execution time: {time}')
-    print(f'Total Distance: {total_distance}')
-    print(f'Path Distance: {path_distance}')
-    print(f'Transit Distance: {transit_distance}')
-    print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
-    print(f'Covered area: {covered_area.area}')
-    print(f'Outlier area: {outlier_area.area}')
-    print(f'Overlap area: {overlap_area.area}')
-
     # Computing turns in the path
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
 
-    print(f'Total turns: {total_turns}')
-    print(f'Hard turns (<45): {hard_turns}')
-    print(f'Medium turns (45-90): {medium_turns}')
-    print(f'Soft turns (>90): {soft_turns}')
+    print_data = False
+    if print_data:
+        print(f'Execution time: {time}')
+        print(f'Total Distance: {total_distance}')
+        print(f'Path Distance: {path_distance}')
+        print(f'Transit Distance: {transit_distance}')
+        print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
+        print(f'Covered area: {covered_area.area}')
+        print(f'Outlier area: {outlier_area.area}')
+        print(f'Overlap area: {overlap_area.area}')
+        print(f'Total turns: {total_turns}')
+        print(f'Hard turns (<45): {hard_turns}')
+        print(f'Medium turns (45-90): {medium_turns}')
+        print(f'Soft turns (>90): {soft_turns}')
 
     if store_data:
         output_file = "coverage_results.txt"

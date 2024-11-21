@@ -3,6 +3,7 @@ import random
 import cpp_connect_path
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
+import matplotlib.pyplot as plt
 
 
 def connect_path_for_tsp(start_pair, intersections):
@@ -144,6 +145,7 @@ def multi_start_tsp(polygons, all_intersections, max_trials=10, selective_pairs=
 
             # Build distance matrix for this specific setup
             distance_matrix = build_distance_matrix(pairs)
+            visualize_distance_matrix(distance_matrix)
 
             # Solve TSP for the current setup
             optimal_order = solve_tsp_with_routing(distance_matrix)
@@ -183,3 +185,23 @@ def solve_intra_regional_tsp(polygons, all_intersections, trials=10):
     sorted_polys, sorted_inters, best_cost = multi_start_tsp(polygons, all_intersections, max_trials=trials)
     print(f"Optimal path cost: {best_cost}")
     return sorted_polys, sorted_inters
+
+
+def visualize_distance_matrix(distance_matrix, title="Distance Matrix", cmap="viridis"):
+    """ Visualize a distance matrix as a heatmap.
+
+    :param distance_matrix: 2D array-like, the distance matrix to visualize
+    :param title: String, title of the plot (default is "Distance Matrix")
+    :param cmap: String, colormap to use for the heatmap (default is "viridis")
+    """
+    plt.figure(figsize=(8, 6))
+    plt.imshow(distance_matrix, cmap=cmap, interpolation="nearest")
+    plt.colorbar(label="Distance")
+    plt.title(title)
+    plt.xlabel("Destination Polygon Index")
+    plt.ylabel("Source Polygon Index")
+    plt.xticks(range(len(distance_matrix)), range(len(distance_matrix)))
+    plt.yticks(range(len(distance_matrix)), range(len(distance_matrix)))
+    plt.grid(False)
+    plt.show()
+
