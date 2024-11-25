@@ -7,6 +7,8 @@ from tkinter import *
 from tkinter import filedialog
 import logging
 from datetime import datetime
+
+import numpy as np
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import cpp_connect_path
@@ -128,20 +130,63 @@ def select_file():
             # Handle non compatible file-types
             None
 
+def share_x_coordinate(region, obstacles):
+    """ Test if any vertex in the region and obstacles shares an x-coordinate """
+    seen_x = set()
+
+    for v in region.vertices:
+        if v.x in seen_x:
+            return True
+        else:
+            seen_x.add(v.x)
+
+    for o in obstacles:
+        for v in o.vertices:
+            if v.x in seen_x:
+                return True
+            else:
+                seen_x.add(v.x)
+
+    return False
+
+def rotate_system(region, obstacles):
+    """ Rotate the coordinate system until no vertices share an x-coordinate """
+    angle_deg = 0
+
+    while share_x_coordinate(region, obstacles):
+        angle_deg += 1
+
+        region.rotate(angle_deg)
+
+        for o in obstacles:
+            o.rotate(angle_deg)
+
+    return region, obstacles, angle_deg
+
+def rotate_system_back(sub_polygons, obstacles, angle_deg):
+    for p in sub_polygons:
+        p.rotate(-angle_deg)
+
+    for o in obstacles:
+        o.rotate(-angle_deg)
+
 def decompose():
-    """ When user presset decompose button """
+    """ When user presses the decompose button """
     global obstacles, current_plot_index
 
-    if region is not None:
+    if region and obstacles is not None:
         if len(obstacles) > 0 and decomposition_variable.get() == 'Combination':
-            sub_polygons = generate_new_data(copy.deepcopy(region))
+            rotated_region, rotated_obstacles, angle_deg = rotate_system(copy.deepcopy(region),
+                                                                         copy.deepcopy(obstacles))
+
+            sub_polygons = generate_new_data(rotated_region)
 
             # Divide the sub-polygons into clusters that are affected by the obstacles
             sub_polygons_filtered_masks = []
             sub_polygons_filtered = []
             obstacles_affected = []
 
-            for o in obstacles:
+            for o in rotated_obstacles:
                 filtered_mask, filtered = find_bounding_polygons(sub_polygons, o)
                 common_found = False
 
@@ -194,11 +239,14 @@ def decompose():
                         extracted_sub_polygons_mask.append(p)
                         extracted_sub_polygons.append(sub_polygons[p])
 
-                plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
+                plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], rotated_obstacles, False)
 
             # Combining all the decomposed sub-polygons with obstacles
             combined_polygons = extracted_sub_polygons + decomposed_polygons
-            fig = plot_obstacles(combined_polygons, obstacles, False)
+
+            rotate_system_back(combined_polygons, rotated_obstacles, angle_deg)
+
+            fig = plot_obstacles(combined_polygons, rotated_obstacles, False)
 
             sub_polygons_list.append(combined_polygons)
 
@@ -212,7 +260,6 @@ def decompose():
             }
 
             stats.append(decomposition_stats)
-
         elif decomposition_variable.get() == 'Greedy Recursive' or (len(obstacles) == 0 and decomposition_variable.get() == 'Combination'):
             # Decompose the region without considering obstacles
             sub_polygons = generate_new_data(copy.deepcopy(region))
@@ -227,12 +274,15 @@ def decompose():
                 'sum_of_widths': sum_of_widths(sub_polygons)
             }
             stats.append(decomposition_stats)
-
         elif decomposition_variable.get() == 'Sweep Line':
             # Decompose the region without considering obstacles
-            sub_polygons = decompose_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
+            rotated_region, rotated_obstacles, angle_deg = rotate_system(copy.deepcopy(region), copy.deepcopy(obstacles))
+
+            sub_polygons = decompose_sweep_line(rotated_region, rotated_obstacles)
+            rotate_system_back(sub_polygons, rotated_obstacles, angle_deg)
+
             sub_polygons_list.append(sub_polygons)
-            fig = plot_obstacles(sub_polygons, obstacles, False)
+            fig = plot_obstacles(sub_polygons, rotated_obstacles, False)
             plots.append(fig)
 
             decomposition_stats = {
@@ -773,11 +823,12 @@ if log_data:
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
 
-    # Redirect stdout and stderr to logging
-    class StreamToLogger:
-        def __init__(self, logger, level):
-            self.logger = logger
-            self.level = level
+"""# Redirect stdout and stderr to logging
+class StreamToLogger:
+    def __init__(self, logger, level):
+        self.logger = logger
+        self.level = level
+
 
         def write(self, message):
             if message.strip():  # Avoid blank lines
@@ -786,8 +837,12 @@ if log_data:
         def flush(self):
             pass  # Required for compatibility with file-like objects
 
+
     sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
     sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)
+
+sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
+sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)"""
 
 if __name__ == "__main__":
     root.mainloop()

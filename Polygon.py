@@ -89,6 +89,19 @@ class Polygon:
         # Bounding box: min_x, min_y, max_x, max_y
         self.bbox = (np.min(vertices[0, :]), np.min(vertices[1, :]), np.max(vertices[0, :]), np.max(vertices[1, :]))
 
+    def rotate(self, angle_deg):
+        """ Rotate the polygon object """
+        rotation_matrix = np.array([
+            [np.cos(np.radians(angle_deg)), -np.sin(np.radians(angle_deg))],
+            [np.sin(np.radians(angle_deg)), np.cos(np.radians(angle_deg))]
+        ])
+
+        for v in self.vertices:
+            x, y = np.dot(rotation_matrix, v.get_array()).flatten()
+
+            v.x = x
+            v.y = y
+
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""
         x_coords = []
