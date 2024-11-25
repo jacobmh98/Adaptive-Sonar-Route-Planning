@@ -21,6 +21,8 @@
     ]
   },
   "obstacles": {
-    "num_of_obstacles": 0
+    "num_of_obstacles": 0,
+    "hard_obstacles": []
+
   }
 }

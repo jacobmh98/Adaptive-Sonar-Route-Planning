@@ -465,8 +465,13 @@ def path_planner():
                     #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
 
 
+                    hard_obstacles = []
+                    for obstacle in obstacles:
+                        if obstacle.is_hard_obstacle:
+                            hard_obstacles.append(obstacle)
+
                     # Computing path
-                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region, obstacles)
+                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region, hard_obstacles)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()

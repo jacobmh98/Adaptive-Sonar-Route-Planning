@@ -56,6 +56,7 @@ class Polygon:
         self.edges = []
         self.i = None
         self.is_obstacle = is_obstacle
+        self.is_hard_obstacle = None
         self.bbox = None
 
         for i in range(len(self.vertices)):

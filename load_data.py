@@ -13,6 +13,7 @@ def get_region(data_path):
     vertices_data = data['area']['coordinates']
     num_of_obstacles = data['obstacles']['num_of_obstacles']
     hard_edges = data['area']['hard_edges']
+    hard_obstacles = data['obstacles']['hard_obstacles']
 
     # Defining the initial polygon
     vertices = []
@@ -31,12 +32,16 @@ def get_region(data_path):
         vertices = []
         obs = data['obstacles'][f'obstacle_{i + 1}']
 
+
         for j in range(len(obs)):
             v = Vertex(j, obs[j][0], obs[j][1], True)
-            v.edge_from_v_is_hard = True
+
+            v.edge_from_v_is_hard = hard_obstacles[i] == 1
+
             vertices.append(v)
 
         O = Polygon(vertices, True)
+        O.is_hard_obstacle = hard_obstacles[i] == 1
         #O.compute_bounding_box()
         obstacles.append(O)
 

@@ -65,20 +65,20 @@ def plot_simple_poly_path(polygon, path):
     #plt.show()
 
 
-def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend = False):
+def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False):
     """Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
     Obstacles are plotted with red edges.
     Transit edges are highlighted differently.
     Sub-polygon indices are shown at their centroids.
 
-    :param polygon: Polygon of the region
     :param current_path_width: Width of the path
     :param polygons: List of the sub-polygons
     :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
     :param obstacles: List of obstacle polygons
     :param show_coverage: Boolean indicating whether to show coverage areas around the path
     :param transit_flags: List of flags indicating whether a point is part of a transit segment
+    :param hide_plot_legend: Boolean indicating whether to hide the plot legend
     """
     marker_size = 3  # Marker size for vertices
     labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False, "Hard Edge": False}
@@ -106,15 +106,14 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
 
     # Plot obstacles with hard edges
     if obstacles:
-        for obstacle in obstacles:
-            x_coords, y_coords = obstacle.get_coords()
-            if len(x_coords) > 0 and len(y_coords) > 0:
-                x_coords.append(x_coords[0])
-                y_coords.append(y_coords[0])
-            # Label hard edges only once
-            label = "Hard Edge" if not labels_used["Hard Edge"] else None
-            ax.plot(x_coords, y_coords, 'r-', marker='o', markersize=marker_size, linewidth=2, label=label)
-            labels_used["Hard Edge"] = True
+        for o in obstacles:
+            for e in o.edges:
+                if e.is_hard_edge:
+                    hard_edge_label = "Obstacle Hard Edge" if not labels_used["Hard Edge"] else None
+                    ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-', label=hard_edge_label)
+                    labels_used["Hard Edge"] = True
+                else:
+                    ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-')
 
     # Plot the path
     if len(path) > 0:
