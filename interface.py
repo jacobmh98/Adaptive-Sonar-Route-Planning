@@ -71,6 +71,7 @@ def select_file():
         if file_extension == '.json':
             # Loading the region from a JSON file
             region, obstacles = get_region(file_path)
+
             fig = plot_obstacles([region], obstacles, False)
             plots.append(fig)
 

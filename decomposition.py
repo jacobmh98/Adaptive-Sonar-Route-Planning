@@ -178,9 +178,6 @@ def compute_intersection2(e, cv, e2):
         #print(f'intersection cv={cv.index}, {e}, t={np.round(t, 1)}, {e2}, u={np.round(u, 1)}')
         return ip, t
 
-
-
-
     return None, None
 
 def compute_intersection(vec, e, cv, e2):
