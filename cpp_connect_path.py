@@ -165,6 +165,7 @@ def connect_last_path(path, intersections):
 
 
 def connect_solo_path(intersections):  # Any point can be used as first point for the optimal path in solo paths
+
     solo_path = [intersections[0][0],intersections[0][1]] # Manually adding first intersection
     for intersection in intersections[1:]:  # Iterate through remaining intersections and add to the first path
         solo_path = add_intersection_points_to_path(solo_path, intersection)
@@ -201,58 +202,57 @@ def extract_hard_edges(polygons):
 
 
 def connect_path(polygons, total_intersections, region, obstacles):
-    path = np.empty((0, 2))
-    flags = []  # List to store flags for each point in the path
+    path = np.empty((0, 2))  # Main path
+    transit_flags = []  # List to store flags for each point in the path
     hard_edges = extract_hard_edges(polygons)
+    hard_obstacles = [obstacle for obstacle in obstacles if obstacle.is_hard_obstacle]
 
     for i, poly in enumerate(polygons):
         current_path = []
 
-        # In case of just 1 polygon, then the optimal intersections create the optimal path
+        # Determine the current path based on the polygon index
         if len(polygons) == 1:
+            # Single polygon case
             current_path = connect_solo_path(total_intersections[i])
-
-        # First poly case, has no start point, so start at closest point in next polygon's intersections and reverse its path
-        elif i == 0 and len(polygons) > 1:
+        elif i == 0:
+            # First polygon case
             current_path = connect_first_path(polygons[i + 1], total_intersections[i])
-
-        # Going through the middle polygons
         elif i < len(polygons) - 1:
+            # Middle polygons
             current_path = connect_middle_path(polygons, total_intersections, i, path)
-
-        # Last polygon is simple, just start at the end of the path so far for optimal path
         elif i == len(polygons) - 1:
+            # Last polygon case
             current_path = connect_last_path(path, total_intersections[i])
 
-        avoid_region_hard_edges = False
-        avoid_obstacles = True
+        # Handle intermediate points between polygons
+        if i > 0 and hard_obstacles:
+            last_path_point = path[-1]  # Last point of the current path
+            current_first_point = current_path[0]  # First point of the next path
 
-        # Bool to adjust avoiding obstacles (for soft obstacles), first poly not leaving itself, so omitting this
-        if avoid_obstacles and i > 0 and len(obstacles) > 0:
-            print()
-            print(f"Going from {i-1} to {i}")
-            last_path_point = path[-1]
-            current_first_point = current_path[0]
+            # Compute intermediate points to avoid obstacles
+            intermediate_points = cpp_avoid_obstacles.avoid_obstacles(
+                last_path_point, current_first_point, hard_obstacles, polygons[i - 1]
+            )
 
-            intermediate_points = cpp_avoid_obstacles.avoid_obstacles(last_path_point, current_first_point, obstacles, polygons[i-1])
-            print(f"connect intermediate_points: {intermediate_points}")
+            # Append intermediate points and mark as transit
+            for point in intermediate_points:
+                path = np.vstack([path, point])
+                transit_flags.append("transit")
 
-            if intermediate_points:
-                # Append the intermediate points to the path and mark as transit
-                for point in intermediate_points:
-                    path = np.vstack([path, point])
-                    flags.append("transit")  # Mark as transit
+        # Append the current path to the main path
+        if current_path:
 
-        # Mark the first and last points of the current path as transit
-        if len(current_path) > 0:
-            # Append the current path to the main path
+            # Duplicating start point for polys with just 2 path points, else that path will just be counted as transit
+            if len(current_path) == 2:
+                current_path = np.insert(current_path, 1, current_path[0], axis=0)
+
+            # Add flags for the current path
+            for idx, point in enumerate(current_path):
+                if idx == 0 or idx == len(current_path) - 1:  # First and last path points are marked as transit points
+                    transit_flags.append("transit")
+                else:
+                    transit_flags.append(None)
+
             path = np.vstack([path, current_path])
 
-            # Add flags for the first and last points
-            for idx, point in enumerate(current_path):
-                if idx == 0 or idx == len(current_path) - 1:
-                    flags.append("transit")  # Mark as transit
-                else:
-                    flags.append(None)  # Regular point
-
-    return path, flags
+    return path, transit_flags

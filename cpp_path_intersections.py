@@ -64,6 +64,13 @@ def extend_vector_to_boundary(vector, boundary):
     # Extract the boundary box values
     min_x, max_x, min_y, max_y = boundary
 
+    # Extending the vector slighty to handle edge cases
+    boundary_buffer = 1e-6
+    min_x -= boundary_buffer
+    max_x += boundary_buffer
+    min_y -= boundary_buffer
+    max_y += boundary_buffer
+
     # Extract start and end point of input vector
     v1 = vector[0]
     v2 = vector[1]
@@ -260,39 +267,33 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
     # Initializing intersections list
     all_intersections = []
 
-
     # Loop until no intersections are found
     while True:
-        #print(delta_init)
-
         # Find the new intersections
         new_intersections = poly.find_intersections(v_extended)
 
         # Check if no new intersections are found
         if not new_intersections:
-
             # Checking if overlap distance does not make delta_init negative, if so, overlap dist is halved and checked again.
-            while delta_init / 2 - current_overlap_distance <= 0:
+            while (delta_init - current_overlap_distance) <= 0:
                 current_overlap_distance = current_overlap_distance - 1
 
-            # Create new vector with half current path width distance (which is delta init), to ensure complete coverage near the far edge
-            v_half_offset = compute_offset_vector(v_extended, -sweep_direction, delta_init - current_overlap_distance)  # Offset vector backwards
+            # Create new vector with half current path width distance (which is delta init plus a small distance to avoid unnecessary overlap), to ensure complete coverage near the far edge
+            v_half_offset = compute_offset_vector(v_extended, -sweep_direction, delta_init - current_overlap_distance)  # Offset in opposite direction to get back into poly area
             v_half_extended = extend_vector_to_boundary(v_half_offset, boundary)
             check_near_edge_intersections = poly.find_intersections(v_half_extended)
 
             if check_near_edge_intersections:
                 # Create tuples of two consecutive points and append to all_intersections
                 all_intersections.append((check_near_edge_intersections[0], check_near_edge_intersections[1]))
-                break
-            else:
-                break
+            break  # Only do it once
 
         else:
             # Create tuples of two consecutive points and append to all_intersections
             all_intersections.append((new_intersections[0], new_intersections[1]))
 
         # Checking if overlap distance does not make delta_init negative, if so, overlap dist is reduced and checked again.
-        while current_path_width / 2 - current_overlap_distance <= 0:
+        while (2 * delta_init - current_overlap_distance) <= 0:
             current_overlap_distance = current_overlap_distance - 1
 
         # Computing next extended offset vector, offset with the full path width (2x delta init)

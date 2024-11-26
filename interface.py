@@ -18,11 +18,11 @@ import plot_cpp
 import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
 import sorting_tsp_intra_regional
+import cpp_path_data
 from decomposition import sum_of_widths, optimize_polygons, remove_collinear_vertices
 from global_variables import number_of_tsp_trials
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
-from cpp_path_data import compute_path_data
 
 # Define global variables
 file_path = None
@@ -514,14 +514,8 @@ def path_planner():
                     #sorted_sub_polygons = [sorted_sub_polygons[i] for i in indices_to_keep]
                     #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
 
-
-                    hard_obstacles = []
-                    for obstacle in obstacles:
-                        if obstacle.is_hard_obstacle:
-                            hard_obstacles.append(obstacle)
-
                     # Computing path
-                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region, hard_obstacles)
+                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region, obstacles)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
@@ -540,7 +534,7 @@ def path_planner():
                                                                   obstacles, False, transit_flags, hide_plot_legend_var.get())
 
                     # Computing data about path
-                    stats_dict = compute_path_data(region, path, transit_flags, chosen_path_width, obstacles, total_execution_time)
+                    stats_dict = cpp_path_data.compute_path_data(region, path, transit_flags, chosen_path_width, obstacles, total_execution_time)
                     stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()
                     stats_dict['sorting_time'] = total_sorting_time
@@ -555,17 +549,22 @@ def path_planner():
                     toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
                     canvas_list.append(canvas)
                     toolbar_list.append(toolbar)
+#def plot_polygons_with_areas(polygons, coverage_area, overlap_area, outlier_area, current_path_width, path=None, obstacles=None, transit_flags=None, hide_plot_legend=False):
 
                     # Checking if user wants to see coverage plot
                     if show_coverage_var.get():
-                        fig_coverage = plot_cpp.plot_coverage(region, path, chosen_path_width, stats_dict["covered_area"],
-                                                              stats_dict["outlying_area"],
-                                                              stats_dict["overlapped_area"], obstacles,
-                                                              sorted_sub_polygons, transit_flags, hide_plot_legend_var.get())
-                        plots.append(fig_coverage)
-                        sub_polygons_list.append(None)
-                        stats.append(stats_dict)
+                        fig_coverage = plot_cpp.plot_polygons_with_areas(sorted_sub_polygons,
+                                                                         stats_dict["covered_area"],
+                                                                         stats_dict["overlapped_area"],
+                                                                         stats_dict["outlying_area"],
+                                                                         chosen_path_width,
+                                                                         path,
+                                                                         obstacles,
+                                                                         transit_flags,
+                                                                         hide_plot_legend_var.get())
 
+
+                        plots.append(fig_coverage)
                         # TODO set canvas here
                         canvas = FigureCanvasTkAgg(fig_coverage, master=canvas_frame)
                         toolbar = NavigationToolbar2Tk(canvas, canvas_frame)

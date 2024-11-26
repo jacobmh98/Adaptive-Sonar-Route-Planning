@@ -1,12 +1,10 @@
-import matplotlib
 import numpy as np
+from matplotlib.patches import Patch
+from Polygon import Polygon
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
-from matplotlib.patches import Patch
-
-from Polygon import Polygon
-from shapely.geometry import Polygon as ShapelyPolygon
-
+from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon
 
 # Pop plot out of IDE
 #matplotlib.use('TkAgg')
@@ -61,9 +59,6 @@ def plot_simple_poly_path(polygon, path):
     plt.xlabel('X')
     plt.ylabel('Y')
 
-    # Show the plot in a separate window
-    #plt.show()
-
 
 def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False):
     """Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
@@ -109,7 +104,7 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
         for o in obstacles:
             for e in o.edges:
                 if e.is_hard_edge:
-                    hard_edge_label = "Obstacle Hard Edge" if not labels_used["Hard Edge"] else None
+                    hard_edge_label = "Hard Edge" if not labels_used["Hard Edge"] else None
                     ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-', label=hard_edge_label)
                     labels_used["Hard Edge"] = True
                 else:
@@ -171,107 +166,121 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     return fig
 
 
+from matplotlib import patches as mpatches
+from shapely.geometry import MultiPolygon, Polygon as ShapelyPolygon
 
-def plot_coverage(polygon, path_points, path_width, covered_area, outlier_area, overlap_area, obstacles, sub_polygons=None, transit_flags=None, hide_plot_legend = False):
-    """ Plot the main polygon, path, covered area, outlier area, overlap area, obstacles, and optional sub-polygons.
-    Transit edges are highlighted differently.
-
-    :param polygon: Polygon of the region
-    :param path_points: List of points representing the path [[x1, y1], [x2, y2], ...]
-    :param path_width: Width of the path
-    :param covered_area: Shapely Polygon of the covered area
-    :param outlier_area: Shapely Polygon of the outlier area
-    :param overlap_area: Shapely Polygon of the overlap area
-    :param obstacles: List of obstacle polygons
-    :param sub_polygons: Optional list of sub-polygons to be plotted
-    :param transit_flags: List of flags indicating whether a point is part of a transit segment
+def plot_polygons_with_areas(polygons, coverage_area, overlap_area, outlier_area, current_path_width, path=None, obstacles=None, transit_flags=None, hide_plot_legend=False):
     """
+    Plot polygons along with coverage, overlap, and outlier areas.
+    Coverage and outlier areas are filled, while overlap areas are outlined with increased opacity.
 
-    # Create the plot
-    fig, ax = plt.subplots()
-    marker_size = 3  # Consistent marker size for vertices
-    line_width = 1   # Consistent line width for polygons and edges
+    :param polygons: List of the main polygons to plot
+    :param coverage_area: Shapely Polygon or MultiPolygon representing the coverage area
+    :param overlap_area: Shapely Polygon or MultiPolygon representing the overlap area
+    :param outlier_area: Shapely Polygon or MultiPolygon representing the outlier area
+    :param current_path_width: Width of the path
+    :param path: NumPy array, optional path to plot
+    :param obstacles: List of obstacle polygons, optional
+    :param transit_flags: List of flags indicating whether a point is part of a transit segment
+    :param hide_plot_legend: Boolean to hide the legend
+    """
+    # Create the figure and axis
+    fig, ax = plt.subplots(figsize=(10, 10))
+    marker_size = 3  # Marker size for vertices
 
-    # Convert the main Polygon class to a Shapely Polygon and plot it
-    poly_coords = [(v.x, v.y) for v in polygon.vertices]
-    poly_shape = ShapelyPolygon(poly_coords)
-    x_poly, y_poly = poly_shape.exterior.xy
-    ax.plot(x_poly, y_poly, 'k-', linewidth=line_width, marker='o', markersize=marker_size)
+    # Plot main polygons
+    for i, poly in enumerate(polygons):
+        x_coords, y_coords = poly.get_coords()
 
-    # Plot sub-polygons if provided
-    if sub_polygons:
-        for i, sub_poly in enumerate(sub_polygons):
-            sub_coords = [(v.x, v.y) for v in sub_poly.vertices]
-            sub_shape = ShapelyPolygon(sub_coords)
-            x_sub, y_sub = sub_shape.exterior.xy
-            ax.plot(x_sub, y_sub, 'k-', linewidth=line_width, marker='o', markersize=marker_size)
+        # Ensure the polygon is closed
+        if len(x_coords) > 0 and len(y_coords) > 0:
+            x_coords.append(x_coords[0])
+            y_coords.append(y_coords[0])
 
-            # Label each sub-polygon with its index at the centroid
-            centroid_x, centroid_y = sub_shape.centroid.x, sub_shape.centroid.y
-            ax.text(centroid_x, centroid_y, f'{i}', fontsize=10, color='blue')
+        # Plot the polygon edges
+        ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
+        # Plot the polygon index at its centroid
+        centroid_x = sum(x_coords[:-1]) / len(x_coords[:-1])
+        centroid_y = sum(y_coords[:-1])
+        ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
 
-    # Plot obstacles as red outlines with consistent marker size
-    for obstacle in obstacles:
-        obstacle_coords = [(v.x, v.y) for v in obstacle.vertices]
-        obstacle_shape = ShapelyPolygon(obstacle_coords)
-        x, y = obstacle_shape.exterior.xy
-        ax.plot(x, y, 'r-', linewidth=line_width, marker='o', markersize=marker_size)
+    # Plot the path
+    if path is not None:
+        path_x, path_y = path[:, 0], path[:, 1]
+        for i in range(len(path) - 1):
+            if transit_flags and transit_flags[i] == "transit" and transit_flags[i + 1] == "transit":
+                ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'y--', linewidth=1.5, label="Transit Line")
+            else:
+                ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'g-', linewidth=1.5, label="Path Line")
+        # Highlight start and end points
+        ax.plot(path_x[0], path_y[0], 'bo', markersize=6, label="Start Point")
+        ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6, label="End Point")
 
-    # Plot the path with transit edges highlighted differently
-    path_x, path_y = zip(*path_points)
-    for i in range(len(path_points) - 1):
-        if transit_flags and transit_flags[i] == "transit" and transit_flags[i + 1] == "transit":
-            ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'y--', linewidth=1.5,
-                    path_effects=[pe.Stroke(linewidth=3, foreground='black'), pe.Normal()])
-        else:
-            ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'g-', linewidth=1)
+    # Plot coverage area
+    if not coverage_area.is_empty:
+        if coverage_area.geom_type == 'Polygon':
+            _plot_polygon_with_holes(ax, coverage_area, '#4CAF50')  # Green for coverage
+        elif coverage_area.geom_type == 'MultiPolygon':
+            for poly in coverage_area.geoms:
+                _plot_polygon_with_holes(ax, poly, '#4CAF50')
 
-    # Highlight start and end points of the path
-    ax.plot(path_x[0], path_y[0], 'bo', markersize=6)
-    ax.plot(path_x[-1], path_y[-1], 'ro', markersize=6)
-
-    # Plot covered area inside the polygon
-    if not covered_area.is_empty:
-        if covered_area.geom_type == 'Polygon':
-            x, y = covered_area.exterior.xy
-            ax.fill(x, y, color='#4CAF50', alpha=0.5, label='Covered Area')
-        elif covered_area.geom_type == 'MultiPolygon':
-            for sub_polygon in covered_area.geoms:
-                x, y = sub_polygon.exterior.xy
-                ax.fill(x, y, color='#4CAF50', alpha=0.5)
-            # Ensure label is added only once
-            ax.fill([], [], color='#4CAF50', alpha=0.5, label='Covered Area')
-
-    # Plot outlier area outside the polygon
+    # Plot outlier area
     if not outlier_area.is_empty:
         if outlier_area.geom_type == 'Polygon':
-            x, y = outlier_area.exterior.xy
-            ax.fill(x, y, color='red', alpha=0.5, label='Outlier Area')
+            _plot_polygon(ax, outlier_area, 'red')  # Red for outlier
         elif outlier_area.geom_type == 'MultiPolygon':
-            for sub_polygon in outlier_area.geoms:
-                x, y = sub_polygon.exterior.xy
-                ax.fill(x, y, color='red', alpha=0.5)
-            ax.fill([], [], color='red', alpha=0.5, label='Outlier Area')
+            for poly in outlier_area.geoms:
+                _plot_polygon(ax, poly, 'red')
 
-    # Plot the overlap area
+    # Plot overlap area as lines with increased opacity
     if not overlap_area.is_empty:
-        if overlap_area.geom_type == 'Polygon':
-            x, y = overlap_area.exterior.xy
-            ax.fill(x, y, color='orange', alpha=0.5, label='Overlap Area')
-        elif overlap_area.geom_type == 'MultiPolygon':
-            for sub_polygon in overlap_area.geoms:
-                x, y = sub_polygon.exterior.xy
-                ax.fill(x, y, color='orange', alpha=0.5)
-            ax.fill([], [], color='orange', alpha=0.5, label='Overlap Area')
+        def plot_overlap_lines(area):
+            if isinstance(area, MultiPolygon):
+                for poly in area.geoms:
+                    plot_overlap_lines(poly)
+            elif isinstance(area, ShapelyPolygon):
+                # Exterior line
+                x, y = area.exterior.xy
+                ax.plot(x, y, color='orange', alpha=0.6, linewidth=2, label="Overlap Area")
+                # Interior holes as dashed lines
+                for interior in area.interiors:
+                    ix, iy = interior.xy
+                    ax.plot(ix, iy, color='orange', alpha=0.6, linewidth=1.5, linestyle='--')
 
-    # Ensure proper aspect ratio and add legend
-    ax.set_aspect('equal')
+        plot_overlap_lines(overlap_area)
 
+    # Add legend
     if not hide_plot_legend:
-        ax.legend()
-    #plt.show()
+        legend_patches = [
+            mpatches.Patch(color='#4CAF50', alpha=0.5, label='Coverage'),
+            mpatches.Patch(color='red', alpha=0.5, label='Outlier'),
+            mpatches.Patch(color='orange', alpha=0.6, label='Overlap (Lines)'),
+        ]
+        ax.legend(handles=legend_patches, loc="upper right")
+
+    # Set equal aspect ratio and grid
+    ax.set_aspect('equal')
+    plt.grid(True)
+    plt.show()
 
     return fig
+
+
+def _plot_polygon_with_holes(ax, polygon, color):
+    """Helper function to plot a Shapely Polygon with holes."""
+    x, y = polygon.exterior.xy
+    ax.fill(x, y, color=color, alpha=0.5, edgecolor='black', linewidth=1.5)  # Filled polygon with outline
+    for hole in polygon.interiors:
+        hx, hy = hole.xy
+        ax.fill(hx, hy, color='white', alpha=1.0)  # White fill for holes
+
+
+def _plot_polygon(ax, polygon, color, alpha=0.5):
+    """Helper function to plot a Shapely Polygon."""
+    x, y = polygon.exterior.xy
+    ax.fill(x, y, color=color, alpha=alpha)
+
+
 
 
 def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, show_legend=True):

@@ -1,7 +1,7 @@
 import numpy as np
 from global_variables import *
+from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
 from shapely.ops import unary_union
-from shapely.geometry import Polygon as ShapelyPolygon, LineString
 
 
 def compute_distance(path, transit_flags):
@@ -31,6 +31,7 @@ def compute_distance(path, transit_flags):
             path_distance += dist
 
     return total_distance, path_distance, transit_distance
+
 
 def compute_turns(path):
     """ Function to compute the number of turns in the path, and classify them as three different turn types
@@ -74,44 +75,48 @@ def compute_turns(path):
 
 
 def compute_covered_area(region, obstacles, path, transit_flags, current_path_width):
-    """Compute the coverage of the path inside the region, excluding obstacle areas and transit lines.
+    """Compute the coverage of the path inside the region, accounting for obstacles and transit lines.
 
     :param region: Main region polygon as an instance of the Polygon class
-    :param obstacles: List of Polygon instances representing obstacles
+    :param obstacles: List of Polygon instances representing obstacles (can be empty)
     :param path: List of points (as tuples or arrays) representing the path
     :param transit_flags: List of flags indicating if a segment is transit
     :param current_path_width: Float of chosen path width
     :return: Tuple containing the covered area as a Shapely Polygon and the coverage percentage (float)
     """
-    # Filter out transit segments and retain non-transit path segments
-    active_path_segments = []
-    for i in range(len(path) - 1):
-        if transit_flags[i] != "transit" or transit_flags[i + 1] != "transit":
-            active_path_segments.append(LineString([path[i], path[i + 1]]))
-
-    if not active_path_segments:
-        return ShapelyPolygon(), 0.0  # No active segments, return empty polygon and 0%
-
-    # Buffer the active path segments
-    buffered_path = unary_union([seg.buffer(current_path_width / 2.0) for seg in active_path_segments])
-
-    # Convert the main region polygon to a Shapely Polygon
+    # Convert the region into a Shapely Polygon
     region_coords = [(v.x, v.y) for v in region.vertices]
     region_shape = ShapelyPolygon(region_coords)
 
-    # Subtract obstacle areas from the buffered path
-    obstacles_shapes = [ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles]
-    obstacle_union = unary_union(obstacles_shapes)
-    buffered_path_excluding_obstacles = buffered_path.difference(obstacle_union)
+    # Combine obstacles into a single Shapely Geometry
+    obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
 
-    # Subtract obstacle areas from the main region
-    effective_region = region_shape.difference(obstacle_union)
+    # Subtract obstacles from the region to create the effective region
+    effective_region = region_shape.difference(obstacles_shapes)
 
-    # Compute the area covered within the effective region (region - obstacles)
-    covered_area = effective_region.intersection(buffered_path_excluding_obstacles)
+    # Create active path segments, excluding transit lines
+    active_path_segments = []
+    for i in range(len(path) - 1):
+        # Exclude segments where both points are marked as transit
+        if not (transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"):
+            active_path_segments.append(LineString([path[i], path[i + 1]]))
 
-    # Calculate the coverage percentage of the effective area
-    coverage_percentage = (covered_area.area / effective_region.area) * 100 if effective_region.area > 0 else 0
+    if not active_path_segments:
+        # No active segments, return empty polygon and zero coverage
+        return ShapelyPolygon(), 0.0
+
+    # Buffer the active path segments to represent the covered area
+    buffered_path = unary_union(
+        [seg.buffer(current_path_width / 2.0, resolution=16) for seg in active_path_segments]
+    )
+
+    # Restrict the buffered path to the effective region
+    covered_area_with_obstacles = buffered_path.intersection(region_shape)
+    covered_area = covered_area_with_obstacles.difference(obstacles_shapes)
+
+    # Calculate the coverage percentage, excluding obstacle areas
+    effective_region_area = effective_region.area
+    coverage_percentage = (covered_area.area / effective_region_area) * 100 if effective_region_area > 0 else 0
 
     return covered_area, coverage_percentage
 
@@ -126,11 +131,11 @@ def compute_outlier_area(polygon, path, transit_flags, current_path_width):
     :return outlying_area: Shapely Polygon that lies outside the given polygon
     """
     # Filter out transit segments
-    active_path_segments = [
-        LineString([path[i], path[i + 1]])
-        for i in range(len(path) - 1)
-        if transit_flags[i] != "transit" and transit_flags[i + 1] != "transit"
-    ]
+    active_path_segments = []
+    for i in range(len(path) - 1):
+        # Only exclude segments where both points are marked as transit
+        if not (transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"):
+            active_path_segments.append(LineString([path[i], path[i + 1]]))
 
     if not active_path_segments:
         return ShapelyPolygon()  # No active segments, return empty polygon
@@ -159,11 +164,11 @@ def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_w
     :return overlap_area: Shapely Polygon of the path overlap inside the polygon
     """
     # Filter out transit segments
-    active_path_segments = [
-        LineString([path[i], path[i + 1]])
-        for i in range(len(path) - 1)
-        if transit_flags[i] != "transit" and transit_flags[i + 1] != "transit"
-    ]
+    active_path_segments = []
+    for i in range(len(path) - 1):
+        # Only exclude segments where both points are marked as transit
+        if not (transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"):
+            active_path_segments.append(LineString([path[i], path[i + 1]]))
 
     if not active_path_segments:
         return ShapelyPolygon()  # No active segments, return empty polygon
@@ -205,14 +210,19 @@ def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_w
 def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
     total_distance, path_distance, transit_distance = compute_distance(path, transit_flags)
 
+    # Computing areas from path
     covered_area, coverage_percentage = compute_covered_area(poly, obstacles, path, transit_flags, current_path_width)
     outlier_area = compute_outlier_area(poly, path, transit_flags, current_path_width)
     overlap_area = compute_overlap_area(poly, obstacles, path, transit_flags, current_path_width)
 
+    plot_shapely_polygon_simple(covered_area, title="Covered Area")
+    plot_shapely_polygon_simple(outlier_area, title="outlier_area")
+    plot_shapely_polygon_simple(overlap_area, title="overlap_area")
+
     # Computing turns in the path
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
-
     print_data = False
+
     if print_data:
         print(f'Execution time: {time}')
         print(f'Total Distance: {total_distance}')
@@ -260,3 +270,51 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
         'soft_turns': soft_turns
     }
     return result
+
+import matplotlib.pyplot as plt
+
+
+def plot_shapely_polygon_simple(polygon, title="Shapely Polygon"):
+    """
+    Plot a Shapely Polygon or MultiPolygon, including holes, with specific styling:
+    - Coverage region: Blue fill with a black outline.
+    - Interior holes: White fill with no outline.
+
+    :param polygon: A Shapely Polygon or MultiPolygon.
+    :param title: Title of the plot.
+    """
+    plt.figure(figsize=(6, 6))
+    ax = plt.gca()
+    ax.set_title(title)
+
+    # Handle MultiPolygon by iterating through each component
+    if isinstance(polygon, MultiPolygon):
+        for poly in polygon.geoms:
+            # Plot the exterior
+            x, y = poly.exterior.xy
+            ax.fill(x, y, facecolor='blue', edgecolor='black', linewidth=1.5, alpha=0.5)  # Coverage region
+
+            # Plot the holes (interiors)
+            for interior in poly.interiors:
+                ix, iy = interior.xy
+                ax.fill(ix, iy, facecolor='white', edgecolor='none')  # Interior holes
+    elif isinstance(polygon, ShapelyPolygon):  # Handle single Polygon
+        if not polygon.is_empty:
+            # Plot the exterior
+            x, y = polygon.exterior.xy
+            ax.fill(x, y, facecolor='blue', edgecolor='black', linewidth=1.5, alpha=0.5)  # Coverage region
+
+            # Plot the holes (interiors)
+            for interior in polygon.interiors:
+                ix, iy = interior.xy
+                ax.fill(ix, iy, facecolor='white', edgecolor='none')  # Interior holes
+    else:
+        print("The provided geometry is neither a Polygon nor a MultiPolygon.")
+        return
+
+    ax.set_aspect('equal')  # Ensure equal scaling
+    plt.grid(True)
+    plt.show()
+
+
+
