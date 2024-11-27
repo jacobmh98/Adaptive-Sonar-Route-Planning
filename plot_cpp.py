@@ -162,8 +162,8 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
         ax.legend()
     ax.set_aspect('equal')
     plt.show()
-
     return fig
+
 
 def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_area, path=None, transit_flags=None, hide_plot_legend=False):
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -194,18 +194,18 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
         plot_polygon_with_holes(ax, coverage_area, '#4CAF50')
     if not outlier_area.is_empty:
         plot_polygon(ax, outlier_area, 'red')
+    # Plotting the overlap areausing the buffered lines not the shapely polygon like coverage and outlier areas
     plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6)
 
     if not hide_plot_legend:
         legend_patches = [
-            Patch(color='#4CAF50', alpha=0.5, label='Coverage'),
-            Patch(color='red', alpha=0.5, label='Outlier'),
-            Patch(color='orange', alpha=0.6, label='Buffered Overlap'),
+            Patch(color='#4CAF50', alpha=0.5, label='Covered Area'),
+            Patch(color='red', alpha=0.5, label='Outlying Area'),
+            Patch(color='orange', alpha=0.6, label='Overlapped Area'),
         ]
         ax.legend(handles=legend_patches, loc="upper right")
 
     ax.set_aspect('equal')
-    #plt.grid(True)
     plt.show()
     return fig
 

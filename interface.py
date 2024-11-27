@@ -429,8 +429,8 @@ def update_stats():
         coverage_data = [
             f"Coverage Percentage: {round(stats_dict['coverage_percentage'], 2)}%",
             f"Covered Area: {round(stats_dict['covered_area'].area, 2)}m²",
-            f"Overlapped Area: {round(stats_dict['overlapped_area'].area, 2)}m²",
             f"Outlying Area: {round(stats_dict['outlying_area'].area, 2)}m²",
+            f"Overlapped Area: {round(stats_dict['overlapped_area'].area, 2)}m²",
         ]
         for i, text in enumerate(coverage_data, start=1):
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=2, sticky="w", padx=(0,5), pady=1)
@@ -497,7 +497,10 @@ def path_planner():
                         if value:
                             value = int(value)
                             if value > 0:
-                                sorted_sub_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(removed_col_sub_polygons, intersections, value)
+                                sorted_sub_polygons, sorted_intersections = (sorting_tsp_intra_regional.
+                                                                             solve_intra_regional_tsp(
+                                                                             removed_col_sub_polygons,
+                                                                             intersections, value))
                             else:
                                 sorted_sub_polygons = removed_col_sub_polygons
                                 sorted_intersections = intersections
@@ -515,26 +518,30 @@ def path_planner():
                     #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
 
                     # Computing path
-                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections, region, obstacles)
+                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections,
+                                                                        region, obstacles)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
                     total_execution_time = total_end_time - total_start_time
 
-                    # Don't differentiate from transit and normal path points
+                    # Choose to not differentiate from transit and normal path points
                     if not use_transit_lines_var.get():
                         transit_flags = [None] * len(transit_flags)
 
-                    # No transit lines when single polygon
+                    # No transit lines for a single polygon - Might be unnecessary since none should be added
                     if len(sorted_sub_polygons) == 1:
                         transit_flags = [None] * len(transit_flags)
 
                     # Computing plot for path
-                    fig_path = plot_cpp.plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path,
-                                                                  obstacles, False, transit_flags, hide_plot_legend_var.get())
+                    fig_path = plot_cpp.plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path, obstacles,
+                                                              False, transit_flags,
+                                                              hide_plot_legend_var.get())
 
                     # Computing data about path
-                    stats_dict = cpp_path_data.compute_path_data(region, path, transit_flags, chosen_path_width, obstacles, total_execution_time)
+                    stats_dict = cpp_path_data.compute_path_data(region, path, transit_flags, chosen_path_width,
+                                                                 obstacles, total_execution_time)
+
                     stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()
                     stats_dict['sorting_time'] = total_sorting_time
@@ -553,15 +560,20 @@ def path_planner():
                     # Checking if user wants to see coverage plot
                     if show_coverage_var.get():
                         fig_coverage = plot_cpp.plot_coverage_areas(sorted_sub_polygons,
-                                                                         stats_dict["covered_area"],
-                                                                         stats_dict["overlapped_lines"],
-                                                                         stats_dict["outlying_area"],
-                                                                         path,
-                                                                         transit_flags,
-                                                                         hide_plot_legend_var.get())
+                                                                    stats_dict["covered_area"],
+                                                                    stats_dict["overlapped_lines"],
+                                                                    stats_dict["outlying_area"],
+                                                                    path, transit_flags, hide_plot_legend_var.get())
 
-
+                        stats_dict['total_execution_time'] = total_execution_time
+                        stats_dict['sorting_variable'] = sorting_variable.get()
+                        stats_dict['sorting_time'] = total_sorting_time
+                        stats_dict['path_width'] = chosen_path_width
+                        stats_dict['overlap_distance'] = chosen_overlap_distance
+                        stats.append(stats_dict)
+                        sub_polygons_list.append(None)
                         plots.append(fig_coverage)
+
                         # TODO set canvas here
                         canvas = FigureCanvasTkAgg(fig_coverage, master=canvas_frame)
                         toolbar = NavigationToolbar2Tk(canvas, canvas_frame)

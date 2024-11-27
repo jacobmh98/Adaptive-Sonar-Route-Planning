@@ -207,7 +207,7 @@ def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_w
     # Combine all overlaps into a single polygon
     overlap_union = unary_union(overlap_buffered_lines).buffer(0) if overlap_buffered_lines else ShapelyPolygon()
 
-    return overlap_buffered_lines, overlap_union
+    return overlap_union, overlap_buffered_lines
 
 
 def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
@@ -216,7 +216,7 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
     # Computing areas from path
     covered_area, coverage_percentage = compute_covered_area(poly, obstacles, path, transit_flags, current_path_width)
     outlier_area = compute_outlier_area(poly, path, transit_flags, current_path_width)
-    overlap_buffered_lines, overlap_area = compute_overlap_area(poly, obstacles, path, transit_flags, current_path_width)
+    overlap_area, overlap_buffered_lines = compute_overlap_area(poly, obstacles, path, transit_flags, current_path_width)
 
     #plot_shapely_polygon_simple(covered_area, title="Covered Area")
     #plot_shapely_polygon_simple(outlier_area, title="outlier_area")
