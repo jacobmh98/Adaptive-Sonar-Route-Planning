@@ -1,8 +1,8 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from global_variables import *
 from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
 from shapely.ops import unary_union
-
 
 def compute_distance(path, transit_flags):
     """ Function to compute the length of the path
@@ -154,15 +154,18 @@ def compute_outlier_area(polygon, path, transit_flags, current_path_width):
 
 
 def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_width):
-    """ Computes the path overlap area inside the polygon, excluding obstacles and transit lines.
+    """ Computes the overlapping buffered line segments inside the polygon, excluding obstacles and transit lines.
 
     :param polygon: Polygon
     :param obstacles: List of Polygon instances representing obstacles
     :param path: List of points
     :param transit_flags: List of flags indicating if a segment is transit
     :param current_path_width: Float of chosen path width
-    :return overlap_area: Shapely Polygon of the path overlap inside the polygon
+    :return: A tuple (overlap_buffered_lines, overlap_union)
+        - overlap_buffered_lines: List of overlapping buffered LineString objects.
+        - overlap_union: Shapely Polygon representing the union of overlapping buffered segments.
     """
+    current_path_width = current_path_width - 0.1  # Small reduction of path width for edge case overlap scenarios
     # Filter out transit segments
     active_path_segments = []
     for i in range(len(path) - 1):
@@ -171,7 +174,7 @@ def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_w
             active_path_segments.append(LineString([path[i], path[i + 1]]))
 
     if not active_path_segments:
-        return ShapelyPolygon()  # No active segments, return empty polygon
+        return [], ShapelyPolygon()  # No active segments, return empty list and polygon
 
     # Buffer the active path segments
     buffered_segments = [seg.buffer(current_path_width / 2.0) for seg in active_path_segments]
@@ -181,30 +184,30 @@ def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_w
     poly_shape = ShapelyPolygon(poly_coords)
     obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
 
-    # Subtract obstacles from each buffered segment directly
+    # Subtract obstacles from each buffered segment
     effective_segments = [segment.difference(obstacles_shapes) for segment in buffered_segments]
 
-    # Calculate overlaps only within the effective region (polygon without obstacles)
+    # Restrict buffered segments to the polygon region without obstacles
     effective_region = poly_shape.difference(obstacles_shapes)
-    overlap_areas = []
+    overlap_buffered_lines = []
 
-    for i in range(len(effective_segments)):
-        for j in range(i + 1, len(effective_segments)):
-            # Find intersections (overlaps) between effective segments
-            segment_overlap = effective_segments[i].intersection(effective_segments[j])
-            if not segment_overlap.is_empty:
-                # Restrict the overlap area to the actual intersection
-                actual_overlap_within_polygon = segment_overlap.intersection(effective_region)
-                if not actual_overlap_within_polygon.is_empty and actual_overlap_within_polygon.area > 0:
-                    overlap_areas.append(actual_overlap_within_polygon)
+    for i, seg1 in enumerate(effective_segments):
+        for j, seg2 in enumerate(effective_segments):
+            if i >= j:  # Avoid duplicate and self-comparison
+                continue
 
-    # Combine all detected overlaps into a single area
-    if overlap_areas:
-        overlap_area = unary_union(overlap_areas).buffer(0)  # Combine into a single polygon
-    else:
-        overlap_area = ShapelyPolygon()  # Empty if no overlaps
+            # Check for intersection between segments
+            overlap = seg1.intersection(seg2)
+            if not overlap.is_empty and overlap.area > 0:
+                # Restrict overlap to the effective region
+                restricted_overlap = overlap.intersection(effective_region)
+                if not restricted_overlap.is_empty:
+                    overlap_buffered_lines.append(restricted_overlap)
 
-    return overlap_area
+    # Combine all overlaps into a single polygon
+    overlap_union = unary_union(overlap_buffered_lines).buffer(0) if overlap_buffered_lines else ShapelyPolygon()
+
+    return overlap_buffered_lines, overlap_union
 
 
 def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
@@ -213,16 +216,16 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
     # Computing areas from path
     covered_area, coverage_percentage = compute_covered_area(poly, obstacles, path, transit_flags, current_path_width)
     outlier_area = compute_outlier_area(poly, path, transit_flags, current_path_width)
-    overlap_area = compute_overlap_area(poly, obstacles, path, transit_flags, current_path_width)
+    overlap_buffered_lines, overlap_area = compute_overlap_area(poly, obstacles, path, transit_flags, current_path_width)
 
-    plot_shapely_polygon_simple(covered_area, title="Covered Area")
-    plot_shapely_polygon_simple(outlier_area, title="outlier_area")
-    plot_shapely_polygon_simple(overlap_area, title="overlap_area")
+    #plot_shapely_polygon_simple(covered_area, title="Covered Area")
+    #plot_shapely_polygon_simple(outlier_area, title="outlier_area")
+    #plot_buffered_lines(overlap_buffered_lines, polygon=None, obstacles=None)
 
     # Computing turns in the path
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
-    print_data = False
 
+    print_data = False
     if print_data:
         print(f'Execution time: {time}')
         print(f'Total Distance: {total_distance}')
@@ -260,6 +263,7 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
         'coverage_percentage': coverage_percentage,
         'covered_area': covered_area,
         'overlapped_area': overlap_area,
+        'overlapped_lines': overlap_buffered_lines,
         'outlying_area': outlier_area,
         'total_distance': total_distance,
         'path_distance': path_distance,
@@ -270,8 +274,6 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
         'soft_turns': soft_turns
     }
     return result
-
-import matplotlib.pyplot as plt
 
 
 def plot_shapely_polygon_simple(polygon, title="Shapely Polygon"):
@@ -317,4 +319,41 @@ def plot_shapely_polygon_simple(polygon, title="Shapely Polygon"):
     plt.show()
 
 
+def plot_buffered_lines(buffered_lines, polygon=None, obstacles=None):
+    """
+    Plots the list of overlapping buffered lines along with the main polygon and obstacles if provided.
 
+    :param buffered_lines: List of Shapely Polygons representing overlapping buffered lines.
+    :param polygon: (Optional) Shapely Polygon representing the main polygon.
+    :param obstacles: (Optional) List of Shapely Polygons representing obstacles.
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Plot the main polygon
+    if polygon:
+        x, y = polygon.exterior.xy
+        ax.plot(x, y, label="Main Polygon", linewidth=2, color='blue')
+
+    # Plot the obstacles
+    if obstacles:
+        for obs in obstacles:
+            x, y = obs.exterior.xy
+            ax.fill(x, y, label="Obstacle", color='red', alpha=0.5)
+
+    # Plot the overlapping buffered lines
+    for i, line in enumerate(buffered_lines):
+        if isinstance(line, MultiPolygon):
+            for subline in line.geoms:
+                x, y = subline.exterior.xy
+                ax.fill(x, y, alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
+        elif isinstance(line, ShapelyPolygon):
+            x, y = line.exterior.xy
+            ax.fill(x, y, alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
+
+    # Add labels and legend
+    ax.set_title("Overlapping Buffered Lines")
+    ax.set_xlabel("X Coordinate")
+    ax.set_ylabel("Y Coordinate")
+    ax.legend()
+    ax.set_aspect('equal', adjustable='box')
+    plt.show()

@@ -549,17 +549,14 @@ def path_planner():
                     toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
                     canvas_list.append(canvas)
                     toolbar_list.append(toolbar)
-#def plot_polygons_with_areas(polygons, coverage_area, overlap_area, outlier_area, current_path_width, path=None, obstacles=None, transit_flags=None, hide_plot_legend=False):
 
                     # Checking if user wants to see coverage plot
                     if show_coverage_var.get():
-                        fig_coverage = plot_cpp.plot_polygons_with_areas(sorted_sub_polygons,
+                        fig_coverage = plot_cpp.plot_coverage_areas(sorted_sub_polygons,
                                                                          stats_dict["covered_area"],
-                                                                         stats_dict["overlapped_area"],
+                                                                         stats_dict["overlapped_lines"],
                                                                          stats_dict["outlying_area"],
-                                                                         chosen_path_width,
                                                                          path,
-                                                                         obstacles,
                                                                          transit_flags,
                                                                          hide_plot_legend_var.get())
 
