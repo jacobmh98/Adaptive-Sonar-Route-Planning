@@ -60,7 +60,7 @@ def plot_simple_poly_path(polygon, path):
     plt.ylabel('Y')
 
 
-def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False):
+def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
     """Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
     Obstacles are plotted with red edges.
@@ -94,10 +94,11 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
         ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
 
         # Calculate and plot the centroid
-        if len(x_coords) > 1:
-            centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
-            centroid_y = np.mean(y_coords[:-1])
-            ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
+        if not hide_sub_polygon_indices:
+            if len(x_coords) > 1:
+                centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
+                centroid_y = np.mean(y_coords[:-1])
+                ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
 
     # Plot obstacles with hard edges
     if obstacles:
@@ -165,17 +166,28 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     return fig
 
 
-def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_area, path=None, transit_flags=None, hide_plot_legend=False):
-    fig, ax = plt.subplots(figsize=(10, 10))
+def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_area, path=None, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
+    fig, ax = plt.subplots(1, 1)
     marker_size = 3
 
-    # Plot main polygons
+    # Plot sub-polygons and display their indices at centroids
     for i, poly in enumerate(polygons):
         x_coords, y_coords = poly.get_coords()
+
+        # Ensure the polygon is closed by repeating the first vertex at the end
         if len(x_coords) > 0 and len(y_coords) > 0:
             x_coords.append(x_coords[0])
             y_coords.append(y_coords[0])
+
+        # Plot the polygon edges
         ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
+
+        # Calculate and plot the centroid
+        if not hide_sub_polygon_indices:
+            if len(x_coords) > 1:
+                centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
+                centroid_y = np.mean(y_coords[:-1])
+                ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
 
     # Plot the path
     if path is not None:

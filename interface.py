@@ -450,7 +450,8 @@ def update_stats():
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
 
 def path_planner():
-    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var, hide_plot_legend_var
+    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var, \
+           use_transit_lines_var, hide_plot_legend_var, hide_sub_polygon_indices_var
 
     if len(sub_polygons_list) != 0:
         sub_polygons = sub_polygons_list[current_plot_index]
@@ -536,7 +537,7 @@ def path_planner():
                     # Computing plot for path
                     fig_path = plot_cpp.plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path, obstacles,
                                                               False, transit_flags,
-                                                              hide_plot_legend_var.get())
+                                                              hide_plot_legend_var.get(), hide_sub_polygon_indices_var.get())
 
                     # Computing data about path
                     stats_dict = cpp_path_data.compute_path_data(region, path, transit_flags, chosen_path_width,
@@ -563,7 +564,8 @@ def path_planner():
                                                                     stats_dict["covered_area"],
                                                                     stats_dict["overlapped_lines"],
                                                                     stats_dict["outlying_area"],
-                                                                    path, transit_flags, hide_plot_legend_var.get())
+                                                                    path, transit_flags, hide_plot_legend_var.get(),
+                                                                    hide_sub_polygon_indices_var.get())
 
                         stats_dict['total_execution_time'] = total_execution_time
                         stats_dict['sorting_variable'] = sorting_variable.get()
@@ -721,7 +723,8 @@ def optimize():
 
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, show_coverage_var, use_transit_lines_var, hide_plot_legend_var
+    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, \
+           show_coverage_var, use_transit_lines_var, hide_plot_legend_var, hide_sub_polygon_indices_var
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
     Button(options_pane, text="Select File", command=select_file).pack(anchor='w')
@@ -774,10 +777,13 @@ def setup_option_pane():
     show_coverage_var = IntVar()
     use_transit_lines_var = IntVar()
     hide_plot_legend_var = IntVar()
+    hide_sub_polygon_indices_var = IntVar()
 
     Checkbutton(options_pane, text="Show Coverage Plot", variable=show_coverage_var).pack(anchor='w')
     Checkbutton(options_pane, text="Use Transit Lines", variable=use_transit_lines_var).pack(anchor='w')
     Checkbutton(options_pane, text="Hide Plot legend", variable=hide_plot_legend_var).pack(anchor='w')
+    Checkbutton(options_pane, text="Hide Sub Polygon Indices", variable=hide_sub_polygon_indices_var).pack(anchor='w')
+
 
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
 
