@@ -8,6 +8,8 @@ from global_variables import *
 from rtree import index
 from load_data import generate_new_data
 
+
+
 def compute_intersection(ray_start, ray_dir, seg_A, seg_B):
     # Vector from A to B (the direction of the segment)
     seg_dir = seg_B - seg_A

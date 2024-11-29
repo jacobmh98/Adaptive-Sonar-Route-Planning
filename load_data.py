@@ -1,51 +1,54 @@
 import copy
 import json
 import pickle
-
 from Polygon import *
 from decomposition import split_polygon, is_well_formed, optimize_polygons, remove_collinear_vertices, \
     remove_equal_points
 
 def get_region(data_path):
+    """
+    Load the region and obstacles from the JSON file, and extract hard edges.
+    """
     # Reading the test data
-    f = open(f'{data_path}')
-    data = json.load(f)
+    with open(data_path, 'r') as f:
+        data = json.load(f)
+
+    # Extracting region data
     vertices_data = data['area']['coordinates']
-    num_of_obstacles = data['obstacles']['num_of_obstacles']
     hard_edges = data['area']['hard_edges']
-    hard_obstacles = data['obstacles']['hard_obstacles']
 
-    # Defining the initial polygon
-    vertices = []
-
-    for i in range(len(vertices_data)):
-        vertices.append(Vertex(i, vertices_data[i][0], vertices_data[i][1]))
+    # Create region vertices
+    vertices = [Vertex(i, coord[0], coord[1]) for i, coord in enumerate(vertices_data)]
     region = Polygon(vertices)
 
+    # Mark hard edges in the region
     for e in hard_edges:
-        region.vertices[int(e)].edge_from_v_is_hard = True
-        #vertices[(e + 1) % len(vertices)] = True
+        region.vertices[e].edge_from_v_is_hard = True
         region.edges[e].is_hard_edge = True
 
+    # Extract obstacle data
+    num_of_obstacles = data['obstacles']['num_of_obstacles']
+    hard_obstacles = data['obstacles']['hard_obstacles']
     obstacles = []
+
     for i in range(num_of_obstacles):
-        vertices = []
-        obs = data['obstacles'][f'obstacle_{i + 1}']
+        obs_data = data['obstacles'][f'obstacle_{i + 1}']
+        obs_vertices = [
+            Vertex(j, coord[0], coord[1], is_obstacle=True)
+            for j, coord in enumerate(obs_data)
+        ]
 
-
-        for j in range(len(obs)):
-            v = Vertex(j, obs[j][0], obs[j][1], True)
-
+        # Mark edges as hard if specified
+        for v in obs_vertices:
             v.edge_from_v_is_hard = hard_obstacles[i] == 1
 
-            vertices.append(v)
-
-        O = Polygon(vertices, True)
-        O.is_hard_obstacle = hard_obstacles[i] == 1
-        #O.compute_bounding_box()
-        obstacles.append(O)
+        # Create an obstacle polygon
+        obstacle_polygon = Polygon(obs_vertices, is_obstacle=True)
+        obstacle_polygon.is_hard_obstacle = hard_obstacles[i] == 1
+        obstacles.append(obstacle_polygon)
 
     return region, obstacles
+
 
 def generate_new_data(region):
     # Compute the split that gives the sub-polygons

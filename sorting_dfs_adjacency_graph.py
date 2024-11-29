@@ -55,7 +55,8 @@ def solve_dfs(polygons, intersections):
     dfs_route = [int(node[1:]) for node in dfs_order]
 
     # Reorder the polygons based on the DFS traversal order
+    sorted_non_removed = [polygons[i] for i in dfs_route]
     sorted_polys = [polygons[i] for i in dfs_route]
     sorted_inters = [intersections[i] for i in dfs_route]
 
-    return sorted_polys, sorted_inters
+    return sorted_non_removed, sorted_polys, sorted_inters

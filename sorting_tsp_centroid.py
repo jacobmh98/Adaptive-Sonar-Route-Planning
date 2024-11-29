@@ -73,7 +73,8 @@ def solve_centroid_tsp(polygons, intersections):
     distance_matrix = create_distance_matrix(polygons)
     tsp_route = solve_tsp(distance_matrix)
     sorted_polys = [polygons[i] for i in tsp_route]
+    sorted_non_removed_polys = [polygons[i] for i in tsp_route]
     sorted_inters = [intersections[i] for i in tsp_route]
 
-    return sorted_polys, sorted_inters
+    return sorted_polys, sorted_non_removed_polys, sorted_inters
 

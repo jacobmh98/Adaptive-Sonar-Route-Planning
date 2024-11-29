@@ -61,21 +61,12 @@ def plot_simple_poly_path(polygon, path):
 
 
 def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
-    """Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
-    Highlight hard edges specified for each polygon, and label each vertex with its index.
-    Obstacles are plotted with red edges.
-    Transit edges are highlighted differently.
-    Sub-polygon indices are shown at their centroids.
-
-    :param current_path_width: Width of the path
-    :param polygons: List of the sub-polygons
-    :param path: NumPy array, array of points representing the path [[x1, y1], [x2, y2], ...]
-    :param obstacles: List of obstacle polygons
-    :param show_coverage: Boolean indicating whether to show coverage areas around the path
-    :param transit_flags: List of flags indicating whether a point is part of a transit segment
-    :param hide_plot_legend: Boolean indicating whether to hide the plot legend
     """
-    marker_size = 3  # Marker size for vertices
+    Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
+    Highlight hard edges specified for each polygon, and label each vertex with its index.
+    Obstacles are plotted with red edges. Transit edges are highlighted differently.
+    Sub-polygon indices are shown at their centroids.
+    """
     labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False, "Hard Edge": False}
 
     # Create a figure and axis
@@ -90,8 +81,12 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
             x_coords.append(x_coords[0])
             y_coords.append(y_coords[0])
 
-        # Plot the polygon edges
-        ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
+        # Plot the polygon edges, highlighting hard edges in red
+        for e in poly.edges:
+            if e.is_hard_edge:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-')  # Hard edge in red
+            else:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-')  # Normal edge in black
 
         # Calculate and plot the centroid
         if not hide_sub_polygon_indices:
@@ -167,48 +162,73 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
 
 
 def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_area, path=None, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
+    """
+    Plot polygons with coverage areas, overlap areas, and outlying areas.
+    Highlight hard edges in polygons and obstacles.
+
+    :param polygons: List of sub-polygons
+    :param coverage_area: Shapely polygon representing the covered area
+    :param overlap_buffered_lines: Buffered lines for overlap visualization
+    :param outlier_area: Shapely polygon representing the outlying area
+    :param path: Optional NumPy array of the path [[x1, y1], [x2, y2], ...]
+    :param transit_flags: Optional list of flags indicating transit segments
+    :param hide_plot_legend: Boolean to hide the plot legend
+    :param hide_sub_polygon_indices: Boolean to hide sub-polygon indices
+    """
     fig, ax = plt.subplots(1, 1)
-    marker_size = 3
+    marker_size = 3  # Marker size for vertices
 
-    # Plot sub-polygons and display their indices at centroids
+    # Plot polygons
     for i, poly in enumerate(polygons):
+        # Plot edges, highlighting hard edges in red
+        for e in poly.edges:
+            if e.is_hard_edge:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-')  # Hard edge in red
+            else:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-')  # Normal edge in black
+
+        # Plot the polygon vertices and label indices at centroids
         x_coords, y_coords = poly.get_coords()
+        ax.plot(x_coords, y_coords, 'ko', markersize=marker_size)
 
-        # Ensure the polygon is closed by repeating the first vertex at the end
-        if len(x_coords) > 0 and len(y_coords) > 0:
-            x_coords.append(x_coords[0])
-            y_coords.append(y_coords[0])
-
-        # Plot the polygon edges
-        ax.plot(x_coords, y_coords, 'k-', marker='o', markersize=marker_size)
-
-        # Calculate and plot the centroid
         if not hide_sub_polygon_indices:
-            if len(x_coords) > 1:
-                centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
-                centroid_y = np.mean(y_coords[:-1])
-                ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
+            centroid_x = np.mean(x_coords)
+            centroid_y = np.mean(y_coords)
+            ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
 
-    # Plot the path
+    # Plot the path if provided
     if path is not None:
         path_x, path_y = path[:, 0], path[:, 1]
         for i in range(len(path) - 1):
             if transit_flags and transit_flags[i] == "transit" and transit_flags[i + 1] == "transit":
-                ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'y--', linewidth=1.5,
-                        path_effects=[Stroke(linewidth=3, foreground='black'), Normal()])
+                ax.plot(
+                    [path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]],
+                    'y--', linewidth=1.5,
+                    path_effects=[pe.Stroke(linewidth=3, foreground='black'), pe.Normal()],
+                    label="Transit Line" if i == 0 else None
+                )
             else:
-                ax.plot([path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]], 'g-', linewidth=1.5, label="Path Line")
+                ax.plot(
+                    [path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]],
+                    'g-', linewidth=1.5, label="Path Line" if i == 0 else None
+                )
+
+        # Mark start and end points
         ax.plot(path_x[0], path_y[0], 'bo', markersize=8, label="Start Point")
         ax.plot(path_x[-1], path_y[-1], 'ro', markersize=8, label="End Point")
 
-    # Plot coverage area
+    # Plot the coverage area
     if not coverage_area.is_empty:
-        plot_polygon_with_holes(ax, coverage_area, '#4CAF50')
-    if not outlier_area.is_empty:
-        plot_polygon(ax, outlier_area, 'red')
-    # Plotting the overlap areausing the buffered lines not the shapely polygon like coverage and outlier areas
-    plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6)
+        plot_polygon_with_holes(ax, coverage_area, '#4CAF50')  # Green for covered area
 
+    # Plot the outlier area
+    if not outlier_area.is_empty:
+        plot_polygon(ax, outlier_area, 'red')  # Red for outlying area
+
+    # Plot the overlap area using buffered lines
+    plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6)  # Orange for overlap area
+
+    # Add legend for coverage areas
     if not hide_plot_legend:
         legend_patches = [
             Patch(color='#4CAF50', alpha=0.5, label='Covered Area'),
@@ -220,6 +240,7 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
     ax.set_aspect('equal')
     plt.show()
     return fig
+
 
 
 def plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6):
