@@ -65,6 +65,7 @@ def find_obstacle_intersections(start_point, end_point, obstacles, epsilon=1e-9)
             # Check if the edge intersects the line
             if line_intersection(start_point, end_point, v1, v2):
                 intersected_edges.append(edge)
+                print(f"Line intersected: {edge}")
             else:
                 # Check if start_point or end_point lies on the edge
                 edge_vector = np.array(v2) - np.array(v1)
@@ -83,6 +84,9 @@ def find_obstacle_intersections(start_point, end_point, obstacles, epsilon=1e-9)
 
                 if start_on_edge or end_on_edge:
                     intersected_edges.append(edge)
+                    print(f"Start on edge: {start_on_edge}")
+                    print(f"End on endge: {end_on_edge}")
+                    print(f"The edge: {edge}")
 
     return intersected_edges
 

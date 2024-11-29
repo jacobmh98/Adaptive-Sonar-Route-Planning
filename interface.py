@@ -476,21 +476,26 @@ def path_planner():
                     total_start_time = time.time()
                     intersections = cpp_path_planning.multi_intersection_planning(removed_col_sub_polygons, chosen_path_width, chosen_overlap_distance)
 
-                    if sorting_variable.get() == 'DFS':
+                    sorting_var = sorting_variable.get()
+
+                    if len(removed_col_sub_polygons) < 3:
+                        sorting_var = "Unordered"
+
+                    if sorting_var == 'DFS':
                         print("DFS")
                         sorting_start_time = time.time()
                         sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
 
-                    elif sorting_variable.get() == 'TSP Centroid':
+                    elif sorting_var == 'TSP Centroid':
                         print("Centroids")
                         sorting_start_time = time.time()
                         sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
 
-                    elif sorting_variable.get() == 'TSP Intra Regional':
+                    elif sorting_var == 'TSP Intra Regional':
                         print("Intra Regional")
                         sorting_start_time = time.time()
                         value = tsp_iterations.get()
@@ -523,7 +528,7 @@ def path_planner():
                     #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
 
                     # Computing path
-                    path, transit_flags = cpp_connect_path.connect_path(sorted_col_removed_sub_polygons, sorted_intersections,
+                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections,
                                                                         region, obstacles)
 
                     # Ending timer and computing total execution time
