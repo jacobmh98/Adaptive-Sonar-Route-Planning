@@ -91,51 +91,18 @@ def find_obstacle_intersections(start_point, end_point, obstacles, epsilon=1e-9)
     return intersected_edges
 
 
-def find_closest_intersected_edge(start_point, intersected_edges, polygon, epsilon=1e-9):
-    """Finds the closest intersected edge to the polygon's centroid, based on edge center.
-
-    :param start_point: Tuple representing the start point of the line.
-    :param intersected_edges: List of edges, where each edge is a tuple ((x1, y1), (x2, y2)).
-    :param polygon: Polygon object containing vertices to compute the centroid.
-    :param epsilon: Float tolerance for floating-point comparisons.
-    :return: Tuple representing the closest intersected edge.
+def get_obstacle_for_edge(edge, obstacles):
     """
+    Finds the obstacle that contains the given edge.
 
-    closest_edge = None
-    min_distance = float('inf')
-
-    # Calculate the centroid of the polygon
-    x_coords, y_coords = zip(*[(v.x, v.y) for v in polygon.vertices])
-    centroid = (sum(x_coords) / len(x_coords), sum(y_coords) / len(y_coords))
-
-    for edge in intersected_edges:
-        if len(edge) < 2:  # Skip invalid edges
-            continue
-
-        v1, v2 = edge
-
-        # Compute the midpoint of the edge
-        edge_midpoint = ((v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2)
-
-        # Calculate the distance from the edge midpoint to the polygon's centroid
-        centroid_distance = np.linalg.norm(np.array(edge_midpoint) - np.array(centroid))
-
-        # Check if the start point lies on this edge
-        edge_vector = np.array(v2) - np.array(v1)
-        point_vector = np.array(start_point) - np.array(v1)
-        cross_product = np.cross(edge_vector, point_vector)
-        dot_product = np.dot(point_vector, edge_vector)
-        edge_length_squared = np.dot(edge_vector, edge_vector)
-
-        if abs(cross_product) < epsilon and 0 <= dot_product <= edge_length_squared:
-            return edge  # Return immediately if the start point lies on this edge
-
-        # Update the closest edge if this one is closer
-        if centroid_distance < min_distance:
-            min_distance = centroid_distance
-            closest_edge = edge
-
-    return closest_edge
+    :param edge: Tuple representing the edge ((x1, y1), (x2, y2)).
+    :param obstacles: List of obstacles, where each obstacle is a collection of edges.
+    :return: The obstacle containing the edge.
+    """
+    for obstacle in obstacles:
+        if edge in obstacle.edges:
+            return obstacle
+    return None
 
 
 def filter_intersected_edges(prev_intersecting_edge, intersected_edges, obstacles):
@@ -170,8 +137,7 @@ def filter_intersected_edges(prev_intersecting_edge, intersected_edges, obstacle
 
 
 def are_edges_from_same_obstacle(prev_edge, inter_edge, obstacles):
-    """
-    Checks if the previous edge and intersected edge are from the same obstacle.
+    """ Checks if the previous edge and intersected edge are from the same obstacle.
 
     :param prev_edge: Tuple representing the previous edge ((x1, y1), (x2, y2)).
     :param inter_edge: Tuple representing the intersected edge ((x1, y1), (x2, y2)).
@@ -282,7 +248,68 @@ def is_point_on_edges(point, edges, epsilon=1e-9):
     return False
 
 
+def find_closest_intersected_edge(start_point, intersected_edges, polygon, epsilon=1e-9):
+    """
+    Finds the closest intersected edge to the start point based on three distances:
+    1. Distance to the closest vertex of the edge
+    2. Distance to the midpoint of the edge
+    3. Distance to the polygon centroid (weighted at 50%)
+
+    :param start_point: Tuple representing the start point of the line.
+    :param intersected_edges: List of edges, where each edge is a tuple ((x1, y1), (x2, y2)).
+    :param polygon: Polygon object containing vertices to compute the centroid.
+    :param epsilon: Float tolerance for floating-point comparisons.
+    :return: Tuple representing the closest intersected edge.
+    """
+    closest_edge = None
+    min_weighted_distance = float('inf')
+
+    # Calculate the centroid of the polygon
+    x_coords, y_coords = zip(*[(v.x, v.y) for v in polygon.vertices])
+    centroid = (sum(x_coords) / len(x_coords), sum(y_coords) / len(y_coords))
+
+    for edge in intersected_edges:
+        if len(edge) < 2:  # Skip invalid edges
+            continue
+
+        v1, v2 = edge
+
+        # Compute the midpoint of the edge
+        edge_midpoint = ((v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2)
+
+        # Compute distances
+        dist_to_vertex1 = np.linalg.norm(np.array(start_point) - np.array(v1))
+        dist_to_vertex2 = np.linalg.norm(np.array(start_point) - np.array(v2))
+        dist_to_closest_vertex = min(dist_to_vertex1, dist_to_vertex2)
+        dist_to_midpoint = np.linalg.norm(np.array(start_point) - np.array(edge_midpoint))
+        dist_to_centroid = np.linalg.norm(np.array(edge_midpoint) - np.array(centroid))
+
+        # Compute weighted distance metric
+        weighted_distance = (
+            dist_to_closest_vertex +
+            dist_to_midpoint +
+            0.5 * dist_to_centroid
+        )
+
+        # Update the closest edge if this one is better
+        if weighted_distance < min_weighted_distance:
+            min_weighted_distance = weighted_distance
+            closest_edge = edge
+
+    return closest_edge
+
+
 def filter_initial_intersections(intersected_edges, obstacles, start_point, end_point):
+    """
+    Filters the initial intersected edges based on whether they belong to the same obstacle
+    and additional criteria for clear paths and single-edge obstacles.
+
+    :param intersected_edges: List of intersected edges.
+    :param obstacles: List of obstacles, where each obstacle is a collection of edges.
+    :param start_point: Tuple representing the starting point of the line.
+    :param end_point: Tuple representing the ending point of the line.
+    :return: Filtered list of intersected edges.
+    """
     # If 0 or 1 intersections, then it is a clear path
     if len(intersected_edges) < 2:
         return intersected_edges
@@ -305,6 +332,9 @@ def filter_initial_intersections(intersected_edges, obstacles, start_point, end_
 
                     # If just 2 intersections, and not going into obstacle, it is a clear path from start to end
                     return []
+        else:
+            print("Not from same obstacle")
+            return []
 
     return intersected_edges
 

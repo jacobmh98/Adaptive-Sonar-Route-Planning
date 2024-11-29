@@ -157,7 +157,7 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     if not hide_plot_legend:
         ax.legend()
     ax.set_aspect('equal')
-    plt.show()
+    #plt.show()
     return fig
 
 
@@ -238,7 +238,7 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
         ax.legend(handles=legend_patches, loc="upper right")
 
     ax.set_aspect('equal')
-    plt.show()
+    #plt.show()
     return fig
 
 
@@ -351,7 +351,7 @@ def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, s
     if show_legend:
         ax.legend(loc='best')
 
-    plt.show()  # Display the plot
+    #plt.show()  # Display the plot
 
 def plot_path(poly, b, b_mate, a, path):
     """ Plot the original vector from b to b_mate, the offset vector, the boundary box, the polygon,
