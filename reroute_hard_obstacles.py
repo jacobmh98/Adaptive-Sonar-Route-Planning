@@ -1,48 +1,96 @@
 import numpy as np
+from reroute_helper_functions import is_point_on_edges, find_best_path, line_intersection
 
-def compute_path_distance(path):
-    """Computes the total distance traveled along a path.
+def avoid_obstacles(start_point, end_point, obstacles, prev_polygon, intersected_edges):
+    """Finds a path avoiding obstacles between the start and end points.
 
-    :param path: List of points representing the path, where each point is a tuple (x, y) or a numpy array.
-    :return: Float representing the total distance traveled along the path.
+    :param start_point: Tuple representing the start point.
+    :param end_point: Tuple representing the end point.
+    :param obstacles: List of obstacles containing edges to avoid.
+    :param prev_polygon: The previous polygon (start point is end point for this polygons path)
+    :param intersected_edges: List of intersected edges (obstacle edges)
+    :return: List of intermediate points for the path.
     """
 
-    if len(path) < 2:
-        return 0.0  # No distance if the path has fewer than 2 points
+    # The path from start to end point crosses into an obstacle, and an intermediate path to reroute around it must be found
+    # Finding the closest edge to start point that was intersected, using this to generate new start points
+    closest_intersected_edge = find_closest_intersected_edge(start_point, intersected_edges, prev_polygon)
+    print(f"Closest intersected edge: {closest_intersected_edge}")
 
-    total_distance = 0.0
+    # Computing paths going left and right direction around the obstacle
+    left_temp_path = compute_intermediate_path([start_point, closest_intersected_edge[0]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='left')
+    right_temp_path = compute_intermediate_path([start_point, closest_intersected_edge[1]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='right')
 
-    for i in range(len(path) - 1):
-        point_a = np.array(path[i])
-        point_b = np.array(path[i + 1])
-        total_distance += np.linalg.norm(point_b - point_a)
+    # Finding the best direction around the obstacles (prioritizes fewer turns)
+    intermediate_path = find_best_path(left_temp_path, right_temp_path)
 
-    return total_distance
+    return intermediate_path[1:]  # Start point in path gets appended in connect path before, so not included in intermediate path
 
 
-def line_intersection(p1, p2, q1, q2, epsilon=1e-9):
-    """Checks if line segment (p1, p2) intersects (q1, q2).
+def compute_intermediate_path(temp_path, start_point, end_point, prev_intersecting_edge, obstacles, prev_polygon, direction):
+    """Follows and creates a path around obstacles in the specified direction.
 
-    :param p1: Tuple representing the start of the first line segment.
-    :param p2: Tuple representing the end of the first line segment.
-    :param q1: Tuple representing the start of the second line segment.
-    :param q2: Tuple representing the end of the second line segment.
-    :param epsilon: Float tolerance for floating-point comparisons.
-    :return: Boolean indicating whether the segments intersect.
+    :param temp_path: List of points representing the current path.
+    :param start_point: [x,y] coordinates of the start point.
+    :param end_point: [x,y] coordinates of the start point.
+    :param prev_intersecting_edge: Tuple representing the last intersecting edge.
+    :param obstacles: List of obstacles containing edges to avoid.
+    :param prev_polygon: The previous polygon (start point is end point for this polygons path)
+    :param direction: String indicating the direction to follow ('left' or 'right').
+    :return: List of points representing the updated path.
     """
 
-    r = np.array(p2) - np.array(p1)
-    s = np.array(q2) - np.array(q1)
-    r_cross_s = np.cross(r, s)
+    closest_edge = prev_intersecting_edge
+    counter = 0
 
-    if abs(r_cross_s) < epsilon:
-        return False  # The lines are parallel or collinear
+    print(f"Direction: {direction}")
 
-    q1_p1 = np.array(q1) - np.array(p1)
-    t = np.cross(q1_p1, s) / r_cross_s
-    u = np.cross(q1_p1, r) / r_cross_s
+    while True:
+        # Current start point for this iteration
+        new_start_point = temp_path[-1]
+        print(f"new start point: {new_start_point}")
 
-    return 0 <= t <= 1 and 0 <= u <= 1
+        # Checking for new intersections from new start point to the original end point
+        intersected_edges = find_obstacle_intersections(new_start_point, end_point, obstacles)
+        print(f"next intersected edges: {intersected_edges}")
+
+        # Filter edges to remove those that are using the new start point as vertex in them
+        filtered_edges = filter_intersected_edges(closest_edge, intersected_edges, obstacles)
+        print(f"Next filtered edges: {filtered_edges}")
+
+        # If 1 intersection, it is an obstacle vertex, and is clear, same for 0
+        if len(filtered_edges) < 2:
+            print(f"Clear path found going {direction}")
+            break
+
+        # Finding the closest intersected edge
+        closest_edge = find_closest_intersected_edge(new_start_point, filtered_edges, prev_polygon)
+        print(f"Closest intersecting edge: {closest_edge}")
+
+        # TODO: If new obstacle is intersected, then go left and right around this (recurse)
+
+        if direction == "left":
+            if shorter_path(start_point, closest_edge[0], obstacles):
+                temp_path = [temp_path[0], closest_edge[0]]
+                print(f"Shorter left")
+            else:
+                temp_path.append(closest_edge[0])
+
+        else:
+            if shorter_path(start_point, closest_edge[1], obstacles):
+                temp_path = [temp_path[0], closest_edge[1]]
+                print(f"Shorter right")
+            else:
+                temp_path.append(closest_edge[1])
+
+        # Should never be reached
+        if counter > 1000:
+            print(f"Max iterations reached, no clear path found going {direction}")
+            return []
+        counter += 1
+
+    #print(f"Going: {direction}, path: {temp_path}")
+    return temp_path
 
 
 def find_obstacle_intersections(start_point, end_point, obstacles, epsilon=1e-9):
@@ -85,7 +133,7 @@ def find_obstacle_intersections(start_point, end_point, obstacles, epsilon=1e-9)
                 if start_on_edge or end_on_edge:
                     intersected_edges.append(edge)
                     print(f"Start on edge: {start_on_edge}")
-                    print(f"End on endge: {end_on_edge}")
+                    print(f"End on edge: {end_on_edge}")
                     print(f"The edge: {edge}")
 
     return intersected_edges
@@ -152,30 +200,6 @@ def are_edges_from_same_obstacle(prev_edge, inter_edge, obstacles):
     return False, None
 
 
-def find_best_path(left_temp_path, right_temp_path):
-    """Determines the best path direction between left and right paths.
-
-    :param left_temp_path: List of points representing the left path.
-    :param right_temp_path: List of points representing the right path.
-    :return: The best path (list of points) with fewer turns or shorter distance.
-    """
-    if len(left_temp_path) == len(right_temp_path):
-        if compute_path_distance(left_temp_path) <= compute_path_distance(right_temp_path):
-            print("left smaller distance")
-            return left_temp_path
-        else:
-            print("right smaller distance")
-            return right_temp_path
-
-    elif len(left_temp_path) <= len(right_temp_path):
-        print("left less turns")
-        return left_temp_path
-
-    else:
-        print("right less turns")
-        return right_temp_path
-
-
 def is_going_into_obstacle(point1, point2, obstacle, epsilon=1e-9):
     """ Determines if the line segment between two points enters the obstacle.
 
@@ -214,38 +238,6 @@ def is_going_into_obstacle(point1, point2, obstacle, epsilon=1e-9):
             inside = not inside
 
     return inside
-
-
-def is_point_on_edges(point, edges, epsilon=1e-9):
-    """ Checks if a given point lies on any edge in a list of edges.
-
-    :param point: The point to check as a tuple (x, y).
-    :param edges: List of edges, where each edge is represented as ((x1, y1), (x2, y2)).
-    :param epsilon: Float tolerance for precision issues.
-    :return: True if the point lies on any edge, False otherwise.
-    """
-    px, py = point
-
-    for edge in edges:
-        (x1, y1), (x2, y2) = edge
-
-        # Calculate the vector from the edge's start to the point and the edge's vector
-        edge_vector = (x2 - x1, y2 - y1)
-        point_vector = (px - x1, py - y1)
-
-        # Check if the point is collinear with the edge
-        cross_product = abs(edge_vector[0] * point_vector[1] - edge_vector[1] * point_vector[0])
-        if cross_product > epsilon:
-            continue  # Not collinear
-
-        # Check if the point is within the bounds of the edge
-        dot_product = (point_vector[0] * edge_vector[0] + point_vector[1] * edge_vector[1])
-        edge_length_squared = edge_vector[0]**2 + edge_vector[1]**2
-
-        if 0 <= dot_product <= edge_length_squared:
-            return True  # The point lies on this edge
-
-    return False
 
 
 def find_closest_intersected_edge(start_point, intersected_edges, polygon, epsilon=1e-9):
@@ -394,111 +386,3 @@ def shorter_path(start_point, end_point, obstacles, epsilon=1e-9):
             return False  # Line enters an obstacle
 
     return True  # Line does not enter any obstacle
-
-
-
-def compute_intermediate_path(temp_path, start_point, end_point, prev_intersecting_edge, obstacles, prev_polygon, direction):
-    """Follows and creates a path around obstacles in the specified direction.
-
-    :param temp_path: List of points representing the current path.
-    :param start_point: [x,y] coordinates of the start point.
-    :param end_point: [x,y] coordinates of the start point.
-    :param prev_intersecting_edge: Tuple representing the last intersecting edge.
-    :param obstacles: List of obstacles containing edges to avoid.
-    :param prev_polygon: The previous polygon (start point is end point for this polygons path)
-    :param direction: String indicating the direction to follow ('left' or 'right').
-    :return: List of points representing the updated path.
-    """
-
-    intersecting_edge = prev_intersecting_edge
-    counter = 0
-    best_alternate_path = [0] * 10000
-    print(f"Direction: {direction}")
-
-    while True:
-        # Current start point for this iteration
-        new_start_point = temp_path[-1]
-        print(f"new start point: {new_start_point}")
-
-        # Checking for new intersections from new start point to the original end point
-        intersected_edges = find_obstacle_intersections(new_start_point, end_point, obstacles)
-        print(f"next intersected edges: {intersected_edges}")
-
-        # Filter edges to remove those that are using the new start point as vertex in them
-        filtered_edges = filter_intersected_edges(intersecting_edge, intersected_edges, obstacles)
-        print(f"Next filtered edges: {filtered_edges}")
-
-        if len(filtered_edges) < 2:
-            print(f"Clear path found going {direction}")
-            break
-
-        # Storing the previous intersected edge to check if new obstacle is intersected
-        prev_intersecting_edge = intersecting_edge
-
-        # Finding the closest intersected edge
-        intersecting_edge = find_closest_intersected_edge(new_start_point, filtered_edges, prev_polygon)
-        print(f"Closest intersecting edge: {intersecting_edge}")
-
-        if direction == "left":
-            if shorter_path(start_point, intersecting_edge[0], obstacles):
-                temp_path = [temp_path[0], intersecting_edge[0]]
-                print(f"Shorter left")
-            else:
-                temp_path.append(intersecting_edge[0])
-
-        else:
-            if shorter_path(start_point, intersecting_edge[1], obstacles):
-                temp_path = [temp_path[0], intersecting_edge[1]]
-                print(f"Shorter right")
-            else:
-                temp_path.append(intersecting_edge[1])
-
-        if counter > 50:
-            print(f"Max iterations reached, no clear path found going {direction}")
-            break
-        counter += 1
-
-    print(f"Going: {direction}, path: {temp_path}")
-    return temp_path
-
-
-def avoid_obstacles(start_point, end_point, obstacles, prev_polygon):
-    """Finds a path avoiding obstacles between the start and end points.
-
-    :param start_point: Tuple representing the start point.
-    :param end_point: Tuple representing the end point.
-    :param obstacles: List of obstacles containing edges to avoid.
-    :param prev_polygon: The previous polygon (start point is end point for this polygons path)
-    :return: List of intermediate points for the path.
-    """
-
-    print(f"Start point: {start_point}")
-    print(f"End point: {end_point}")
-
-    intersected_edges = find_obstacle_intersections(start_point, end_point, obstacles)
-    print(f"initial intersected edges {intersected_edges}")
-
-    filtered_edges = filter_initial_intersections(intersected_edges, obstacles, start_point, end_point)
-    print(f"Initial filtered intersections: {filtered_edges}")
-
-    # Obstacle vertex intersected, but does not enter the obstacle, so we count it as a clear path
-    if len(filtered_edges) < 2:
-        print("No intersections, Clear path")
-        return []
-
-    # The path from start to end point crosses into an obstacle, and an intermediate path to reroute around it must be found
-    else:
-        print("Obstacle intersected")
-
-        # Finding the closest edge to start point that was intersected, using this to generate new start points
-        closest_intersected_edge = find_closest_intersected_edge(start_point, intersected_edges, prev_polygon)
-        print(f"Closest intersected edge: {closest_intersected_edge}")
-
-        # Computing paths going left and right direction around the obstacle
-        left_temp_path = compute_intermediate_path([start_point, closest_intersected_edge[0]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='left')
-        right_temp_path = compute_intermediate_path([start_point, closest_intersected_edge[1]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='right')
-
-        # Finding the best direction around the obstacles (prioritizes fewer turns)
-        intermediate_path = find_best_path(left_temp_path, right_temp_path)
-
-    return intermediate_path[1:]  # Start point in path gets appended in connect path before, so not included in intermediate path

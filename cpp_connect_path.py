@@ -1,6 +1,5 @@
 import numpy as np
-import unusued_cpp_hard_edges
-import cpp_avoid_obstacles
+import reroute_main
 
 
 def compute_total_distance(path):
@@ -231,10 +230,9 @@ def connect_path(polygons, total_intersections, region, obstacles):
             last_path_point = path[-1]  # Last point of the current path
             current_first_point = current_path[0]  # First point of the next path
 
-            # Compute intermediate points to avoid obstacles
-            intermediate_points = cpp_avoid_obstacles.avoid_obstacles(
-                last_path_point, current_first_point, hard_obstacles, polygons[i - 1]
-            )
+            # Compute intermediate points to avoid obstacles and region hard edges
+            intermediate_points = reroute_main.hard_edges_rerouting(
+                last_path_point, current_first_point, region, hard_obstacles, polygons[i - 1])
 
             # Append intermediate points and mark as transit
             for point in intermediate_points:
@@ -258,3 +256,5 @@ def connect_path(polygons, total_intersections, region, obstacles):
             path = np.vstack([path, current_path])
 
     return path, transit_flags
+
+
