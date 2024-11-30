@@ -521,9 +521,7 @@ def path_planner():
                         sorted_intersections = intersections
                         total_sorting_time = 0
 
-
-                    #plot_obstacles(sub_polygons, obstacles, True)
-                    #indices_to_keep = [26,27]
+                    #indices_to_keep = [21,22]
                     #sorted_sub_polygons = [sorted_sub_polygons[i] for i in indices_to_keep]
                     #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
 

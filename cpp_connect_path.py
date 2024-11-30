@@ -202,8 +202,8 @@ def extract_hard_edges(polygons):
 
 def connect_path(polygons, total_intersections, region, obstacles):
     path = np.empty((0, 2))  # Main path
-    transit_flags = []  # List to store flags for each point in the path
-    hard_edges = extract_hard_edges(polygons)
+    transit_flags = []  # List to store flags for each point in the main path
+    hard_region_edges = extract_hard_edges(polygons)
     hard_obstacles = [obstacle for obstacle in obstacles if obstacle.is_hard_obstacle]
 
     for i, poly in enumerate(polygons):
@@ -224,9 +224,9 @@ def connect_path(polygons, total_intersections, region, obstacles):
             current_path = connect_last_path(path, total_intersections[i])
 
         # Handle intermediate points between polygons
-        if i > 0 and hard_obstacles:
-            print()
-            print(f"Going from {i - 1} to {i}")
+        if i > 0 and hard_obstacles or hard_region_edges:  # Not needed if no hard obstacles or region edges present
+            #print()
+            #print(f"Going from {i - 1} to {i}")
             last_path_point = path[-1]  # Last point of the current path
             current_first_point = current_path[0]  # First point of the next path
 

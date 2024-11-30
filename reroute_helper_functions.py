@@ -1,6 +1,47 @@
 import numpy as np
 
 # Helper functions used for both obstacles and region hard edges
+def is_start_end_on_edge(start_point, end_point, v1, v2, epsilon = 1e-9):
+    edge_vector = np.array(v2) - np.array(v1)
+    start_vector = np.array(start_point) - np.array(v1)
+    end_vector = np.array(end_point) - np.array(v1)
+
+    # Check collinearity and within bounds
+    start_on_edge = (
+            abs(np.cross(edge_vector, start_vector)) < epsilon and
+            0 <= np.dot(start_vector, edge_vector) <= np.dot(edge_vector, edge_vector)
+    )
+    end_on_edge = (
+            abs(np.cross(edge_vector, end_vector)) < epsilon and
+            0 <= np.dot(end_vector, edge_vector) <= np.dot(edge_vector, edge_vector)
+    )
+    return start_on_edge, end_on_edge
+
+def calculate_winding_number(point, vertices, epsilon = 1e-9):
+    """Calculate the winding number for a point with respect to a polygon."""
+    x, y = point
+    winding_number = 0
+
+    for i in range(len(vertices)):
+        v1 = vertices[i]
+        v2 = vertices[(i + 1) % len(vertices)]  # Wrap around to the first vertex
+        x1, y1 = v1.x, v1.y
+        x2, y2 = v2.x, v2.y
+
+        # Calculate vectors
+        vec1 = np.array([x1 - x, y1 - y])
+        vec2 = np.array([x2 - x, y2 - y])
+
+        # Calculate cross product and angle
+        cross = np.cross(vec1, vec2)
+        dot = np.dot(vec1, vec2)
+        angle = np.arctan2(cross, dot)
+
+        # Accumulate winding number
+        winding_number += angle
+
+    return abs(winding_number) > epsilon
+
 def is_point_on_edges(point, edges, epsilon=1e-9):
     """
     Checks if a given point lies on any edge in a list of edges.

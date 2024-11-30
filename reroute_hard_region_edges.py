@@ -1,11 +1,19 @@
 import numpy as np
-from reroute_helper_functions import is_point_on_edges, find_best_path, line_intersection
+from reroute_helper_functions import is_point_on_edges, find_best_path, line_intersection, calculate_winding_number, \
+    is_start_end_on_edge
 
 
-def avoid_region_edges(start_point, end_point, intersected_region_edges, region):
+def reroute_path_region(start_point, end_point, intersected_region_edges, region):
+    """ Computes a path to avoid intersecting hard edges in a region.
 
+    :param start_point: Tuple (x, y) representing the starting point of the path.
+    :param end_point: Tuple (x, y) representing the ending point of the path.
+    :param intersected_region_edges: List of hard edges intersected by the current path.
+    :param region: The Polygon object representing the region.
+    :return: List of points forming the intermediate path that avoids hard edges.
+    """
     closest_intersected_region_edge = find_closest_intersected_region_edge(start_point, intersected_region_edges)
-    print(f"Closest region edge: {closest_intersected_region_edge}")
+    #print(f"Closest region edge: {closest_intersected_region_edge}")
 
     left_temp_path = compute_intermediate_region_path([start_point, closest_intersected_region_edge[0]], start_point, end_point, closest_intersected_region_edge, region, 'left')
     right_temp_path = compute_intermediate_region_path([start_point, closest_intersected_region_edge[1]], start_point, end_point, closest_intersected_region_edge, region, 'right')
@@ -13,22 +21,35 @@ def avoid_region_edges(start_point, end_point, intersected_region_edges, region)
 
     return intermediate_path
 
-def compute_intermediate_region_path(temp_path, start_point, end_point, closest_intersected_region_edge, region, direction):
 
-    print(f"Direction region: {direction}")
-    counter = 0
+def compute_intermediate_region_path(temp_path, start_point, end_point, closest_intersected_region_edge, region, direction):
+    """ Iteratively computes a path around hard edges in a region.
+
+    :param temp_path: List of points forming the current path.
+    :param start_point: Tuple (x, y) representing the starting point of the path.
+    :param end_point: Tuple (x, y) representing the ending point of the path.
+    :param closest_intersected_region_edge: The closest intersected hard edge to the start point.
+    :param region: The Polygon object representing the region.
+    :param direction: String indicating the direction to avoid edges ('left' or 'right').
+    :return: List of points forming the updated path.
+    """
+    #print(f"Direction region: {direction}")
     prev_intersected_edge = closest_intersected_region_edge
+    counter = 0
+    no_path = [[0,0]]*1000 # Incase no path is found, a large path is returned such that it is not picked
 
     while True:
+        # TODO: Recurse if new not connected to prev intersected hard edge, and check new left/right path
+        # TODO: Check for intersections with obstacles before adding any new path point (Very rare case)
 
         new_start_point = temp_path[-1]
-        print(f"New start point: {new_start_point}")
+        #print(f"New start point: {new_start_point}")
 
-        intersected_edges = find_region_hard_edge_intersections(new_start_point, end_point, region)
-        print(f"New intersected edges: {intersected_edges}")
+        intersected_edges = compute_hard_region_edge_intersections(new_start_point, end_point, region)
+        #print(f"New intersected edges: {intersected_edges}")
 
-        filtered_edges = filter_intersected_region_edges(intersected_edges, new_start_point, end_point, region)
-        print(f"New filtered edges: {filtered_edges}")
+        filtered_edges = filter_intersected_region_edges(new_start_point, end_point, intersected_edges, region)
+        #print(f"New filtered edges: {filtered_edges}")
 
         if len(filtered_edges) == 0:
             return temp_path
@@ -38,12 +59,12 @@ def compute_intermediate_region_path(temp_path, start_point, end_point, closest_
 
         if direction == 'left':
 
-            if shorter_path_region(start_point, closest_edge[0], region, epsilon=1e-9):
+            if is_shorter_region_path(start_point, closest_edge[0], region, epsilon=1e-9):
                 temp_path = [temp_path[0], closest_edge[0]]
             else:
                 temp_path.append(closest_edge[0])
         else:
-            if shorter_path_region(start_point, closest_edge[1], region, epsilon=1e-9):
+            if is_shorter_region_path(start_point, closest_edge[1], region, epsilon=1e-9):
                 temp_path = [temp_path[0], closest_edge[1]]
             else:
                 temp_path.append(closest_edge[1])
@@ -51,16 +72,95 @@ def compute_intermediate_region_path(temp_path, start_point, end_point, closest_
         # Should never be reached
         if counter > 1000:
             print(f"Max iterations reached, no clear path found going {direction}")
-            return []
+            return no_path
         counter += 1
 
 
-def find_closest_intersected_region_edge(start_point, intersected_edges, ignored_edge=None, epsilon=1e-9):
+def compute_hard_region_edge_intersections(start_point, end_point, region, epsilon=1e-9):
+    """ Finds all hard edges in the given region that intersect with a line segment or contain the start/end point.
+
+    :param start_point: Tuple (x, y) representing the start of the line segment.
+    :param end_point: Tuple (x, y) representing the end of the line segment.
+    :param region: A Polygon object representing the region to check.
+    :param epsilon: Float tolerance for floating-point comparisons.
+    :return: List of intersected hard edges as tuples ((x1, y1), (x2, y2)).
     """
-    Finds the closest intersected edge to the start point based on three metrics:
-    1. Distance to the closest vertex of the edge
-    2. Distance to the midpoint of the edge
-    3. Perpendicular distance from the start_point to the edge
+    intersected_hard_edges = []
+
+    # Check all edges in the region
+    for edge in region.edges:
+        if edge.is_hard_edge:  # Only consider hard edges
+            v1 = (edge.v_from.x, edge.v_from.y)
+            v2 = (edge.v_to.x, edge.v_to.y)
+
+            # Check if the hard edge intersects the start-end line
+            if line_intersection(start_point, end_point, v1, v2, epsilon):
+                intersected_hard_edges.append((v1, v2))
+            else:
+                # Check if start_point or end_point lies on the edge
+                start_on_edge, end_on_edge = is_start_end_on_edge(start_point, end_point, v1, v2)
+
+                if start_on_edge or end_on_edge:
+                    intersected_hard_edges.append((v1, v2))
+
+    return intersected_hard_edges
+
+
+def filter_intersected_region_edges(start_point, end_point, intersected_edges, region, epsilon=1e-9):
+    """ Filters intersected region edges based on whether the line segment between start_point and end_point
+        is inside or outside the region, or if start_point and end_point lie on the same or adjacent edges.
+
+    :param start_point: Tuple (x, y) representing the start of the line segment.
+    :param end_point: Tuple (x, y) representing the end of the line segment.
+    :param intersected_edges: List of intersected edges as tuples ((x1, y1), (x2, y2)).
+    :param region: A Polygon object representing the region.
+    :param epsilon: Float tolerance for floating-point comparisons.
+    :return: Filtered list of intersected edges. Returns an empty list if:
+             1. The line is inside the region.
+             2. start_point and end_point lie on the same or adjacent intersected edges.
+    """
+    if len(intersected_edges) == 1:
+        # Single intersected edge case
+        edge = intersected_edges[0]
+
+        # Check if start_point or end_point lies on the edge
+        start_on_edge = is_point_on_edges(start_point, [edge], epsilon)
+        end_on_edge = is_point_on_edges(end_point, [edge], epsilon)
+
+        if start_on_edge or end_on_edge:
+            # Use the winding algorithm to determine if the line is inside the region
+            if is_line_entering_region(start_point, end_point, region):
+                return []  # The line is inside the region; remove the edge
+
+    elif len(intersected_edges) > 1:
+        # Multiple intersected edges case
+        # Identify edges on which the start_point lies
+        edges_with_start = [edge for edge in intersected_edges if is_point_on_edges(start_point, [edge], epsilon)]
+        #print(f"Edges with start: {edges_with_start}")
+        # Identify edges on which the end_point lies
+        edges_with_end = [edge for edge in intersected_edges if is_point_on_edges(end_point, [edge], epsilon)]
+        #print(f"Edges with end: {edges_with_end}")
+
+        # If start_point lies on one or more edges, check if end_point lies on the same or adjacent edges
+        if edges_with_start and edges_with_end:
+            # Check for overlap between the two sets
+            for edge_start in edges_with_start:
+                if edge_start in edges_with_end:
+                    # Both points lie on the same edge
+                    return []
+
+            # If end_point is on a different edge, check if the line enters the region
+            if is_line_entering_region(start_point, end_point, region):
+                return []
+
+    return intersected_edges
+
+
+def find_closest_intersected_region_edge(start_point, intersected_edges, ignored_edge=None, epsilon=1e-9):
+    """ Finds the closest intersected edge to the start point based on three metrics:
+        1. Distance to the closest vertex of the edge
+        2. Distance to the midpoint of the edge
+        3. Perpendicular distance from the start_point to the edge
 
     :param start_point: Tuple (x, y) representing the start point.
     :param intersected_edges: List of edges as tuples ((x1, y1), (x2, y2)).
@@ -105,9 +205,9 @@ def find_closest_intersected_region_edge(start_point, intersected_edges, ignored
 
         # Combine distances to create a weighted score
         weighted_distance = (
-            0.5 * closest_vertex_distance +
-            0.3 * dist_to_midpoint +
-            0.2 * perpendicular_distance
+            1 * closest_vertex_distance +
+            1 * dist_to_midpoint +
+            0.5 * perpendicular_distance
         )
 
         # Update the closest edge if this one is better
@@ -118,60 +218,22 @@ def find_closest_intersected_region_edge(start_point, intersected_edges, ignored
     return closest_edge
 
 
-def filter_intersected_region_edges(intersected_edges, start_point, end_point, region, epsilon=1e-9):
-    """
-    Filters intersected region edges based on whether the line segment between start_point and end_point
-    is inside or outside the region, or if start_point and end_point lie on the same or adjacent edges.
+def is_line_entering_region(start_point, end_point, region):
+    """ Determines if the line segment between start_point and end_point is inside the region using the winding number algorithm.
 
-    :param intersected_edges: List of intersected edges as tuples ((x1, y1), (x2, y2)).
     :param start_point: Tuple (x, y) representing the start of the line segment.
     :param end_point: Tuple (x, y) representing the end of the line segment.
     :param region: A Polygon object representing the region.
-    :param epsilon: Float tolerance for floating-point comparisons.
-    :return: Filtered list of intersected edges. Returns an empty list if:
-             1. The line is inside the region.
-             2. start_point and end_point lie on the same or adjacent intersected edges.
+    :return: True if the line segment is inside the region, False otherwise.
     """
-    if len(intersected_edges) == 1:
-        # Single intersected edge case
-        edge = intersected_edges[0]
+    # Check the midpoint of the line segment
+    midpoint = ((start_point[0] + end_point[0]) / 2, (start_point[1] + end_point[1]) / 2)
 
-        # Check if start_point or end_point lies on the edge
-        start_on_edge = is_point_on_edges(start_point, [edge], epsilon)
-        end_on_edge = is_point_on_edges(end_point, [edge], epsilon)
-
-        if start_on_edge or end_on_edge:
-            # Use the winding algorithm to determine if the line is inside the region
-            if line_enters_region(start_point, end_point, region, epsilon):
-                return []  # The line is inside the region; remove the edge
-
-    elif len(intersected_edges) > 1:
-        # Multiple intersected edges case
-        # Identify edges on which the start_point lies
-        edges_with_start = [edge for edge in intersected_edges if is_point_on_edges(start_point, [edge], epsilon)]
-        print(f"Edges with start: {edges_with_start}")
-        # Identify edges on which the end_point lies
-        edges_with_end = [edge for edge in intersected_edges if is_point_on_edges(end_point, [edge], epsilon)]
-        print(f"Edges with end: {edges_with_end}")
-
-        # If start_point lies on one or more edges, check if end_point lies on the same or adjacent edges
-        if edges_with_start and edges_with_end:
-            # Check for overlap between the two sets
-            for edge_start in edges_with_start:
-                if edge_start in edges_with_end:
-                    # Both points lie on the same edge
-                    return []
-
-            # If end_point is on a different edge, check if the line enters the region
-            if line_enters_region(start_point, end_point, region, epsilon):
-                return []
-
-    return intersected_edges
+    return calculate_winding_number(midpoint, region.vertices)
 
 
-def shorter_path_region(start_point, end_point, region, epsilon=1e-9):
-    """
-    Checks if the line segment from start_point to end_point enters any region hard edge.
+def is_shorter_region_path(start_point, end_point, region, epsilon=1e-9):
+    """ Checks if the line segment from start_point to end_point enters any region hard edge.
 
     :param start_point: Tuple representing the starting point of the line segment (x, y).
     :param end_point: Tuple representing the ending point of the line segment (x, y).
@@ -191,87 +253,3 @@ def shorter_path_region(start_point, end_point, region, epsilon=1e-9):
             return False  # Line intersects a hard edge
 
     return True  # Line does not intersect any hard edge
-
-
-def line_enters_region(start_point, end_point, region, epsilon=1e-9):
-    """
-    Determines if the line segment between start_point and end_point is inside the region using the winding number algorithm.
-
-    :param start_point: Tuple (x, y) representing the start of the line segment.
-    :param end_point: Tuple (x, y) representing the end of the line segment.
-    :param region: A Polygon object representing the region.
-    :param epsilon: Float tolerance for floating-point comparisons.
-    :return: True if the line segment is inside the region, False otherwise.
-    """
-    def calculate_winding_number(point, vertices): # TODO use other winding implementation for both
-        """Calculate the winding number for a point with respect to a polygon."""
-        x, y = point
-        winding_number = 0
-
-        for i in range(len(vertices)):
-            v1 = vertices[i]
-            v2 = vertices[(i + 1) % len(vertices)]  # Wrap around to the first vertex
-            x1, y1 = v1.x, v1.y
-            x2, y2 = v2.x, v2.y
-
-            # Calculate vectors
-            vec1 = np.array([x1 - x, y1 - y])
-            vec2 = np.array([x2 - x, y2 - y])
-
-            # Calculate cross product and angle
-            cross = np.cross(vec1, vec2)
-            dot = np.dot(vec1, vec2)
-            angle = np.arctan2(cross, dot)
-
-            # Accumulate winding number
-            winding_number += angle
-
-        return abs(winding_number) > epsilon  # Non-zero winding number indicates the point is inside
-
-    # Check the midpoint of the line segment
-    midpoint = ((start_point[0] + end_point[0]) / 2, (start_point[1] + end_point[1]) / 2)
-    return calculate_winding_number(midpoint, region.vertices)
-
-
-def find_region_hard_edge_intersections(start_point, end_point, region, epsilon=1e-9):
-    """
-    Finds all hard edges in the given region that intersect with a line segment or contain the start/end point.
-
-    :param start_point: Tuple (x, y) representing the start of the line segment.
-    :param end_point: Tuple (x, y) representing the end of the line segment.
-    :param region: A Polygon object representing the region to check.
-    :param epsilon: Float tolerance for floating-point comparisons.
-    :return: List of intersected hard edges as tuples ((x1, y1), (x2, y2)).
-    """
-    intersected_hard_edges = []
-
-    # Check all edges in the region
-    for edge in region.edges:
-        if edge.is_hard_edge:  # Only consider hard edges
-            v1 = (edge.v_from.x, edge.v_from.y)
-            v2 = (edge.v_to.x, edge.v_to.y)
-
-            # Check if the hard edge intersects the start-end line
-            if line_intersection(start_point, end_point, v1, v2, epsilon):
-                intersected_hard_edges.append((v1, v2))
-            else:
-                # Check if start_point or end_point lies on the edge
-                edge_vector = np.array(v2) - np.array(v1)
-                start_vector = np.array(start_point) - np.array(v1)
-                end_vector = np.array(end_point) - np.array(v1)
-
-                # Check collinearity and within bounds
-                start_on_edge = (
-                    abs(np.cross(edge_vector, start_vector)) < epsilon and
-                    0 <= np.dot(start_vector, edge_vector) <= np.dot(edge_vector, edge_vector)
-                )
-                end_on_edge = (
-                    abs(np.cross(edge_vector, end_vector)) < epsilon and
-                    0 <= np.dot(end_vector, edge_vector) <= np.dot(edge_vector, edge_vector)
-                )
-
-                if start_on_edge or end_on_edge:
-                    intersected_hard_edges.append((v1, v2))
-
-    return intersected_hard_edges
-
