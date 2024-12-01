@@ -224,7 +224,7 @@ def connect_path(polygons, total_intersections, region, obstacles):
             current_path = connect_last_path(path, total_intersections[i])
 
         # Handle intermediate points between polygons
-        if i > 0 and hard_obstacles or hard_region_edges:  # Not needed if no hard obstacles or region edges present
+        if i > 0 and (hard_obstacles or hard_region_edges):  # Not needed if no hard obstacles or region edges present
             #print()
             #print(f"Going from {i - 1} to {i}")
             last_path_point = path[-1]  # Last point of the current path
@@ -256,5 +256,3 @@ def connect_path(polygons, total_intersections, region, obstacles):
             path = np.vstack([path, current_path])
 
     return path, transit_flags
-
-
