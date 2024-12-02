@@ -62,9 +62,9 @@ def compute_turns(path):
         angle_deg = np.degrees(angle_rad)  # Convert to degrees
 
         # Classify the turns based on the angle
-        if angle_deg < 45:
+        if angle_deg < 45 or angle_deg > 180:
             hard_turns += 1
-        elif 45 <= angle_deg < 90:
+        elif 45 <= angle_deg <= 90:
             medium_turns += 1
         else:
             soft_turns += 1
@@ -236,9 +236,9 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
         print(f'Outlier area: {outlier_area.area}')
         print(f'Overlap area: {overlap_area.area}')
         print(f'Total turns: {total_turns}')
-        print(f'Hard turns (<45): {hard_turns}')
+        print(f'Hard turns (<45 or >180): {hard_turns}')
         print(f'Medium turns (45-90): {medium_turns}')
-        print(f'Soft turns (>90): {soft_turns}')
+        print(f'Soft turns (90-180): {soft_turns}')
 
     if store_data:
         output_file = "coverage_results.txt"
@@ -253,9 +253,9 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
             file.write(f"Path Distance: {path_distance}\n")
             file.write(f"Transit Distance: {transit_distance}\n")
             file.write(f"Total turns: {total_turns}\n")
-            file.write(f"Hard turns (<45): {hard_turns}\n")
+            file.write(f"Hard turns (<45 or >180): {hard_turns}\n")
             file.write(f"Medium turns (45-90): {medium_turns}\n")
-            file.write(f"Soft turns (>90): {soft_turns}\n")
+            file.write(f"Soft turns (91-180): {soft_turns}\n")
 
     # Preparing to return the data
     result = {

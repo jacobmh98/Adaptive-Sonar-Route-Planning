@@ -144,6 +144,7 @@ class Polygon:
 
     def get_mate(self, b):
         """ Find b's neighbour b_mate (counterclockwise neighbour)
+
         :param self: Polygon
         :param b: int, index of vertex b
         :return neighbour: int, index of b's neighbour vertex b_mate
@@ -157,6 +158,7 @@ class Polygon:
 
     def get_previous_vertex(self, b):
         """ Find b's previous neighbour
+
         :param self: Polygon
         :param b: int, index of vertex b
         :return neighbour: int, index of b's previous neighbour
@@ -206,6 +208,7 @@ class Polygon:
 
     def is_point_in_intersections(self, point, intersections, epsilon=1e-9):
         """ Check if a point is already in the intersections array, using a tolerance (epsilon) to handle floating-point precision.
+
         :param point: The intersection point to check (array-like)
         :param intersections: The list of existing intersection points
         :param epsilon: Tolerance for comparing floating-point numbers
@@ -245,4 +248,3 @@ class Polygon:
             intersections = unique_points
 
         return intersections
-

@@ -93,16 +93,16 @@ intersections = cpp_path_planning.multi_intersection_planning(combined_polygons,
 # Choosing sorting method
 if dfs_sorting:
     print("DFS Sorting")
-    sorted_combined_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(combined_polygons, intersections)
+    sorted_combined_polygons, sorted_sub_poly, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(combined_polygons, intersections)
 
 elif tsp_centroid_sorting:
     print("TSP Centroid Sorting")
-    sorted_combined_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(combined_polygons, intersections)
+    sorted_combined_polygons, sorted_sub_poly, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(combined_polygons, intersections)
 
 elif tsp_intra_regional_sorting:
     print("TSP Intra Regional Sorting")
     # Using intersections start/end pairs to find optimal sorting order using tsp
-    sorted_combined_polygons, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(combined_polygons, intersections, trials = 2)
+    sorted_combined_polygons, sorted_sub_poly, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(combined_polygons, intersections, trials = 2)
 
 else:
     print('Baseline path:')
@@ -110,7 +110,7 @@ else:
     sorted_intersections = intersections
 
 # Computing new intersections (if running intra regional) using the sorted combined polygons
-path, transit_flags = cpp_connect_path.connect_path(sorted_combined_polygons, sorted_intersections, region)
+path, transit_flags = cpp_connect_path.connect_path(sorted_combined_polygons, sorted_intersections, region, obstacles)
 
 print(f'Number of polygons = {len(sorted_combined_polygons)}')
 

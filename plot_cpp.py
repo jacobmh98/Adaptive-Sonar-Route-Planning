@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 from matplotlib.patches import Patch
-from matplotlib.patheffects import Stroke, Normal
 from shapely.geometry import MultiPolygon
 from Polygon import Polygon
 

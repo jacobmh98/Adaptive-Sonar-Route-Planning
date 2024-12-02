@@ -47,7 +47,7 @@ def plot_subpolygons_with_distances(polygons, pairs):
     """
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    # Plot each subpolygon and its start-end pairs
+    # Plot each sub polygon and its start-end pairs
     for i, (polygon, (start, end)) in enumerate(zip(polygons, pairs)):
         # Plot the polygon outline
         x_coords, y_coords = polygon.get_coords()
@@ -74,7 +74,7 @@ def plot_subpolygons_with_distances(polygons, pairs):
                 ax.text(mid_x, mid_y, f'{distance:.2f}', color='purple', fontsize=8, ha='center')
 
     # Set plot title and aspect ratio
-    ax.set_title("Subpolygons with Start-End Connections and Distances")
+    ax.set_title("Sub polygons with Start-End Connections and Distances")
     ax.set_aspect('equal')
     plt.show()
 
@@ -110,8 +110,7 @@ def plot_distance_matrix(matrix, labels=None):
     plt.show()
 
 def plot_polygon_with_start_end_pairs(polygon, start_end_pairs):
-    """
-    Plot a single subpolygon with its start-end pairs labeled.
+    """ Plot a single sub polygon with its start-end pairs labeled.
 
     :param polygon: Polygon object with vertices
     :param start_end_pairs: List of start-end pairs for the polygon
@@ -131,5 +130,5 @@ def plot_polygon_with_start_end_pairs(polygon, start_end_pairs):
         ax.set_title(f'Start-End Pair {i + 1}')
         ax.set_aspect('equal')
 
-    fig.suptitle('Start-End Pairs on Subpolygon')
+    fig.suptitle('Start-End Pairs on Sub polygon')
     plt.show()

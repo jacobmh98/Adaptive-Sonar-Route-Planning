@@ -242,9 +242,13 @@ def connect_path(polygons, total_intersections, region, obstacles):
         # Append the current path to the main path
         if current_path:
 
-            # Duplicating start point for polys with just 2 path points, else that path will just be counted as transit
+            # Add a new point between the two existing points for paths with just 2 points
             if len(current_path) == 2:
-                current_path = np.insert(current_path, 1, current_path[0], axis=0)
+                # Compute the midpoint between the two points
+                midpoint = (current_path[0] + current_path[1]) / 2.0
+
+                # Insert the midpoint into the array at position 1
+                current_path = np.insert(current_path, 1, midpoint, axis=0)
 
             # Add flags for the current path
             for idx, point in enumerate(current_path):
@@ -256,3 +260,21 @@ def connect_path(polygons, total_intersections, region, obstacles):
             path = np.vstack([path, current_path])
 
     return path, transit_flags
+
+
+def remove_duplicate_points_preserve_order(path):
+    """
+    Removes duplicate points from a 2D NumPy array while preserving the original order.
+
+    :param path: A 2D NumPy array where each row is a point [x, y].
+    :return: A 2D NumPy array with duplicates removed, order preserved.
+    """
+    seen = set()
+    unique_path = []
+    for point in path:
+        # Convert the point to a tuple (hashable) for uniqueness
+        point_tuple = tuple(point)
+        if point_tuple not in seen:
+            seen.add(point_tuple)
+            unique_path.append(point)
+    return np.array(unique_path)

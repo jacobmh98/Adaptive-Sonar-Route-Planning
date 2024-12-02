@@ -1,3 +1,4 @@
+import cpp_alternative_path_finders
 import cpp_path_intersections
 import cpp_antipodal_pairs
 
@@ -18,6 +19,7 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_
     # Iterate over all antipodal pairs (b, a) in the current polygon
     for (i, j) in d_pq:
         # Compute the best path for the current antipodal pair
+
         current_intersections = cpp_path_intersections.best_intersection(polygon, current_path_width, current_overlap_distance, i, j, boundary_box)
 
         # TODO: Create a better cost function finding an optimal mix between distance and turn heuristics
@@ -63,7 +65,7 @@ def multi_intersection_planning(polygons, current_path_width, current_overlap_di
         # Computing the intersections for the current polygon
         intersections = rotating_calipers_path_planner(current_poly, current_path_width, current_overlap_distance, diametric_antipodal_pairs, boundary_box)
 
-        # Check if intersections found, otherwise initialize an empty list
+        # Check if intersections found, otherwise initialize an empty list (should not hit, but avoids error when appending with None)
         if not intersections:
             intersections = []
 

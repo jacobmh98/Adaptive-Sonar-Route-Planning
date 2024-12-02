@@ -11,6 +11,9 @@ from datetime import datetime
 import numpy as np
 from matplotlib.backends._backend_tk import NavigationToolbar2Tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from shapely.lib import boundary
+
+import cpp_alternative_path_finders
 import cpp_connect_path
 import cpp_path_planning
 import decomposition
@@ -528,6 +531,8 @@ def path_planner():
                     # Computing path
                     path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections,
                                                                         region, obstacles)
+                    # Removing duplicate points from the path
+                    path = cpp_connect_path.remove_duplicate_points_preserve_order(path)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
@@ -540,6 +545,14 @@ def path_planner():
                     # No transit lines for a single polygon - Might be unnecessary since none should be added
                     if len(sorted_col_removed_sub_polygons) == 1:
                         transit_flags = [None] * len(transit_flags)
+
+                    spiral_path = True
+
+                    if spiral_path:
+                        boundary_box = sorted_sub_polygons[0].compute_boundary()
+                        path = cpp_alternative_path_finders.compute_spiral_path(sorted_sub_polygons[0], chosen_path_width, boundary_box)
+                        path = cpp_connect_path.remove_duplicate_points_preserve_order(path)
+                        transit_flags = [None] * len(path)
 
                     # Computing plot for path
                     fig_path = plot_cpp.plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path, obstacles,
