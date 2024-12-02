@@ -20,6 +20,7 @@ import decomposition
 import plot_cpp
 import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
+import sorting_tsp_greedy
 import sorting_tsp_intra_regional
 import cpp_path_data
 from decomposition import sum_of_widths, optimize_polygons, remove_collinear_vertices
@@ -503,17 +504,7 @@ def path_planner():
                         sorting_start_time = time.time()
                         value = tsp_iterations.get()
 
-                        if value:
-                            value = int(value)
-                            if value > 0:
-                                sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = (sorting_tsp_intra_regional.
-                                                                             solve_intra_regional_tsp(
-                                                                             removed_col_sub_polygons,
-                                                                             intersections, value))
-                            else:
-                                sorted_sub_polygons = sub_polygons
-                                sorted_col_removed_sub_polygons = removed_col_sub_polygons
-                                sorted_intersections = intersections
+                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = sorting_tsp_greedy.solve_greedy_tsp_sorting(removed_col_sub_polygons, intersections)
 
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time

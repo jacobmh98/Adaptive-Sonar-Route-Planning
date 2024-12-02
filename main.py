@@ -112,7 +112,7 @@ else:
 # Computing new intersections (if running intra regional) using the sorted combined polygons
 path, transit_flags = cpp_connect_path.connect_path(sorted_combined_polygons, sorted_intersections, region, obstacles)
 
-print(f'Number of polygons = {len(sorted_combined_polygons)}')
+print(f'Number of polygons (main)= {len(sorted_combined_polygons)}')
 
 # Ending timer and computing total execution time
 total_end_time = time.time()

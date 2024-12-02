@@ -278,3 +278,16 @@ def remove_duplicate_points_preserve_order(path):
             seen.add(point_tuple)
             unique_path.append(point)
     return np.array(unique_path)
+
+
+def connect_path_for_tsp(start_pair, intersections):
+    """ Create a TSP path starting from a given pair and connecting all intersections in sequence.
+
+    :param start_pair: Tuple, (start, end) pair to initiate the path
+    :param intersections: List of intersection points
+    :return: Complete path connecting intersections in order
+    """
+    path = [start_pair[0], start_pair[1]]
+    for intersection in intersections[1:]:
+        path = add_intersection_points_to_path(path, intersection)
+    return path

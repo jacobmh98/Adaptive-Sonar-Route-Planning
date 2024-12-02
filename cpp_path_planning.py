@@ -44,8 +44,8 @@ def multi_intersection_planning(polygons, current_path_width, current_overlap_di
     total_intersections = []
 
     for i, current_poly in enumerate(polygons):
-        print()
-        print(f"Current poly index: {i}")
+        #print()
+        #print(f"Current poly index: {i}")
         # Computing boundary box for the polygon
         boundary_box = current_poly.compute_boundary()
 
