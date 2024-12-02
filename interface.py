@@ -546,7 +546,8 @@ def path_planner():
                     if len(sorted_col_removed_sub_polygons) == 1:
                         transit_flags = [None] * len(transit_flags)
 
-                    spiral_path = True
+                    # Set to true to check spiral path, only works for rectangles
+                    spiral_path = False
 
                     if spiral_path:
                         boundary_box = sorted_sub_polygons[0].compute_boundary()
