@@ -454,7 +454,7 @@ def update_stats():
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
 
 def path_planner():
-    global current_plot_index, sorting_variable, tsp_iterations, show_coverage_var, \
+    global current_plot_index, sorting_variable, show_coverage_var, \
            use_transit_lines_var, hide_plot_legend_var, hide_sub_polygon_indices_var
 
     if len(sub_polygons_list) != 0:
@@ -471,6 +471,7 @@ def path_planner():
                     global chosen_path_width, chosen_overlap_distance
                     chosen_path_width = float(path_width_value)
                     chosen_overlap_distance = float(overlap_value)
+                    #sub_polygons = [sub_polygons[95], sub_polygons[96]]
 
                     # Removing collinear vertices
                     removed_col_sub_polygons = []
@@ -479,7 +480,6 @@ def path_planner():
 
                     total_start_time = time.time()
                     intersections = cpp_path_planning.multi_intersection_planning(removed_col_sub_polygons, chosen_path_width, chosen_overlap_distance)
-
                     sorting_var = sorting_variable.get()
 
                     if len(removed_col_sub_polygons) < 3:
@@ -502,10 +502,7 @@ def path_planner():
                     elif sorting_var == 'TSP Intra Regional':
                         print("Intra Regional")
                         sorting_start_time = time.time()
-                        value = tsp_iterations.get()
-
                         sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = sorting_tsp_greedy.solve_greedy_tsp_sorting(removed_col_sub_polygons, intersections)
-
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
                     else:
@@ -515,7 +512,7 @@ def path_planner():
                         sorted_intersections = intersections
                         total_sorting_time = 0
 
-                    #indices_to_keep = [21,22]
+                    #indices_to_keep = [93,94]
                     #sorted_sub_polygons = [sorted_sub_polygons[i] for i in indices_to_keep]
                     #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
 
@@ -701,7 +698,7 @@ def setup_plot_pane():
     scrollable_content.bind("<Configure>", update_scrollregion)
 
 def toggle_sorting_method():
-    global tsp_iterations, sorting_variable
+    global sorting_variable
     if sorting_variable.get() == 'TSP Intra Regional':
         tsp_iterations.config(state="normal")
     else:
@@ -735,7 +732,7 @@ def optimize():
 
 def setup_option_pane():
     """ Creating the options pane """
-    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, tsp_iterations, \
+    global label, decomposition_variable, path_width_entry, overlap_distance_entry, sorting_variable, \
            show_coverage_var, use_transit_lines_var, hide_plot_legend_var, hide_sub_polygon_indices_var
 
     Label(options_pane, text='Select File', font=("Arial", 14)).pack(anchor='w')
@@ -777,13 +774,6 @@ def setup_option_pane():
     rb6.pack(anchor='w')
     rb7.pack(anchor='w')
 
-    Label(options_pane, text='Iterations', font=("Arial", 10)).pack(anchor='w')
-
-    tsp_iterations = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
-    tsp_iterations.pack(anchor='w')
-    tsp_iterations.insert(0, '10')
-    tsp_iterations.config(state="disabled")
-
     Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
     show_coverage_var = IntVar()
@@ -795,7 +785,6 @@ def setup_option_pane():
     Checkbutton(options_pane, text="Use Transit Lines", variable=use_transit_lines_var).pack(anchor='w')
     Checkbutton(options_pane, text="Hide Plot legend", variable=hide_plot_legend_var).pack(anchor='w')
     Checkbutton(options_pane, text="Hide Sub Polygon Indices", variable=hide_sub_polygon_indices_var).pack(anchor='w')
-
 
     Button(options_pane, text='Create Path', command=path_planner).pack(anchor='w')
 

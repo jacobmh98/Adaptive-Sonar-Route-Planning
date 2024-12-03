@@ -71,12 +71,6 @@ def filter_and_remove_redundant_pairs(polygon, antipodal_pairs):
             # Allow neighbors along the hypotenuse
             if (i, j) == hypotenuse_indices or (j, i) == hypotenuse_indices:
                 unique_pairs.add((i, j))
-            else:
-                # Check if i and j are neighbors (for non-triangle cases)
-                if abs(i - j) != 1 and abs(i - j) != n - 1:
-                    # Add the pair if its reverse doesn't exist
-                    if (j, i) not in unique_pairs:
-                        unique_pairs.add((i, j))
 
     # General case for polygons with more than 3 vertices
     else:

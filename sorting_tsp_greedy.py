@@ -1,7 +1,5 @@
 import numpy as np
 import cpp_connect_path
-from main import sorted_intersections
-
 
 def get_pairs(intersections):
     """
@@ -71,8 +69,8 @@ def solve_greedy_tsp_sorting(polygons, all_intersections):
     """
 
     # Step 1: Generate start/end pairs for each polygon
-    subpolygons = [get_pairs(intersections) for intersections in all_intersections]
-    print(f"subpolygons: {subpolygons}")
+    all_polygon_start_end_pairs = [get_pairs(intersections) for intersections in all_intersections]
+    print(f"all_polygon_start_end_pairs: {all_polygon_start_end_pairs}")
 
     # Initialize variables to track the best path
     best_path = None
@@ -86,24 +84,24 @@ def solve_greedy_tsp_sorting(polygons, all_intersections):
         path = [(0, start_pair_index)]  # Start with the first polygon and this pair
         total_distance = 0
         current_pair_index = start_pair_index
-        current_end_point = subpolygons[0][start_pair_index][1]  # End point of the current pair
+        current_end_point = all_polygon_start_end_pairs[0][start_pair_index][1]  # End point of the current pair
 
         visited = set()  # Keep track of visited polygons
         visited.add(0)  # Mark the first polygon as visited
 
         # Step 3: Iteratively find the closest pair for all other polygons
-        while len(visited) < len(subpolygons):
+        while len(visited) < len(all_polygon_start_end_pairs):
             # Find the next closest polygon and pair
             next_polygon_index = None
             next_pair_index = None
             min_distance = float('inf')
 
-            for n in range(len(subpolygons)):
+            for n in range(len(all_polygon_start_end_pairs)):
                 if n in visited:
                     continue  # Skip already visited polygons
 
                 for j in range(4):  # Test all 4 pairs in the current polygon
-                    start_point = subpolygons[n][j][0]  # Start point of the pair
+                    start_point = all_polygon_start_end_pairs[n][j][0]  # Start point of the pair
                     distance = euclidean_distance(current_end_point, start_point)
 
                     if distance < min_distance:
@@ -114,7 +112,7 @@ def solve_greedy_tsp_sorting(polygons, all_intersections):
             # Update the path and total distance
             path.append((next_polygon_index, next_pair_index))
             total_distance += min_distance
-            current_end_point = subpolygons[next_polygon_index][next_pair_index][1]  # Update end point
+            current_end_point = all_polygon_start_end_pairs[next_polygon_index][next_pair_index][1]  # Update end point
             visited.add(next_polygon_index)  # Mark as visited
 
         # Step 4: Check if this path is the best

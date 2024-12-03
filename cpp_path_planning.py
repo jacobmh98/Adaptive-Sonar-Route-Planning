@@ -1,6 +1,7 @@
 import cpp_alternative_path_finders
 import cpp_path_intersections
 import cpp_antipodal_pairs
+from obstacles import plot_obstacles
 
 
 def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_distance, d_pq, boundary_box):
@@ -36,10 +37,10 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_
 def multi_intersection_planning(polygons, current_path_width, current_overlap_distance):
     """
     :param polygons: List of Polygons
-    :param current_path_width: Width of the planned path
+    :param current_path_width: Float, chosen width of the planned path
+    :param current_overlap_distance: Float, chosen overlap width
     :return: List of lists containing intersection points for each polygon.
     """
-
     # Creating the list to store intersections for each polygon
     total_intersections = []
 
