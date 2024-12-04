@@ -337,8 +337,10 @@ def best_intersection(poly, current_path_width, current_overlap_distance, i, j, 
     :param boundary: List of polygon's boundaries
     :return intersections: A list of intersection pairs for the given polygon
     """
+    vertex_amount = len(poly.vertices)
+
     # Triangle edge case
-    if len(poly.vertices) == 3:
+    if vertex_amount == 3:
         b_index = i
         b_mate_index = j
 
@@ -364,19 +366,27 @@ def best_intersection(poly, current_path_width, current_overlap_distance, i, j, 
         gamma_a = compute_angle(poly.vertices[a_index-1].v, poly.vertices[a_index].v) - phi
 
         if gamma_b < gamma_a:
-            b2_index = b_index - 1
+            if b_index == 0:
+                b2_index = vertex_amount-1
+            else:
+                b2_index = b_index - 1
             a2_index = a_index
         else:
-            b2_index = a_index - 1
+            if a_index == 0:
+                b2_index = vertex_amount-1
+            else:
+                b2_index = a_index - 1
             a2_index = b_index
 
         # Checking if new points are neighbours, if so these are not needed
         if are_neighbors(len(poly.vertices), b2_index, a2_index):
+            #print(f"Are neighbours: {b2_index}, {a2_index}")
             intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
             return intersections
 
-        # In cases of either b2 or a2 is negative, the standard is returned
+        # In cases of either b2 or a2 is negative, the standard is returned (Should never hit)
         elif b2_index < 0 or a2_index < 0:
+            #print(f"Are negative: {b2_index}, {a2_index}")
             intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
             return intersections
 
@@ -386,21 +396,11 @@ def best_intersection(poly, current_path_width, current_overlap_distance, i, j, 
         else:
             intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b2_index, poly.get_mate(b2_index), a2_index, boundary)
 
-        # Check for a few edge cases where rotating caliper does not compute optimal path
-        #edge_case_one_intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
-        #edge_case_two_intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b2_index, poly.get_mate(b2_index), a2_index, boundary)
-        #if len(edge_case_one_intersections) < len(edge_case_two_intersections):
-         #   if len(edge_case_one_intersections) < len(intersections):
-         #       intersections = edge_case_one_intersections
-        #elif len(edge_case_two_intersections) < len(intersections):
-        #    intersections = edge_case_two_intersections
-
     return intersections
 
 
 def are_neighbors(polygon_length, index1, index2):
-    """
-    Check if two points are neighbors (adjacent) on a polygon.
+    """ Check if two points are neighbors (adjacent) on a polygon.
 
     :param polygon_length: Total number of vertices in the polygon.
     :param index1: Index of the first vertex.
