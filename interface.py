@@ -3,30 +3,23 @@ import os
 import pickle
 import sys
 import time
-from tkinter import *
-from tkinter import filedialog
 import logging
-from datetime import datetime
-
-import numpy as np
-from matplotlib.backends._backend_tk import NavigationToolbar2Tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from shapely.lib import boundary
-
-import cpp_alternative_path_finders
-import cpp_connect_path
-import cpp_path_planning
-import decomposition
-import plot_cpp
-import sorting_dfs_adjacency_graph
-import sorting_tsp_centroid
-import sorting_tsp_greedy
-import sorting_tsp_intra_regional
-import cpp_path_data
-from decomposition import sum_of_widths, optimize_polygons, remove_collinear_vertices
-from global_variables import number_of_tsp_trials
+import traceback
+from cpp_alternative_path_finders import compute_spiral_path
+from cpp_connect_path import connect_path, remove_duplicate_points_preserve_order
+from cpp_path_planning import multi_intersection_planning
+from decomposition import sum_of_widths, remove_collinear_vertices, optimize_polygons
+from plot_cpp import plot_multi_polys_path, plot_coverage_areas
+from sorting_dfs_adjacency_graph import solve_dfs
+from sorting_tsp_centroid import solve_centroid_tsp
+from sorting_tsp_greedy import solve_greedy_tsp_sorting
+from cpp_path_data import compute_path_data
 from load_data import get_region, generate_new_data
 from obstacles import plot_obstacles, decompose_sweep_line, merge_filtered_sub_polygons, find_bounding_polygons
+from tkinter import *
+from tkinter import filedialog
+from datetime import datetime
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 # Define global variables
 file_path = None
@@ -470,16 +463,19 @@ def path_planner():
                     # Convert to integer
                     global chosen_path_width, chosen_overlap_distance
                     chosen_path_width = float(path_width_value)
+                    if chosen_path_width == 0:
+                        chosen_path_width = 10
+                        print("0 not valid path width, it is set to 10")
+
                     chosen_overlap_distance = float(overlap_value)
-                    #sub_polygons = [sub_polygons[95], sub_polygons[96]]
 
                     # Removing collinear vertices
                     removed_col_sub_polygons = []
                     for poly in sub_polygons:
-                        removed_col_sub_polygons.append(decomposition.remove_collinear_vertices(poly))
+                        removed_col_sub_polygons.append(remove_collinear_vertices(poly))
 
                     total_start_time = time.time()
-                    intersections = cpp_path_planning.multi_intersection_planning(removed_col_sub_polygons, chosen_path_width, chosen_overlap_distance)
+                    intersections = multi_intersection_planning(removed_col_sub_polygons, chosen_path_width, chosen_overlap_distance)
                     sorting_var = sorting_variable.get()
 
                     if len(removed_col_sub_polygons) < 3:
@@ -488,21 +484,21 @@ def path_planner():
                     if sorting_var == 'DFS':
                         print("DFS")
                         sorting_start_time = time.time()
-                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = sorting_dfs_adjacency_graph.solve_dfs(removed_col_sub_polygons, intersections)
+                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = solve_dfs(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
 
                     elif sorting_var == 'TSP Centroid':
                         print("Centroids")
                         sorting_start_time = time.time()
-                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(removed_col_sub_polygons, intersections)
+                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = solve_centroid_tsp(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
 
                     elif sorting_var == 'TSP Intra Regional':
                         print("Intra Regional")
                         sorting_start_time = time.time()
-                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = sorting_tsp_greedy.solve_greedy_tsp_sorting(removed_col_sub_polygons, intersections)
+                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = solve_greedy_tsp_sorting(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
                     else:
@@ -512,15 +508,12 @@ def path_planner():
                         sorted_intersections = intersections
                         total_sorting_time = 0
 
-                    #indices_to_keep = [93,94]
-                    #sorted_sub_polygons = [sorted_sub_polygons[i] for i in indices_to_keep]
-                    #sorted_intersections = cpp_path_planning.multi_intersection_planning(sorted_sub_polygons, chosen_path_width, chosen_overlap_distance)
-
                     # Computing path
-                    path, transit_flags = cpp_connect_path.connect_path(sorted_sub_polygons, sorted_intersections,
+                    path, transit_flags = connect_path(sorted_sub_polygons, sorted_intersections,
                                                                         region, obstacles)
-                    # Removing duplicate points from the path
-                    path = cpp_connect_path.remove_duplicate_points_preserve_order(path)
+
+                    # Removing duplicate points from the path OBS: Creates some errors with hard edges rerouting (same vertices used to navigate around obstacles/hard edges)
+                    #path, transit_flags = remove_duplicate_points_preserve_order(path, transit_flags)
 
                     # Ending timer and computing total execution time
                     total_end_time = time.time()
@@ -539,17 +532,17 @@ def path_planner():
 
                     if spiral_path:
                         boundary_box = sorted_sub_polygons[0].compute_boundary()
-                        path = cpp_alternative_path_finders.compute_spiral_path(sorted_sub_polygons[0], chosen_path_width, boundary_box)
-                        path = cpp_connect_path.remove_duplicate_points_preserve_order(path)
+                        path = compute_spiral_path(sorted_sub_polygons[0], chosen_path_width, boundary_box)
+                        path = remove_duplicate_points_preserve_order(path)
                         transit_flags = [None] * len(path)
 
                     # Computing plot for path
-                    fig_path = plot_cpp.plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path, obstacles,
+                    fig_path = plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path, obstacles,
                                                               False, transit_flags,
                                                               hide_plot_legend_var.get(), hide_sub_polygon_indices_var.get())
 
                     # Computing data about path
-                    stats_dict = cpp_path_data.compute_path_data(region, path, transit_flags, chosen_path_width,
+                    stats_dict = compute_path_data(region, path, transit_flags, chosen_path_width,
                                                                  obstacles, total_execution_time)
 
                     stats_dict['total_execution_time'] = total_execution_time
@@ -569,7 +562,7 @@ def path_planner():
 
                     # Checking if user wants to see coverage plot
                     if show_coverage_var.get():
-                        fig_coverage = plot_cpp.plot_coverage_areas(sorted_sub_polygons,
+                        fig_coverage = plot_coverage_areas(sorted_sub_polygons,
                                                                     stats_dict["covered_area"],
                                                                     stats_dict["overlapped_lines"],
                                                                     stats_dict["outlying_area"],
@@ -594,8 +587,10 @@ def path_planner():
                     current_plot_index = len(plots) - 1
                     update_plot()
 
-                except ValueError:
-                    None
+
+                except Exception as e:  # Catch all exceptions
+                    print(str(e))  # Print the exception message
+                    traceback.print_exc()  # Print the full traceback for debugging
 
 def is_float(value):
     try:
@@ -610,6 +605,15 @@ def validate_integer_input(new_value):
         return True
     else:
         return False
+
+
+def validate_path_width_input(new_value):
+    # Allow empty input (so user can delete characters) or integer
+    if new_value == "" or is_float(new_value):
+        return True
+    else:
+        return False
+
 
 def save_data():
     global file_path
@@ -697,13 +701,6 @@ def setup_plot_pane():
     # Bind the <Configure> event of the `scrollable_content` frame
     scrollable_content.bind("<Configure>", update_scrollregion)
 
-def toggle_sorting_method():
-    global sorting_variable
-    if sorting_variable.get() == 'TSP Intra Regional':
-        tsp_iterations.config(state="normal")
-    else:
-        tsp_iterations.config(state="disabled")
-
 def optimize():
     global current_plot_index
 
@@ -740,7 +737,7 @@ def setup_option_pane():
 
     Label(options_pane, text='Decomposition Algorithm', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
-    decomposition_variable = StringVar(value='Greedy Recursive')
+    decomposition_variable = StringVar(value='Combination')
     rb1 = Radiobutton(options_pane, text='Greedy Recursive', variable=decomposition_variable, value='Greedy Recursive')
     rb2 = Radiobutton(options_pane, text='Sweep Line', variable=decomposition_variable, value='Sweep Line')
     rb3 = Radiobutton(options_pane, text='Combination', variable=decomposition_variable, value='Combination')
@@ -753,7 +750,7 @@ def setup_option_pane():
 
     Label(options_pane, text='Path Width', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
-    path_width_entry = Entry(options_pane, validate="key", validatecommand=(validate_cmd, "%P"))
+    path_width_entry = Entry(options_pane, validate="key", validatecommand=(validate_path_width, "%P"))
     path_width_entry.pack(anchor='w')
     path_width_entry.insert(0, '10')
 
@@ -765,10 +762,10 @@ def setup_option_pane():
     Label(options_pane, text='Sorting Method', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
     sorting_variable = StringVar(value='Unordered')
-    rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered', command=toggle_sorting_method)
-    rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS', command=toggle_sorting_method)
-    rb6 = Radiobutton(options_pane, text='TSP Centroid', variable=sorting_variable, value='TSP Centroid', command=toggle_sorting_method)
-    rb7 = Radiobutton(options_pane, text='TSP Intra Regional', variable=sorting_variable, value='TSP Intra Regional', command=toggle_sorting_method)
+    rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered')
+    rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS')
+    rb6 = Radiobutton(options_pane, text='TSP Centroid', variable=sorting_variable, value='TSP Centroid')
+    rb7 = Radiobutton(options_pane, text='TSP Intra Regional', variable=sorting_variable, value='TSP Intra Regional')
     rb4.pack(anchor='w')
     rb5.pack(anchor='w')
     rb6.pack(anchor='w')
@@ -777,8 +774,8 @@ def setup_option_pane():
     Label(options_pane, text='Path Planner', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
     show_coverage_var = IntVar()
-    use_transit_lines_var = IntVar()
-    hide_plot_legend_var = IntVar()
+    use_transit_lines_var = IntVar()#value=1)
+    hide_plot_legend_var = IntVar()#value=1)
     hide_sub_polygon_indices_var = IntVar()
 
     Checkbutton(options_pane, text="Show Coverage Plot", variable=show_coverage_var).pack(anchor='w')
@@ -794,6 +791,7 @@ root.title('Adaptive Route Planning')
 
 # Register the validation function with Tkinter
 validate_cmd = root.register(validate_integer_input)
+validate_path_width = root.register(validate_path_width_input)
 
 # Set the window size to the screen size (maximized window)
 screen_width = root.winfo_screenwidth()

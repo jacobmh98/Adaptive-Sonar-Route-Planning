@@ -225,14 +225,13 @@ def connect_path(polygons, total_intersections, region, obstacles):
 
         # Handle intermediate points between polygons
         if i > 0 and (hard_obstacles or hard_region_edges):  # Not needed if no hard obstacles or region edges present
-            #print()
-            #print(f"Going from {i - 1} to {i}")
+            #print(f"\nGoing from {i - 1} to {i}")
             last_path_point = path[-1]  # Last point of the current path
             current_first_point = current_path[0]  # First point of the next path
 
             # Compute intermediate points to avoid obstacles and region hard edges
             intermediate_points = reroute_main.hard_edges_rerouting(
-                last_path_point, current_first_point, region, hard_obstacles, polygons[i - 1])
+                last_path_point, current_first_point, region, hard_obstacles, i, polygons)
 
             # Append intermediate points and mark as transit
             for point in intermediate_points:
@@ -262,22 +261,30 @@ def connect_path(polygons, total_intersections, region, obstacles):
     return path, transit_flags
 
 
-def remove_duplicate_points_preserve_order(path):
+def remove_duplicate_points_preserve_order(path, flags):
     """
-    Removes duplicate points from a 2D NumPy array while preserving the original order.
+    Removes duplicate points from a 2D NumPy array while preserving the original order,
+    and removes corresponding flags for the removed points.
 
     :param path: A 2D NumPy array where each row is a point [x, y].
-    :return: A 2D NumPy array with duplicates removed, order preserved.
+    :param flags: A list or array of flags corresponding to each point in the path.
+    :return: A tuple (unique_path, unique_flags), where:
+             - unique_path is a 2D NumPy array with duplicates removed, order preserved.
+             - unique_flags is a list of flags corresponding to the unique points.
     """
     seen = set()
     unique_path = []
-    for point in path:
+    unique_flags = []
+
+    for point, flag in zip(path, flags):
         # Convert the point to a tuple (hashable) for uniqueness
         point_tuple = tuple(point)
         if point_tuple not in seen:
             seen.add(point_tuple)
             unique_path.append(point)
-    return np.array(unique_path)
+            unique_flags.append(flag)
+
+    return np.array(unique_path), unique_flags
 
 
 def connect_path_for_tsp(start_pair, intersections):

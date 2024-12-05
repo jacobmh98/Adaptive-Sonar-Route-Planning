@@ -234,10 +234,6 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
     b_mate = poly.vertices[b_mate_index].v.flatten()
     a = poly.vertices[a_index].v.flatten()
 
-    #print(f"b: {b_index}")
-    #print(f"b_mate: {b_mate_index}")
-    #print(f"a: {a_index}")
-
     # Finding direction from vector b, b_mate towards a (+1 or -1)
     sweep_direction = compute_sweep_direction(b, b_mate, a)
 

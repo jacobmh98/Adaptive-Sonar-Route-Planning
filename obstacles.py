@@ -9,7 +9,6 @@ from rtree import index
 from load_data import generate_new_data
 
 
-
 def compute_intersection(ray_start, ray_dir, seg_A, seg_B):
     # Vector from A to B (the direction of the segment)
     seg_dir = seg_B - seg_A
@@ -160,21 +159,21 @@ def decompose_sweep_line(sub_polygon, obstacles):
             break
 
         if v.type == OPEN:
-            print(f'OPEN at {v}')
+            #print(f'OPEN at {v}')
             # Opening new cell containing ceiling list and floor list
             cell = ([], [v])
             cells.append(cell)
             active_cells.append(True)
         elif v.type == CEIL_CONVEX:
-            print(f'CEIL_CONVEX at {v}')
+            #print(f'CEIL_CONVEX at {v}')
             i, cell = find_cell(v, cells, active_cells, True)
             cell[0].append(v)
         elif v.type == FLOOR_CONVEX:
-            print(f'FLOOR_CONVEX at {v}')
+            #print(f'FLOOR_CONVEX at {v}')
             i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
         elif v.type == SPLIT:
-            print(f'SPLIT at {v}')
+            #print(f'SPLIT at {v}')
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -266,7 +265,7 @@ def decompose_sweep_line(sub_polygon, obstacles):
             active_cells.append(True)
             active_cells.append(True)
         elif v.type == CEIL_CONCAVE:
-            print(f'CEIL_CONCAVE at {v}')
+            #print(f'CEIL_CONCAVE at {v}')
             # Shooting ray downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -317,7 +316,7 @@ def decompose_sweep_line(sub_polygon, obstacles):
             # i, cell = find_cell(edge.v_from, cells)
             # cell[1].append(v_down)
         elif v.type == FLOOR_CONCAVE:
-            print(f'FLOOR_CONCAVE at {v}')
+            #print(f'FLOOR_CONCAVE at {v}')
             # Shooting ray upwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -365,7 +364,7 @@ def decompose_sweep_line(sub_polygon, obstacles):
             combined_edges.append(Edge(intersection_edge.v_from, v_up))
             combined_edges.append(Edge(v_up, intersection_edge.v_to))
         elif v.type == MERGE:
-            print(f'MERGE at {v}')
+            #print(f'MERGE at {v}')
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -464,22 +463,23 @@ def decompose_sweep_line(sub_polygon, obstacles):
             cells.append(new_cell)
             active_cells.append(True)
         elif v.type == CLOSE:
-            print(f'CLOSE at {v}')
+            #print(f'CLOSE at {v}')
             i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
             active_cells[i] = False
         elif v.type == COLLINEAR_CEILING:
-            print(f'COLLINEAR_CEILING at {v}')
+            #print(f'COLLINEAR_CEILING at {v}')
             i, cell = find_cell(v, cells, active_cells, True)
             cell[0].append(v)
         elif v.type == COLLINEAR_FLOOR:
-            print(f'COLLINEAR_FLOOR at {v}')
+            #print(f'COLLINEAR_FLOOR at {v}')
             i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
 
-        print(f'\t {active_cells}')
-        for c in cells:
-            print(f'\t {c}')
+        #print(f'\t {active_cells}')
+        #for c in cells:
+            #print(f'\t {c}')
+
     sub_polygons = []
 
     for cell in cells:
@@ -557,9 +557,8 @@ def find_bounding_polygons(sub_polygons, obstacle):
                     skip = True
                     break
 
-
-
     return sub_polygons_filtered_indices, sub_polygons_filtered
+
 
 def compute_obstacle_region(sub_polygons_filtered, obstacle):
     """ Compute the minimum region based on x-coordinate that contains the obstacle """
@@ -632,7 +631,8 @@ def compute_obstacle_region(sub_polygons_filtered, obstacle):
             vertices.append(Vertex(len(vertices), cell[0][i].x, cell[0][i].y))
         P = Polygon(vertices)
         sub_polygons.append(P)
-    print(left_cell)
+    #print(left_cell)
+
 
 def find_shared_edge_all(P1, P2):
     """ Determine if two polygons share an edge either by complete or partial adjacency"""
@@ -808,8 +808,9 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
 
     ax.set_aspect('equal', adjustable='box')
     #fig.tight_layout()
-    plt.show()
+    #plt.show()
     return fig
+
 
 def find_cell(v, cells, active_cells, direction_up, v2=None):
     for i, cell in enumerate(cells):

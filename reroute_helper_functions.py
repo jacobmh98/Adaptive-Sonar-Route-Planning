@@ -93,27 +93,33 @@ def compute_path_distance(path):
     return total_distance
 
 def find_best_path(left_temp_path, right_temp_path):
-    """Determines the best path direction between left and right paths.
+    """Determines the best path direction between left and right paths, considering both turns and distance.
 
     :param left_temp_path: List of points representing the left path.
     :param right_temp_path: List of points representing the right path.
-    :return: The best path (list of points) with fewer turns or shorter distance.
+    :return: The best path (list of points) based on a mix of fewer turns and shorter distance.
     """
-    if len(left_temp_path) == len(right_temp_path):
-        if compute_path_distance(left_temp_path) <= compute_path_distance(right_temp_path):
-            print("left smaller distance")
-            return left_temp_path
-        else:
-            print("right smaller distance")
-            return right_temp_path
+    # Weight for each turn in terms of equivalent distance
+    turn_weight = 10  # low weigth, as it is transit lines, and sonar is turned off during transit so not as punishing to turn
 
-    elif len(left_temp_path) <= len(right_temp_path):
-        print("left less turns")
+    def compute_path_cost(path):
+        # Number of turns is len(path) - 1
+        turns = len(path) - 1
+        distance = compute_path_distance(path)
+        return distance + (turns * turn_weight)
+
+    left_cost = compute_path_cost(left_temp_path)
+    right_cost = compute_path_cost(right_temp_path)
+
+    #print(f"Left path cost: {left_cost}, Right path cost: {right_cost}")
+
+    if left_cost <= right_cost:
+        #print("left has smaller cost")
         return left_temp_path
-
     else:
-        print("right less turns")
+        #print("right has smaller cost")
         return right_temp_path
+
 
 def line_intersection(p1, p2, q1, q2, epsilon=1e-9):
     """Checks if line segment (p1, p2) intersects (q1, q2).

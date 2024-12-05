@@ -87,7 +87,7 @@ def compute_intermediate_obstacle_path(temp_path, start_point, end_point, prev_i
                 temp_path.append(closest_edge[1])
 
         # Should never be reached
-        if counter > 100:
+        if counter > 1000:
             print(f"Max iterations reached, no clear path found going {direction}")
             return no_path
         counter += 1
