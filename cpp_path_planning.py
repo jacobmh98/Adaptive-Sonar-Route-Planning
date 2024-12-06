@@ -1,9 +1,88 @@
-import cpp_alternative_path_finders
+import numpy as np
 import cpp_path_intersections
-import cpp_antipodal_pairs
-from obstacles import plot_obstacles
+
+def multi_intersection_planning(polygons, current_path_width, current_overlap_distance):
+    """
+    :param polygons: List of Polygons
+    :param current_path_width: Float, chosen width of the planned path
+    :param current_overlap_distance: Float, chosen overlap width
+    :return: List of lists containing intersection points for each polygon.
+    """
+    # Creating the list to store intersections for each polygon
+    total_intersections = []
+
+    for i, current_poly in enumerate(polygons):
+        # Computing boundary box for the polygon
+        boundary_box = current_poly.compute_boundary()
+
+        # Finding optimal vertices for the path planner
+        b, b_mate, a = find_b_bmate_a_indicies(current_poly)
+
+        # Computing path intersections
+        intersections = cpp_path_intersections.get_path_intersections(current_poly, current_path_width, current_overlap_distance, b, b_mate, a, boundary_box)
+
+        # Ensuring None cant be appended to the list
+        if not intersections:
+            intersections = []
+
+        # Appending the current polygons intersections to the total list of intersections
+        total_intersections.append(intersections)
+
+    return total_intersections
 
 
+def find_b_bmate_a_indicies(polygon):
+    """ Finds the indices of the two vertices in the polygon that form the longest edge
+    and the index of a third vertex that is furthest from the line defined by the two vertices.
+
+    :param polygon: A Polygon object.
+    :return: Tuple of indices (i, j, k) where:
+             - i, j are the indices of the two vertices forming the longest edge.
+             - k is the index of the vertex furthest from the line defined by i and j.
+    """
+    max_edge_length = 0
+    longest_edge = (0, 0)
+    vertices = polygon.vertices
+    num_vertices = len(vertices)
+
+    # Find the longest edge
+    for i in range(num_vertices):
+        j = (i + 1) % num_vertices  # Next vertex (neighbor)
+        edge_length = np.linalg.norm(vertices[i].get_array() - vertices[j].get_array())
+        if edge_length > max_edge_length:
+            max_edge_length = edge_length
+            longest_edge = (i, j)
+
+    # Extract the two vertices forming the longest edge
+    v1 = vertices[longest_edge[0]]
+    v2 = vertices[longest_edge[1]]
+    max_perpendicular_distance = 0
+    furthest_point_index = None
+
+    # Find the vertex furthest from the line defined by v1 and v2
+    for k in range(num_vertices):
+        if k == longest_edge[0] or k == longest_edge[1]:
+            continue
+
+        vk = vertices[k]
+
+        # Perpendicular distance from vk to the line defined by v1 and v2
+        line_vec = v2.get_array() - v1.get_array()
+        point_vec = vk.get_array() - v1.get_array()
+        line_length = np.linalg.norm(line_vec)
+        if line_length > 0:
+            perpendicular_distance = np.abs(np.cross(line_vec.flatten(), point_vec.flatten()) / line_length)
+        else:
+            perpendicular_distance = 0  # Degenerate case
+
+        if perpendicular_distance > max_perpendicular_distance:
+            max_perpendicular_distance = perpendicular_distance
+            furthest_point_index = k
+
+    return longest_edge[0], longest_edge[1], furthest_point_index
+
+
+# Unused, but use for comparison
 def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_distance, d_pq, boundary_box):
     """ Algorithm 2: Rotating Calipers Path Planner.
     Computes the optimal back-and-forth path that covers a convex polygon efficiently by testing all antipodal pairs.
@@ -21,7 +100,7 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_
     for (i, j) in d_pq:
         # Compute the best path for the current antipodal pair
 
-        current_intersections = cpp_path_intersections.best_intersection(polygon, current_path_width, current_overlap_distance, i, j, boundary_box)
+        current_intersections = cpp_path_intersections.get_path_intersections(polygon, current_path_width, current_overlap_distance, i, j, boundary_box)
 
         # TODO: Create a better cost function finding an optimal mix between distance and turn heuristics
         current_cost = len(current_intersections)
@@ -32,45 +111,3 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_
             optimal_intersections = current_intersections
 
     return optimal_intersections
-
-
-def multi_intersection_planning(polygons, current_path_width, current_overlap_distance):
-    """
-    :param polygons: List of Polygons
-    :param current_path_width: Float, chosen width of the planned path
-    :param current_overlap_distance: Float, chosen overlap width
-    :return: List of lists containing intersection points for each polygon.
-    """
-    # Creating the list to store intersections for each polygon
-    total_intersections = []
-
-    for i, current_poly in enumerate(polygons):
-        #print()
-        #print(f"Current poly index: {i}")
-        # Computing boundary box for the polygon
-        boundary_box = current_poly.compute_boundary()
-
-        # Computing current polygon's antipodal points
-        antipodal_vertices = cpp_antipodal_pairs.compute_antipodal_pairs(current_poly)
-
-        # Removing neighbor pairs and duplicate pairs
-        filtered_antipodal_vertices = cpp_antipodal_pairs.filter_and_remove_redundant_pairs(
-            current_poly, antipodal_vertices
-        )
-
-        # Computing the diametric antipodal pairs (minimizing number of paths)
-        diametric_antipodal_pairs = cpp_antipodal_pairs.filter_diametric_antipodal_pairs(
-            current_poly, filtered_antipodal_vertices
-        )
-
-        # Computing the intersections for the current polygon
-        intersections = rotating_calipers_path_planner(current_poly, current_path_width, current_overlap_distance, diametric_antipodal_pairs, boundary_box)
-
-        # Check if intersections found, otherwise initialize an empty list (should not hit, but avoids error when appending with None)
-        if not intersections:
-            intersections = []
-
-        total_intersections.append(intersections)
-
-
-    return total_intersections

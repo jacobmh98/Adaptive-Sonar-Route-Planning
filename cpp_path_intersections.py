@@ -322,6 +322,7 @@ def compute_angle(i, j):
     return np.arctan2(delta_y, delta_x)
 
 
+# Unused now, but kept for report and comparisons
 def best_intersection(poly, current_path_width, current_overlap_distance, i, j, boundary):
     """ Using Rotating Calipers Path Planning to compute the optimal intersections for the given polygon
 
@@ -391,18 +392,6 @@ def best_intersection(poly, current_path_width, current_overlap_distance, i, j, 
             intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
         else:
             intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b2_index, poly.get_mate(b2_index), a2_index, boundary)
-
-        # Check for a few edge cases where rotating caliper does not compute optimal path
-        edge_case_one_intersections = get_path_intersections(poly, current_path_width, current_overlap_distance,
-                                                             b_index, poly.get_mate(b_index), a_index, boundary)
-        edge_case_two_intersections = get_path_intersections(poly, current_path_width, current_overlap_distance,
-                                                             b2_index, poly.get_mate(b2_index), a2_index,
-                                                             boundary)
-        if len(edge_case_one_intersections) < len(edge_case_two_intersections):
-            if len(edge_case_one_intersections) < len(intersections):
-                intersections = edge_case_one_intersections
-        elif len(edge_case_two_intersections) < len(intersections):
-            intersections = edge_case_two_intersections
 
     return intersections
 

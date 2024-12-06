@@ -1,7 +1,6 @@
 import numpy as np
 import reroute_main
 
-
 def compute_total_distance(path):
     total_distance = 0.0
     # Loop through each consecutive pair of points and compute the distance

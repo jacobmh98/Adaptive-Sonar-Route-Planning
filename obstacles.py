@@ -808,7 +808,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
 
     ax.set_aspect('equal', adjustable='box')
     #fig.tight_layout()
-    #plt.show()
+    plt.show()
     return fig
 
 
