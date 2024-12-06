@@ -225,7 +225,7 @@ def connect_path(polygons, total_intersections, region, obstacles):
 
         # Handle intermediate points between polygons
         if i > 0 and (hard_obstacles or hard_region_edges):  # Not needed if no hard obstacles or region edges present
-            #print(f"\nGoing from {i - 1} to {i}")
+            print(f"\nGoing from {i - 1} to {i}")
             last_path_point = path[-1]  # Last point of the current path
             current_first_point = current_path[0]  # First point of the next path
 

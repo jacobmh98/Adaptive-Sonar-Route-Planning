@@ -17,16 +17,25 @@ def reroute_path_obstacles(start_point, end_point, obstacles, prev_polygon, inte
     # The path from start to end point crosses into an obstacle, and an intermediate path to reroute around it must be found
     # Finding the closest edge to start point that was intersected, using this to generate new start points
     closest_intersected_edge = find_closest_intersected_obstacle_edge(start_point, intersected_edges, prev_polygon)
-    #print(f"Closest intersected edge: {closest_intersected_edge}")
+    print(f"Closest intersected edge: {closest_intersected_edge}")
+
+    start_point = tuple(map(float, start_point))  # Converts to a tuple with float values
 
     # Computing paths going left and right direction around the obstacle
-    left_temp_path = compute_intermediate_obstacle_path([start_point, closest_intersected_edge[0]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='left')
-    right_temp_path = compute_intermediate_obstacle_path([start_point, closest_intersected_edge[1]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='right')
+    left_temp_path, found_left_path = compute_intermediate_obstacle_path([start_point, closest_intersected_edge[0]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='left')
+    right_temp_path, found_right_path = compute_intermediate_obstacle_path([start_point, closest_intersected_edge[1]], start_point, end_point, closest_intersected_edge, obstacles, prev_polygon, direction ='right')
 
-    # Finding the best direction around the obstacles (prioritizes fewer turns)
-    intermediate_path = find_best_path(left_temp_path, right_temp_path)
+    if not found_left_path and not found_right_path:
+        print("No path found")
+        return []
 
-    return intermediate_path[1:]  # Start point in path gets appended in connect path before, so not included in intermediate path
+    print("Clear path")
+    if not found_left_path:
+        return right_temp_path
+    elif not found_right_path:
+        return left_temp_path
+    else:
+        return find_best_path(left_temp_path, right_temp_path)
 
 
 def compute_intermediate_obstacle_path(temp_path, start_point, end_point, prev_intersecting_edge, obstacles, prev_polygon, direction):
@@ -42,10 +51,8 @@ def compute_intermediate_obstacle_path(temp_path, start_point, end_point, prev_i
     :return: List of points representing the updated path.
     """
     #print(f"Direction: {direction}")
-
     closest_edge = prev_intersecting_edge
     counter = 0
-    no_path = [[0,0]]*1000 # Incase no path is found, a large path is returned such that it is not picked
 
     while True:
         # Current start point for this iteration
@@ -63,7 +70,8 @@ def compute_intermediate_obstacle_path(temp_path, start_point, end_point, prev_i
         # If 1 intersection, it is an obstacle vertex, and is clear, same for 0
         if len(filtered_edges) < 2:
             #print(f"Clear path found going {direction}")
-            return temp_path
+            #print(f"Path: {temp_path}")
+            return temp_path, True
 
         # Finding the closest intersected edge
         closest_edge = find_closest_intersected_obstacle_edge(new_start_point, filtered_edges, prev_polygon)
@@ -89,7 +97,7 @@ def compute_intermediate_obstacle_path(temp_path, start_point, end_point, prev_i
         # Should never be reached
         if counter > 1000:
             print(f"Max iterations reached, no clear path found going {direction}")
-            return no_path
+            return [], False
         counter += 1
 
 
@@ -342,4 +350,3 @@ def is_shorter_obstacle_path(start_point, end_point, obstacles):
             return False  # Line enters an obstacle
 
     return True  # Line does not enter any obstacle
-

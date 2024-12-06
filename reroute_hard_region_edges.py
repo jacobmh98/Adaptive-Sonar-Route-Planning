@@ -47,6 +47,7 @@ def compute_intermediate_region_path(temp_path, end_point, closest_intersected_r
     :return: List of points forming the updated path.
     """
     #print(f"Direction region: {direction}")
+    #print(f"Start closest edge: {closest_intersected_region_edge}")
     prev_intersected_edges = [closest_intersected_region_edge]
     prev_intersected_edge = closest_intersected_region_edge
     counter = 0
@@ -72,7 +73,7 @@ def compute_intermediate_region_path(temp_path, end_point, closest_intersected_r
         #print(f"Closest edge1: {closest_edge}")
 
         if not closest_edge:
-            print("No clear path, all intersections tried")
+            #print("No clear path, all intersections tried")
             return [], False
 
         if closest_edge in prev_intersected_edges:
@@ -147,15 +148,15 @@ def compute_hard_region_edge_intersections(start_point, end_point, region, epsil
 
     return intersected_hard_edges
 
-
 def filter_intersected_region_edges(start_point, end_point, intersected_edges, region, epsilon=1e-9):
     """
     Filters intersected region edges based on whether the line segment between start_point and end_point
     is inside or outside the region, or if start_point and end_point lie on the same or adjacent edges.
 
     Cases handled:
-    1. If there is only 1 intersected edge, check if the line enters the region. If it does, filter out the edge.
-    2. If there are 2 to 4 intersected edges, handle cases where vertices or edges are shared:
+    1. If start_point and end_point lie on the same edge, return an empty list (no intersections).
+    2. If there is only 1 intersected edge, check if the line enters the region. If it does, filter out the edge.
+    3. If there are 2 to 4 intersected edges, handle cases where vertices or edges are shared:
        - Check if the line enters the region and filter edges accordingly.
 
     :param start_point: Tuple (x, y) representing the start of the line segment.
@@ -167,6 +168,13 @@ def filter_intersected_region_edges(start_point, end_point, intersected_edges, r
              1. The line is inside the region.
              2. Conditions for shared vertices and edges are met.
     """
+    # Check if start_point and end_point lie on the same edge
+    for edge in intersected_edges:
+        start_on_edge = is_point_on_edges(start_point, [edge], epsilon)
+        end_on_edge = is_point_on_edges(end_point, [edge], epsilon)
+        if start_on_edge and end_on_edge:
+            return []  # Both points are on the same edge, no intersections
+
     # Case 1: Single intersected edge
     if len(intersected_edges) == 1:
         edge = intersected_edges[0]
