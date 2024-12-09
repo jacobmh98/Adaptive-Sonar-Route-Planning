@@ -1,8 +1,7 @@
 import numpy as np
 
 def compute_spiral_path(polygon, current_path_width, boundary):
-    """
-    Compute a continuous square spiral path for a given polygon, adjusting offsets dynamically
+    """ Compute a continuous square spiral path for a given polygon, adjusting offsets dynamically
     and stopping correctly when there is no room to move in the next direction.
 
     :param polygon: The polygon object containing vertices and boundary.

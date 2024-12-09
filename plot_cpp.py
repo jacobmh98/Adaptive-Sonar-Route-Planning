@@ -4,6 +4,7 @@ import matplotlib.patheffects as pe
 from matplotlib.patches import Patch
 from shapely.geometry import MultiPolygon
 from Polygon import Polygon
+from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
 
 # Pop plot out of IDE
 #matplotlib.use('TkAgg')
@@ -177,23 +178,34 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
     fig, ax = plt.subplots(1, 1)
     marker_size = 3  # Marker size for vertices
 
-    # Plot polygons
+    # Plot the coverage area (below edges)
+    if not coverage_area.is_empty:
+        plot_polygon_with_holes(ax, coverage_area, '#4CAF50')  # Green for covered area
+
+    # Plot the outlier area (below edges)
+    if not outlier_area.is_empty:
+        plot_polygon(ax, outlier_area, 'red', alpha=0.5)  # Red for outlying area
+
+    # Plot the overlap area (below edges)
+    plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6)  # Orange for overlap area
+
+    # Plot polygon edges (highest priority)
     for i, poly in enumerate(polygons):
         # Plot edges, highlighting hard edges in red
         for e in poly.edges:
             if e.is_hard_edge:
-                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-')  # Hard edge in red
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-', zorder=3)  # Hard edge in red
             else:
-                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-')  # Normal edge in black
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-', zorder=3)  # Normal edge in black
 
         # Plot the polygon vertices and label indices at centroids
         x_coords, y_coords = poly.get_coords()
-        ax.plot(x_coords, y_coords, 'ko', markersize=marker_size)
+        ax.plot(x_coords, y_coords, 'ko', markersize=marker_size, zorder=3)  # Ensure vertices are visible
 
         if not hide_sub_polygon_indices:
             centroid_x = np.mean(x_coords)
             centroid_y = np.mean(y_coords)
-            ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
+            ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center', zorder=3)
 
     # Plot the path if provided
     if path is not None:
@@ -204,28 +216,17 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
                     [path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]],
                     'y--', linewidth=1.5,
                     path_effects=[pe.Stroke(linewidth=3, foreground='black'), pe.Normal()],
-                    label="Transit Line" if i == 0 else None
+                    label="Transit Line" if i == 0 else None, zorder=2
                 )
             else:
                 ax.plot(
                     [path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]],
-                    'g-', linewidth=1.5, label="Path Line" if i == 0 else None
+                    'g-', linewidth=1.5, label="Path Line" if i == 0 else None, zorder=2
                 )
 
         # Mark start and end points
-        ax.plot(path_x[0], path_y[0], 'bo', markersize=8, label="Start Point")
-        ax.plot(path_x[-1], path_y[-1], 'ro', markersize=8, label="End Point")
-
-    # Plot the coverage area
-    if not coverage_area.is_empty:
-        plot_polygon_with_holes(ax, coverage_area, '#4CAF50')  # Green for covered area
-
-    # Plot the outlier area
-    if not outlier_area.is_empty:
-        plot_polygon(ax, outlier_area, 'red')  # Red for outlying area
-
-    # Plot the overlap area using buffered lines
-    plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6)  # Orange for overlap area
+        ax.plot(path_x[0], path_y[0], 'bo', markersize=8, label="Start Point", zorder=3)
+        ax.plot(path_x[-1], path_y[-1], 'ro', markersize=8, label="End Point", zorder=3)
 
     # Add legend for coverage areas
     if not hide_plot_legend:
@@ -241,7 +242,6 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
     return fig
 
 
-
 def plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6):
     if overlap_buffered_lines:
         buffered_lines = overlap_buffered_lines.geoms if isinstance(overlap_buffered_lines, MultiPolygon) else overlap_buffered_lines
@@ -254,17 +254,21 @@ def plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6):
 def plot_polygon_with_holes(ax, polygon, color):
     """
     Helper function to plot a Shapely Polygon with holes.
-    Handles both Polygon and MultiPolygon objects.
+    Ensures that holes are always white and displayed above other areas.
     """
     if polygon.geom_type == 'Polygon':
+        # Plot the main polygon area
         x, y = polygon.exterior.xy
-        ax.fill(x, y, color=color, alpha=0.5, edgecolor='black', linewidth=1.5)
+        ax.fill(x, y, color=color, alpha=0.5, edgecolor='black', linewidth=1.5, zorder=1)
+
+        # Plot the holes explicitly as white
         for hole in polygon.interiors:
             hx, hy = hole.xy
-            ax.fill(hx, hy, color='white', alpha=1.0)
+            ax.fill(hx, hy, color='white', alpha=1.0, zorder=2)  # Ensure holes are above with zorder
     elif polygon.geom_type == 'MultiPolygon':
         for sub_polygon in polygon.geoms:
             plot_polygon_with_holes(ax, sub_polygon, color)
+
 
 
 def plot_polygon(ax, polygon, color, alpha=0.5):
@@ -552,4 +556,86 @@ def plot_lines(v_initial, last_intersection,title):
     plt.grid(True)
 
     # Show the plot
+    plt.show()
+
+def plot_shapely_polygon_simple(polygon, title="Shapely Polygon"):
+    """
+    Plot a Shapely Polygon or MultiPolygon, including holes, with specific styling:
+    - Coverage region: Blue fill with a black outline.
+    - Interior holes: White fill with no outline.
+
+    :param polygon: A Shapely Polygon or MultiPolygon.
+    :param title: Title of the plot.
+    """
+    plt.figure(figsize=(6, 6))
+    ax = plt.gca()
+    ax.set_title(title)
+
+    # Handle MultiPolygon by iterating through each component
+    if isinstance(polygon, MultiPolygon):
+        for poly in polygon.geoms:
+            # Plot the exterior
+            x, y = poly.exterior.xy
+            ax.fill(x, y, facecolor='blue', edgecolor='black', linewidth=1.5, alpha=0.5)  # Coverage region
+
+            # Plot the holes (interiors)
+            for interior in poly.interiors:
+                ix, iy = interior.xy
+                ax.fill(ix, iy, facecolor='white', edgecolor='none')  # Interior holes
+    elif isinstance(polygon, ShapelyPolygon):  # Handle single Polygon
+        if not polygon.is_empty:
+            # Plot the exterior
+            x, y = polygon.exterior.xy
+            ax.fill(x, y, facecolor='blue', edgecolor='black', linewidth=1.5, alpha=0.5)  # Coverage region
+
+            # Plot the holes (interiors)
+            for interior in polygon.interiors:
+                ix, iy = interior.xy
+                ax.fill(ix, iy, facecolor='white', edgecolor='none')  # Interior holes
+    else:
+        print("The provided geometry is neither a Polygon nor a MultiPolygon.")
+        return
+
+    ax.set_aspect('equal')  # Ensure equal scaling
+    plt.grid(True)
+    plt.show()
+
+
+def plot_buffered_lines(buffered_lines, polygon=None, obstacles=None):
+    """
+    Plots the list of overlapping buffered lines along with the main polygon and obstacles if provided.
+
+    :param buffered_lines: List of Shapely Polygons representing overlapping buffered lines.
+    :param polygon: (Optional) Shapely Polygon representing the main polygon.
+    :param obstacles: (Optional) List of Shapely Polygons representing obstacles.
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Plot the main polygon
+    if polygon:
+        x, y = polygon.exterior.xy
+        ax.plot(x, y, label="Main Polygon", linewidth=2, color='blue')
+
+    # Plot the obstacles
+    if obstacles:
+        for obs in obstacles:
+            x, y = obs.exterior.xy
+            ax.fill(x, y, label="Obstacle", color='red', alpha=0.5)
+
+    # Plot the overlapping buffered lines
+    for i, line in enumerate(buffered_lines):
+        if isinstance(line, MultiPolygon):
+            for subline in line.geoms:
+                x, y = subline.exterior.xy
+                ax.fill(x, y, alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
+        elif isinstance(line, ShapelyPolygon):
+            x, y = line.exterior.xy
+            ax.fill(x, y, alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
+
+    # Add labels and legend
+    ax.set_title("Overlapping Buffered Lines")
+    ax.set_xlabel("X Coordinate")
+    ax.set_ylabel("Y Coordinate")
+    ax.legend()
+    ax.set_aspect('equal', adjustable='box')
     plt.show()
