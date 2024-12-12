@@ -35,20 +35,20 @@ def compute_offset_vector(vector, sweep_direction, d):
     return new_v1, new_v2
 
 
-def compute_sweep_direction(v1, v2, a):
+def compute_sweep_direction(b, b_mate, a):
     """Determine the sweep direction (+1 or -1) based on the relative position of point a
     to the vector defined by v1 and v2.
 
-    :param v1: NumPy array, the start point of the vector (b)
-    :param v2: NumPy array, the end point of the vector (b_mate)
+    :param b: NumPy array, the start point of the vector (b)
+    :param b_mate: NumPy array, the end point of the vector (b_mate)
     :param a: NumPy array with 2D point coordinates
     :return: int, -1 or +1 to indicate sweep direction from the original vector
     """
-    vector_v1_v2 = create_vector(v1, v2)
-    vector_v1_a = create_vector(v1, a)
-    perp_vector = np.array([-vector_v1_v2[1], vector_v1_v2[0]])
+    vector_b_bmate = create_vector(b, b_mate)
+    vector_b_a = create_vector(b, a)
+    perp_vector = np.array([-vector_b_bmate[1], vector_b_bmate[0]])
     perp_vector_normalized = perp_vector / np.linalg.norm(perp_vector)
-    sweep_direction = np.sign(np.dot(perp_vector_normalized.flatten(), vector_v1_a.flatten()))
+    sweep_direction = np.sign(np.dot(perp_vector_normalized.flatten(), vector_b_a.flatten()))
 
     return sweep_direction
 
