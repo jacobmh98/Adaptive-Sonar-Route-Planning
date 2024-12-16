@@ -4,6 +4,9 @@ from global_variables import *
 from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
 from shapely.ops import unary_union
 
+from plot_cpp import plot_shapely_polygon_simple, plot_buffered_lines
+
+
 def compute_distance(path, transit_flags):
     """ Function to compute the length of the path
 
@@ -114,27 +117,38 @@ def compute_covered_area(region, obstacles, active_path_segments, current_path_w
 
 
 def compute_outlier_area(polygon, active_path_segments, current_path_width):
-    """ Computes the path area outside the polygon, excluding transit lines.
+    """
+    Computes the path area outside the polygon, excluding transit lines, and returns both the
+    outlier polygon and buffered lines.
 
     :param polygon: Polygon
-    :param active_path_segments: List of points (as tuples or arrays) representing the path, removed transit points
+    :param active_path_segments: List of points (as tuples or arrays) representing the path, with transit points removed
     :param current_path_width: Float of chosen path width
-    :return outlying_area: Shapely Polygon that lies outside the given polygon
+    :return: A tuple (outlier_buffered_lines, outlying_area)
+        - outlier_buffered_lines: List of Shapely buffered LineString objects for the outlier area.
+        - outlying_area: Shapely Polygon that lies outside the given polygon.
     """
     if not active_path_segments:
-        return ShapelyPolygon()  # No active segments, return empty polygon
+        return [], ShapelyPolygon()  # No active segments, return empty list and polygon
 
     # Buffer the active path segments
-    buffered_path = unary_union([seg.buffer(current_path_width / 2.0) for seg in active_path_segments])
+    buffered_segments = [seg.buffer(current_path_width / 2.0) for seg in active_path_segments]
 
-    # Convert your Polygon class to a Shapely Polygon
+    # Convert the main polygon to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
     poly_shape = ShapelyPolygon(poly_coords)
 
-    # Calculate the wasted area outside the polygon
-    outlying_area = buffered_path.difference(poly_shape)
+    # Calculate the wasted area outside the polygon for each segment
+    outlier_buffered_lines = []
+    for segment in buffered_segments:
+        outlying_area = segment.difference(poly_shape)
+        if not outlying_area.is_empty:
+            outlier_buffered_lines.append(outlying_area)
 
-    return outlying_area
+    # Combine all outlying areas into a single polygon
+    outlying_area = unary_union(outlier_buffered_lines).buffer(0) if outlier_buffered_lines else ShapelyPolygon()
+
+    return outlying_area, outlier_buffered_lines
 
 
 def compute_overlap_area(polygon, obstacles, active_path_segments, current_path_width):
@@ -199,11 +213,11 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
 
     # Computing areas from path
     covered_area, coverage_percentage = compute_covered_area(poly, obstacles, active_path_segments, current_path_width)
-    outlier_area = compute_outlier_area(poly, active_path_segments, current_path_width)
+    outlier_area, outlier_buffered_lines = compute_outlier_area(poly, active_path_segments, current_path_width)
     overlap_area, overlap_buffered_lines = compute_overlap_area(poly, obstacles, active_path_segments, current_path_width)
 
     #plot_shapely_polygon_simple(covered_area, title="Covered Area")
-    #plot_shapely_polygon_simple(outlier_area, title="outlier_area")
+    #plot_buffered_lines(outlier_buffered_lines, polygon=None, obstacles=None)
     #plot_buffered_lines(overlap_buffered_lines, polygon=None, obstacles=None)
 
     # Computing turns in the path
@@ -249,6 +263,7 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
         'overlapped_area': overlap_area,
         'overlapped_lines': overlap_buffered_lines,
         'outlying_area': outlier_area,
+        'outlier_lines': outlier_buffered_lines,
         'total_distance': total_distance,
         'path_distance': path_distance,
         'transit_distance': transit_distance,
