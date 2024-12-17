@@ -9,6 +9,7 @@ from cpp_alternative_path_finders import compute_spiral_path
 from cpp_connect_path import connect_path, remove_duplicate_points_preserve_order
 from cpp_path_planning import multi_intersection_planning
 from decomposition import sum_of_widths, remove_collinear_vertices, optimize_polygons
+from optimized_sweep_line import optimized_sweep_line
 from plot_cpp import plot_multi_polys_path, plot_coverage_areas
 from sorting_dfs_adjacency_graph import solve_dfs
 from sorting_tsp_centroid import solve_centroid_tsp
@@ -285,6 +286,21 @@ def decompose():
             decomposition_stats = {
                 'type': 'decomposition_statistics',
                 'method': 'Sweep Line',
+                'number_of_polygons': len(sub_polygons),
+                'sum_of_widths': sum_of_widths(sub_polygons)
+            }
+
+            stats.append(decomposition_stats)
+        elif decomposition_variable.get() == 'Optimized Sweep Line':
+            sub_polygons = optimized_sweep_line(region, obstacles)
+
+            sub_polygons_list.append(sub_polygons)
+            fig = plot_obstacles(sub_polygons, obstacles, False)
+            plots.append(fig)
+
+            decomposition_stats = {
+                'type': 'decomposition_statistics',
+                'method': 'Optimized Sweep Line',
                 'number_of_polygons': len(sub_polygons),
                 'sum_of_widths': sum_of_widths(sub_polygons)
             }
@@ -606,14 +622,12 @@ def validate_integer_input(new_value):
     else:
         return False
 
-
 def validate_path_width_input(new_value):
     # Allow empty input (so user can delete characters) or integer
     if new_value == "" or is_float(new_value):
         return True
     else:
         return False
-
 
 def save_data():
     global file_path
@@ -737,10 +751,12 @@ def setup_option_pane():
 
     Label(options_pane, text='Decomposition Algorithm', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
-    decomposition_variable = StringVar(value='Combination')
+    decomposition_variable = StringVar(value='Optimized Sweep Line')
+    rb8 = Radiobutton(options_pane, text='Optimized Sweep Line', variable=decomposition_variable, value='Optimized Sweep Line',)
     rb1 = Radiobutton(options_pane, text='Greedy Recursive', variable=decomposition_variable, value='Greedy Recursive')
     rb2 = Radiobutton(options_pane, text='Sweep Line', variable=decomposition_variable, value='Sweep Line')
     rb3 = Radiobutton(options_pane, text='Combination', variable=decomposition_variable, value='Combination')
+    rb8.pack(anchor='w')
     rb1.pack(anchor='w')
     rb2.pack(anchor='w')
     rb3.pack(anchor='w')
