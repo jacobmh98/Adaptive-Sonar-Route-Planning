@@ -35,20 +35,20 @@ def compute_offset_vector(vector, sweep_direction, d):
     return new_v1, new_v2
 
 
-def compute_sweep_direction(v1, v2, a):
+def compute_sweep_direction(b, b_mate, a):
     """Determine the sweep direction (+1 or -1) based on the relative position of point a
     to the vector defined by v1 and v2.
 
-    :param v1: NumPy array, the start point of the vector (b)
-    :param v2: NumPy array, the end point of the vector (b_mate)
+    :param b: NumPy array, the start point of the vector (b)
+    :param b_mate: NumPy array, the end point of the vector (b_mate)
     :param a: NumPy array with 2D point coordinates
     :return: int, -1 or +1 to indicate sweep direction from the original vector
     """
-    vector_v1_v2 = create_vector(v1, v2)
-    vector_v1_a = create_vector(v1, a)
-    perp_vector = np.array([-vector_v1_v2[1], vector_v1_v2[0]])
+    vector_b_bmate = create_vector(b, b_mate)
+    vector_b_a = create_vector(b, a)
+    perp_vector = np.array([-vector_b_bmate[1], vector_b_bmate[0]])
     perp_vector_normalized = perp_vector / np.linalg.norm(perp_vector)
-    sweep_direction = np.sign(np.dot(perp_vector_normalized.flatten(), vector_v1_a.flatten()))
+    sweep_direction = np.sign(np.dot(perp_vector_normalized.flatten(), vector_b_a.flatten()))
 
     return sweep_direction
 
@@ -252,13 +252,22 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
 
     # Checking if overlap distance does not make delta_init negative, if so, overlap dist is reduced to be just smaller than d_x
     if delta_init - current_overlap_distance <= 0:
-        current_overlap_distance = delta_init - 0.01
+        init_overlap_distance = delta_init - 0.01
+    else:
+        init_overlap_distance = current_overlap_distance
+
+    # Optimizing by doing the next check just once instead of in the while loop
+    if (2 * delta_init) - current_overlap_distance <= 0:
+        remaining_overlap_distance = 2 * delta_init - 0.01
+    else:
+        remaining_overlap_distance = current_overlap_distance
 
     # Offsetting vector b to b_mate with delta_init towards point a
-    v_offset = compute_offset_vector(v_initial, sweep_direction, delta_init - current_overlap_distance)
+    v_offset = compute_offset_vector(v_initial, sweep_direction, delta_init - init_overlap_distance)
 
     # Extending the offset vector to polygon boundaries to find all intersection points with poly edge (2 points)
     v_extended = extend_vector_to_boundary(v_offset, boundary)
+    prev_v_extended = v_extended
 
     # Fail-safe parameters for the while loop
     max_iterations = 10000
@@ -275,16 +284,9 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
         # Check if no new intersections are found
         if not new_intersections:
 
-            # Removing a small distance from delta init, as the area up to delta init is already covered
-            delta_init = delta_init - 0.1
-
-            # Checking if overlap distance does not make delta_init negative, if so, overlap dist is reduced to be just smaller than d_x
-            if delta_init - current_overlap_distance <= 0:
-                current_overlap_distance = delta_init - 0.01
-
             # Create new vector with half current path width distance (which is delta init plus a small distance to avoid unnecessary overlap), to ensure complete coverage near the far edge
             # Offset in opposite direction to get back into poly area
-            v_half_offset = compute_offset_vector(v_extended, -sweep_direction, delta_init - current_overlap_distance)
+            v_half_offset = compute_offset_vector(prev_v_extended, sweep_direction, delta_init - init_overlap_distance)
             v_half_extended = extend_vector_to_boundary(v_half_offset, boundary)
             check_near_edge_intersections = poly.find_intersections(v_half_extended)
 
@@ -296,9 +298,10 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
         else:
             # Create tuples of two consecutive points and append to all_intersections
             all_intersections.append((new_intersections[0], new_intersections[1]))
+            prev_v_extended = v_extended
 
         # Computing next extended offset vector, offset with the full path width (2x delta init)
-        v_offset = compute_offset_vector(v_extended, sweep_direction, 2 * delta_init - current_overlap_distance)
+        v_offset = compute_offset_vector(v_extended, sweep_direction, 2 * delta_init - remaining_overlap_distance)
         v_extended = extend_vector_to_boundary(v_offset, boundary)
 
         # Avoid infinite while loop

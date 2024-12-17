@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 from matplotlib.patches import Patch
-from shapely.geometry import MultiPolygon
 from Polygon import Polygon
-from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
+from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon
 
 # Pop plot out of IDE
 #matplotlib.use('TkAgg')
@@ -161,15 +160,15 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     return fig
 
 
-def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_area, path=None, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
+def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_buffered_lines, path=None, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
     """
-    Plot polygons with coverage areas, overlap areas, and outlying areas.
+    Plot polygons with coverage areas, overlap areas, and outlier areas using buffered lines.
     Highlight hard edges in polygons and obstacles.
 
     :param polygons: List of sub-polygons
     :param coverage_area: Shapely polygon representing the covered area
     :param overlap_buffered_lines: Buffered lines for overlap visualization
-    :param outlier_area: Shapely polygon representing the outlying area
+    :param outlier_buffered_lines: Buffered lines for outlier visualization
     :param path: Optional NumPy array of the path [[x1, y1], [x2, y2], ...]
     :param transit_flags: Optional list of flags indicating transit segments
     :param hide_plot_legend: Boolean to hide the plot legend
@@ -182,12 +181,13 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
     if not coverage_area.is_empty:
         plot_polygon_with_holes(ax, coverage_area, '#4CAF50')  # Green for covered area
 
-    # Plot the outlier area (below edges)
-    if not outlier_area.is_empty:
-        plot_polygon(ax, outlier_area, 'red', alpha=0.5)  # Red for outlying area
+    # Plot the overlap area using buffered lines
+    if overlap_buffered_lines:
+        plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6)  # Orange for overlap area
 
-    # Plot the overlap area (below edges)
-    plot_overlap_areas(ax, overlap_buffered_lines, color='orange', alpha=0.6)  # Orange for overlap area
+    # Plot the outlier area using buffered lines
+    if outlier_buffered_lines:
+        plot_overlap_areas(ax, outlier_buffered_lines, color='red', alpha=0.5)  # Red for outlying area
 
     # Plot polygon edges (highest priority)
     for i, poly in enumerate(polygons):
@@ -232,8 +232,8 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
     if not hide_plot_legend:
         legend_patches = [
             Patch(color='#4CAF50', alpha=0.5, label='Covered Area'),
-            Patch(color='red', alpha=0.5, label='Outlying Area'),
             Patch(color='orange', alpha=0.6, label='Overlapped Area'),
+            Patch(color='red', alpha=0.5, label='Outlying Area'),
         ]
         ax.legend(handles=legend_patches, loc="upper right")
 
@@ -622,15 +622,15 @@ def plot_buffered_lines(buffered_lines, polygon=None, obstacles=None):
             x, y = obs.exterior.xy
             ax.fill(x, y, label="Obstacle", color='red', alpha=0.5)
 
-    # Plot the overlapping buffered lines
+    # Plot the overlapping buffered lines in orange
     for i, line in enumerate(buffered_lines):
         if isinstance(line, MultiPolygon):
             for subline in line.geoms:
                 x, y = subline.exterior.xy
-                ax.fill(x, y, alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
+                ax.fill(x, y, color='orange', alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
         elif isinstance(line, ShapelyPolygon):
             x, y = line.exterior.xy
-            ax.fill(x, y, alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
+            ax.fill(x, y, color='orange', alpha=0.6, label=f"Overlap {i}" if i == 0 else None)
 
     # Add labels and legend
     ax.set_title("Overlapping Buffered Lines")

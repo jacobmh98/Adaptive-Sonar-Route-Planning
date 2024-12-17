@@ -4,6 +4,9 @@ from global_variables import *
 from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
 from shapely.ops import unary_union
 
+from plot_cpp import plot_shapely_polygon_simple, plot_buffered_lines
+
+
 def compute_distance(path, transit_flags):
     """ Function to compute the length of the path
 
@@ -74,13 +77,12 @@ def compute_turns(path):
     return total_turns, hard_turns, medium_turns, soft_turns
 
 
-def compute_covered_area(region, obstacles, path, transit_flags, current_path_width):
+def compute_covered_area(region, obstacles, active_path_segments, current_path_width):
     """Compute the coverage of the path inside the region, accounting for obstacles and transit lines.
 
     :param region: Main region polygon as an instance of the Polygon class
     :param obstacles: List of Polygon instances representing obstacles (can be empty)
-    :param path: List of points (as tuples or arrays) representing the path
-    :param transit_flags: List of flags indicating if a segment is transit
+    :param active_path_segments: List of points (as tuples or arrays) representing the path, removed transit points
     :param current_path_width: Float of chosen path width
     :return: Tuple containing the covered area as a Shapely Polygon and the coverage percentage (float)
     """
@@ -93,13 +95,6 @@ def compute_covered_area(region, obstacles, path, transit_flags, current_path_wi
 
     # Subtract obstacles from the region to create the effective region
     effective_region = region_shape.difference(obstacles_shapes)
-
-    # Create active path segments, excluding transit lines
-    active_path_segments = []
-    for i in range(len(path) - 1):
-        # Exclude segments where both points are marked as transit
-        if not (transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"):
-            active_path_segments.append(LineString([path[i], path[i + 1]]))
 
     if not active_path_segments:
         # No active segments, return empty polygon and zero coverage
@@ -121,57 +116,53 @@ def compute_covered_area(region, obstacles, path, transit_flags, current_path_wi
     return covered_area, coverage_percentage
 
 
-def compute_outlier_area(polygon, path, transit_flags, current_path_width):
-    """ Computes the path area outside the polygon, excluding transit lines.
+def compute_outlier_area(polygon, active_path_segments, current_path_width):
+    """
+    Computes the path area outside the polygon, excluding transit lines, and returns both the
+    outlier polygon and buffered lines.
 
     :param polygon: Polygon
-    :param path: List of points
-    :param transit_flags: List of flags indicating if a segment is transit
+    :param active_path_segments: List of points (as tuples or arrays) representing the path, with transit points removed
     :param current_path_width: Float of chosen path width
-    :return outlying_area: Shapely Polygon that lies outside the given polygon
+    :return: A tuple (outlier_buffered_lines, outlying_area)
+        - outlier_buffered_lines: List of Shapely buffered LineString objects for the outlier area.
+        - outlying_area: Shapely Polygon that lies outside the given polygon.
     """
-    # Filter out transit segments
-    active_path_segments = []
-    for i in range(len(path) - 1):
-        # Only exclude segments where both points are marked as transit
-        if not (transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"):
-            active_path_segments.append(LineString([path[i], path[i + 1]]))
-
     if not active_path_segments:
-        return ShapelyPolygon()  # No active segments, return empty polygon
+        return [], ShapelyPolygon()  # No active segments, return empty list and polygon
 
     # Buffer the active path segments
-    buffered_path = unary_union([seg.buffer(current_path_width / 2.0) for seg in active_path_segments])
+    buffered_segments = [seg.buffer(current_path_width / 2.0) for seg in active_path_segments]
 
-    # Convert your Polygon class to a Shapely Polygon
+    # Convert the main polygon to a Shapely Polygon
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
     poly_shape = ShapelyPolygon(poly_coords)
 
-    # Calculate the wasted area outside the polygon
-    outlying_area = buffered_path.difference(poly_shape)
+    # Calculate the wasted area outside the polygon for each segment
+    outlier_buffered_lines = []
+    for segment in buffered_segments:
+        outlying_area = segment.difference(poly_shape)
+        if not outlying_area.is_empty:
+            outlier_buffered_lines.append(outlying_area)
 
-    return outlying_area
+    # Combine all outlying areas into a single polygon
+    outlying_area = unary_union(outlier_buffered_lines).buffer(0) if outlier_buffered_lines else ShapelyPolygon()
+
+    return outlying_area, outlier_buffered_lines
 
 
-def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_width):
+def compute_overlap_area(polygon, obstacles, active_path_segments, current_path_width):
     """ Computes the overlapping buffered line segments inside the polygon, excluding obstacles and transit lines.
 
     :param polygon: Polygon
     :param obstacles: List of Polygon instances representing obstacles
-    :param path: List of points
-    :param transit_flags: List of flags indicating if a segment is transit
+    :param active_path_segments: List of points (as tuples or arrays) representing the path, removed transit points
     :param current_path_width: Float of chosen path width
     :return: A tuple (overlap_buffered_lines, overlap_union)
         - overlap_buffered_lines: List of overlapping buffered LineString objects.
         - overlap_union: Shapely Polygon representing the union of overlapping buffered segments.
     """
     current_path_width = current_path_width - 0.1  # Small reduction of path width for edge case overlap scenarios
-    # Filter out transit segments
-    active_path_segments = []
-    for i in range(len(path) - 1):
-        # Only exclude segments where both points are marked as transit
-        if not (transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"):
-            active_path_segments.append(LineString([path[i], path[i + 1]]))
 
     if not active_path_segments:
         return [], ShapelyPolygon()  # No active segments, return empty list and polygon
@@ -213,13 +204,20 @@ def compute_overlap_area(polygon, obstacles, path, transit_flags, current_path_w
 def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
     total_distance, path_distance, transit_distance = compute_distance(path, transit_flags)
 
+    # Create active path segments, excluding transit lines
+    active_path_segments = []
+    for i in range(len(path) - 1):
+        # Exclude segments where both points are marked as transit
+        if not (transit_flags[i] == "transit" and transit_flags[i + 1] == "transit"):
+            active_path_segments.append(LineString([path[i], path[i + 1]]))
+
     # Computing areas from path
-    covered_area, coverage_percentage = compute_covered_area(poly, obstacles, path, transit_flags, current_path_width)
-    outlier_area = compute_outlier_area(poly, path, transit_flags, current_path_width)
-    overlap_area, overlap_buffered_lines = compute_overlap_area(poly, obstacles, path, transit_flags, current_path_width)
+    covered_area, coverage_percentage = compute_covered_area(poly, obstacles, active_path_segments, current_path_width)
+    outlier_area, outlier_buffered_lines = compute_outlier_area(poly, active_path_segments, current_path_width)
+    overlap_area, overlap_buffered_lines = compute_overlap_area(poly, obstacles, active_path_segments, current_path_width)
 
     #plot_shapely_polygon_simple(covered_area, title="Covered Area")
-    #plot_shapely_polygon_simple(outlier_area, title="outlier_area")
+    #plot_buffered_lines(outlier_buffered_lines, polygon=None, obstacles=None)
     #plot_buffered_lines(overlap_buffered_lines, polygon=None, obstacles=None)
 
     # Computing turns in the path
@@ -265,6 +263,7 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
         'overlapped_area': overlap_area,
         'overlapped_lines': overlap_buffered_lines,
         'outlying_area': outlier_area,
+        'outlier_lines': outlier_buffered_lines,
         'total_distance': total_distance,
         'path_distance': path_distance,
         'transit_distance': transit_distance,

@@ -565,7 +565,7 @@ def path_planner():
                         fig_coverage = plot_coverage_areas(sorted_sub_polygons,
                                                                     stats_dict["covered_area"],
                                                                     stats_dict["overlapped_lines"],
-                                                                    stats_dict["outlying_area"],
+                                                                    stats_dict["outlier_lines"],
                                                                     path, transit_flags, hide_plot_legend_var.get(),
                                                                     hide_sub_polygon_indices_var.get())
 
