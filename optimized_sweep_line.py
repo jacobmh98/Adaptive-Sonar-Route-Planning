@@ -2,7 +2,7 @@ import numpy as np
 
 from Polygon import Vertex, Polygon
 from decomposition import sum_of_widths, is_well_formed
-from obstacles import decompose_sweep_line
+from obstacles import decompose_sweep_line, plot_obstacles
 
 
 def copy_region(P):
@@ -43,32 +43,43 @@ def rotate_system(region, obstacles):
     while share_x_coordinate(region, obstacles):
         angle_deg += 1
 
-        region.rotate(angle_deg)
+        region.rotate(1)
+        #print('ROTATING')
+        #print(f'{share_x_coordinate(region, obstacles)}')
 
         for o in obstacles:
-
-            o.rotate(angle_deg)
+            #print("NOT HERE")
+            o.rotate(1)
         #plot_obstacles([region], obstacles, True, 'ROTATING')
     #return region, obstacles, angle_deg
     return angle_deg
 
 def share_x_coordinate(region, obstacles):
     """ Test if any vertex in the region and obstacles shares an x-coordinate """
-    seen_x = set()
+    seen_x = []
 
     for v in region.vertices:
-        if v.x in seen_x:
-            return True
-        else:
-            seen_x.add(v.x)
+        if len(seen_x) == 0:
+            seen_x.append(v)
+            continue
+
+        for v2 in seen_x:
+            if v == v2:
+                continue
+
+            if abs(v.x - v2.x) < 1e-6:
+                #print(f'{v} = {v2}')
+                return True
+
+        seen_x.append(v)
+
 
     for o in obstacles:
         for v in o.vertices:
-            if v.x in seen_x:
-                return True
-            else:
-                seen_x.add(v.x)
-
+            for v2 in seen_x:
+                if abs(v.x - v2.x) < 1e-6:
+                    return True
+            seen_x.append(v)
     return False
 
 def optimized_sweep_line(region, obstacles):
@@ -86,10 +97,11 @@ def optimized_sweep_line(region, obstacles):
 
     # Step 2) Run the sweep line for each edge
     for i, e in enumerate(combined_edges):
-        # if i > 1:
-        #   break
+
         region_copy = copy_region(region)
         obstacles_copy = copy_obstacles(obstacles)
+
+        #plot_obstacles([region_copy], obstacles_copy, False, 'copy')
 
         # plot_obstacles([region_copy], obstacles_copy, False, '')
 
@@ -106,28 +118,32 @@ def optimized_sweep_line(region, obstacles):
         theta = np.pi / 2 - phi  # In radians
         theta_deg = np.degrees(theta)  # In degrees
 
-        # print(f'\t{theta=}')
+        #print(f'\t{theta=}')
 
         # Rotate the polygon and obstacles
         region_copy.rotate(theta_deg)
 
         for o in obstacles_copy:
             o.rotate(theta_deg)
-
+        #plot_obstacles([region_copy], obstacles_copy, False, 'rotated')
         # Fix vertices with equal x-coordinates
         # rotated_region, rotated_obstacles, angle_deg = rotate_system(region_copy, obstacles_copy)
         angle_deg = rotate_system(region_copy, obstacles_copy)
-        # angle_deg = 0
-        # print(f'\t{angle_deg=}')
+        #angle_deg = 0
+        #print(f'\t{angle_deg=}')
 
         # plot_obstacles([region_copy], obstacles_copy, True, 'Rotated')
-        sub_polygons = decompose_sweep_line(region_copy, obstacles_copy)
+        try:
+            sub_polygons = decompose_sweep_line(region_copy, obstacles_copy)
+        except:
+            print('CONTINUING')
+            continue
+        #sub_polygons_valid = []
         sub_polygons_valid = []
-
         for p in sub_polygons:
-            if is_well_formed(p)[0]:
-                p.rotate(-theta_deg - angle_deg)
-                sub_polygons_valid.append(p)
+        #    if is_well_formed(p)[0]:
+            p.rotate(-theta_deg - angle_deg)
+            sub_polygons_valid.append(p)
 
         sow = sum_of_widths(sub_polygons_valid)
 

@@ -153,7 +153,7 @@ def decompose_sweep_line(sub_polygon, obstacles):
     break_here = False
 
     #for v in combined_vertices_sorted:
-    #    print(f'{v} {v.type}')
+#        print(f'{v} {v.type}')
 
     for v in combined_vertices_sorted:
         if break_here:
@@ -174,7 +174,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
         elif v.type == SPLIT:
-            #print(f'SPLIT at {v}')
             # Shooting rays upwards and downwards from v
             ray_start = v.get_array().flatten()  # Ray starting point P0
             ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
@@ -464,7 +463,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             cells.append(new_cell)
             active_cells.append(True)
         elif v.type == CLOSE:
-            #print(f'CLOSE at {v}')
             i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
             active_cells[i] = False
@@ -843,12 +841,15 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
         if v.type == COLLINEAR_FLOOR and (v.prev in cell[0] or v.prev in cell[1]):
             return i, cell
         if v.type == CLOSE:
-            #print(f'HERREEEE {v.prev=} {v.next=}')
-
             if v.prev in cell[1] and v.next in cell[0]:
                 return i, cell
             if v.next.type == OPEN:
                 if v.prev in cell[1] and v.next in cell[1]:
+                    return i, cell
+            if v.prev.type == SPLIT:
+
+                if v.prev in cell[1]:
+
                     return i, cell
             # TODO test if this breaks anything
             if v.prev in cell[1]:
