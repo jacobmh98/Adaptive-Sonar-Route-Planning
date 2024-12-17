@@ -22,12 +22,12 @@ path_width = 15 # Path width (Must be >0) (1 is 1 meter)
 overlap_distance = 0 # Set to 0 for no overlap, should not be >path_width/2
 
 # Path data
-get_path_data = True
-store_data = True
+get_path_data = False
+store_data = False
 
 # Choose sub-polygon sorting method
 tsp_sorting = True
-dfs_sorting = True
+dfs_sorting = False
 
 # Finding optimal path width, with tolerances
 find_optimal_path_width = False

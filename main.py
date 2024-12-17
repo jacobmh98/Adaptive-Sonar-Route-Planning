@@ -7,6 +7,7 @@ import path_comparison_functions
 import traveling_salesman_variation
 from obstacles import *
 from load_data import *
+import plot_cpp_v2
 
 data_path = 'complex_polygon'
 region, obstacles = get_region(data_path)
@@ -46,10 +47,12 @@ elif check_reverse:
 else:
     print('Baseline path:')
     intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
-    path = connecting_path.connect_path(optimized_sub_polygons, intersections, region)
+    path, transit_flags = connecting_path.connect_path(optimized_sub_polygons, intersections, region)
     distance = path_comparison_functions.compute_total_distance(path)
 
-coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, path)
+#def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
+plot_cpp_v2.plot_multi_polys_path(path_width, optimized_sub_polygons, path, None, False, transit_flags)
+#coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, path)
 
 # Ending timer and computing total execution time
 total_end_time = time.time()
