@@ -4,7 +4,6 @@ from Polygon import Vertex, Polygon
 from decomposition import sum_of_widths, is_well_formed
 from obstacles import decompose_sweep_line, plot_obstacles
 
-
 def copy_region(P):
     vertices = []
 
@@ -14,9 +13,9 @@ def copy_region(P):
 
     new_P = Polygon(vertices)
 
-    #for i, e in enumerate(P.edges):
-        #new_P.edges[i].is_hard_edge = e.is_hard_edge
-        #new_P.vertices[i].edge_from_v_is_hard = P.vertices[i].edge_from_v_is_hard
+    for i, e in enumerate(P.edges):
+        new_P.edges[i].is_hard_edge = e.is_hard_edge
+        new_P.vertices[i].edge_from_v_is_hard = P.vertices[i].edge_from_v_is_hard
     return new_P
 
 def copy_obstacles(obstacles):
