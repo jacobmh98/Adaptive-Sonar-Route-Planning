@@ -132,39 +132,52 @@ def multi_path_planning(polygons, dx, include_external_start_end):
     :param polygons: List of Polygons
     :param dx: float, path width
     :param include_external_start_end: Bool, indicate if external start and end point included
-    :return:
+    :return: total_path, total_transit_flags
     """
     # Creating the np array to store the total path
-    total_path = np.empty((0,2))
+    total_path = np.empty((0, 2))
+    total_transit_flags = []  # List to store transit flags
 
     if include_external_start_end:
-        # Appending external start point to path
+        # Appending external start point to path and marking as transit
         total_path = np.append(total_path, [ext_p_start], axis=0)
+        total_transit_flags.append("transit")
 
     for i, current_poly in enumerate(polygons):
         b_index = 0  # Always start at first vertex in the current polygon
 
-        # Computing current polygons antipodal points
+        # Computing current polygon's antipodal points
         antipodal_vertices = rotating_calipers_antipodal_pairs.compute_antipodal_pairs(current_poly)
-        # Removes neighbour pairs and double pairs, i.e. for [0,1] and [1,0] only 1 of them is necessary as both [1,0] and [0,1] is checked in best path algorithm
-        filtered_antipodal_vertices = rotating_calipers_antipodal_pairs.filter_and_remove_redundant_pairs(current_poly, antipodal_vertices)
-        # Computing the diametric antipodal pairs (Minimizing number of paths computed, as diametric pairs produce the shortest paths)
-        diametric_antipodal_pairs = rotating_calipers_antipodal_pairs.filter_diametric_antipodal_pairs(current_poly, filtered_antipodal_vertices)
-        # Getting index of point a (the diametric antipodal point of b)
-        # diametric_antipode_index = rotating_calipers_antipodal_pairs.get_diametric_antipodal_point_index(diametric_antipodal_pairs, b_index)
+        # Removing neighbor pairs and redundant pairs
+        filtered_antipodal_vertices = rotating_calipers_antipodal_pairs.filter_and_remove_redundant_pairs(
+            current_poly, antipodal_vertices)
+        # Filtering diametric antipodal pairs
+        diametric_antipodal_pairs = rotating_calipers_antipodal_pairs.filter_diametric_antipodal_pairs(
+            current_poly, filtered_antipodal_vertices)
 
+        # Computing the shortest path
         shortest_path = rotating_calipers_path_planner(polygons, i, total_path, dx, diametric_antipodal_pairs)
 
         if shortest_path.size == 0:  # Probably not necessary
             shortest_path = np.empty((0, 2))  # Resetting shortest_path for total_path
 
-        total_path = np.vstack([total_path, shortest_path])
+        # Creating a transit flag list for the current polygon's shortest path
+        transit_flags = [None] * len(shortest_path)
+        if len(shortest_path) > 0:
+            transit_flags[0] = "transit"  # Marking first point as transit
+            transit_flags[-1] = "transit"  # Marking last point as transit
 
-    # Appending the external end point as last point in path
+        # Appending current path and transit flags to the totals
+        total_path = np.vstack([total_path, shortest_path])
+        total_transit_flags.extend(transit_flags)
+
+    # Appending the external end point as the last point in path and marking as transit
     if include_external_start_end:
         total_path = np.append(total_path, [ext_p_end], axis=0)
+        total_transit_flags.append("transit")
 
-    return total_path
+    return total_path, total_transit_flags
+
 
 def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, path):
     """
