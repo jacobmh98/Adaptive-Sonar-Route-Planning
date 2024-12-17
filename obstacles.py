@@ -79,6 +79,7 @@ def compute_intersection_edges(e, e2):
 
 def decompose_sweep_line(sub_polygon, obstacles):
     """ Decompose a convex around a contained obstacle"""
+
     # Combining the vertices and edges of the polygon and obstacle
     combined_vertices = sub_polygon.vertices
     combined_edges = sub_polygon.edges
@@ -152,7 +153,7 @@ def decompose_sweep_line(sub_polygon, obstacles):
     break_here = False
 
     #for v in combined_vertices_sorted:
-        #print(f'{v} {v.type}')
+    #    print(f'{v} {v.type}')
 
     for v in combined_vertices_sorted:
         if break_here:
@@ -559,7 +560,6 @@ def find_bounding_polygons(sub_polygons, obstacle):
 
     return sub_polygons_filtered_indices, sub_polygons_filtered
 
-
 def compute_obstacle_region(sub_polygons_filtered, obstacle):
     """ Compute the minimum region based on x-coordinate that contains the obstacle """
     split_index = np.argmin(obstacle.vertices_matrix()[0, :])
@@ -632,7 +632,6 @@ def compute_obstacle_region(sub_polygons_filtered, obstacle):
         P = Polygon(vertices)
         sub_polygons.append(P)
     #print(left_cell)
-
 
 def find_shared_edge_all(P1, P2):
     """ Determine if two polygons share an edge either by complete or partial adjacency"""
@@ -762,9 +761,10 @@ def decompose_around_obstacle(filtered_sub_polygons, obstacle):
     """ Computes the convex decomposition around the obstacle """
     merge_filtered_sub_polygons(filtered_sub_polygons)
 
-def plot_obstacles(sub_polygons, obstacles, include_points=True):
-    fig, ax = plt.subplots(1, 1)
+def plot_obstacles(sub_polygons, obstacles, include_points=True, title=''):
 
+    fig, ax = plt.subplots(1, 1)
+    ax.set_title(title)
     count = 0
     for i, p in enumerate(sub_polygons):
         for e in p.edges:
@@ -782,7 +782,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
                     plt.scatter(v.x, v.y, color='black')
                 count += 1
         c_x, c_y = get_center_of_polygon(p)
-        ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
+        #ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
 
     for o in obstacles:
         for e in o.edges:
@@ -811,8 +811,8 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
     plt.show()
     return fig
 
-
 def find_cell(v, cells, active_cells, direction_up, v2=None):
+
     for i, cell in enumerate(cells):
         if not active_cells[i]:
             continue
@@ -822,8 +822,11 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
             return i, cell
         if v.type == FLOOR_CONVEX and (v.prev in cell[0] or v.prev in cell[1]):
             return i, cell
-        if v.type == CEIL_CONCAVE and (v2 in cell[0] or v2 in cell[1]):
-            return i, cell
+        if v.type == CEIL_CONCAVE:
+            if v2.type == SPLIT and v2 in cell[1]:
+                return i,cell
+            if v2 in cell[0] or v2 in cell[1]:
+                return i, cell
         if v.type == FLOOR_CONCAVE and (v.prev in cell[0] or v.prev in cell[1]) and (v2 in cell[1] or v2 in cell[0]):
             return i, cell
         if v.type == MERGE:
@@ -832,18 +835,24 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
                     return i, cell
                 elif v2 in cell[0]:
                     return i, cell
-            if not direction_up and v2 in cell[1]:
-                return i, cell
+            if not direction_up:
+                if v2 in cell[1]:
+                    return i, cell
         if v.type == COLLINEAR_CEILING and (v.next in cell[0] or v.next in cell[1]):
             return i, cell
         if v.type == COLLINEAR_FLOOR and (v.prev in cell[0] or v.prev in cell[1]):
             return i, cell
         if v.type == CLOSE:
+            #print(f'HERREEEE {v.prev=} {v.next=}')
+
             if v.prev in cell[1] and v.next in cell[0]:
                 return i, cell
             if v.next.type == OPEN:
                 if v.prev in cell[1] and v.next in cell[1]:
                     return i, cell
+            # TODO test if this breaks anything
+            if v.prev in cell[1]:
+                return i, cell
 
 def combined_algorithms(region, obstacles):
     # Decompose the region without considering obstacles
