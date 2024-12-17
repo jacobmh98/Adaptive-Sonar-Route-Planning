@@ -3,6 +3,7 @@ import os
 import pickle
 import sys
 import time
+from time import perf_counter
 import logging
 import traceback
 from cpp_alternative_path_finders import compute_spiral_path
@@ -174,6 +175,7 @@ def decompose():
 
     if region and obstacles is not None:
         if len(obstacles) > 0 and decomposition_variable.get() == 'Combination':
+            start_time = perf_counter()
             rotated_region, rotated_obstacles, angle_deg = rotate_system(copy.deepcopy(region),
                                                                          copy.deepcopy(obstacles))
 
@@ -244,6 +246,8 @@ def decompose():
 
             rotate_system_back(combined_polygons, rotated_obstacles, angle_deg)
 
+            end_time = perf_counter()
+
             fig = plot_obstacles(combined_polygons, rotated_obstacles, False)
 
             sub_polygons_list.append(combined_polygons)
@@ -254,13 +258,18 @@ def decompose():
                 'type': 'decomposition_statistics',
                 'method': 'Combination',
                 'number_of_polygons': len(combined_polygons),
-                'sum_of_widths': sum_of_widths(combined_polygons)
+                'sum_of_widths': sum_of_widths(combined_polygons),
+                'execution_time': end_time - start_time
             }
 
             stats.append(decomposition_stats)
         elif decomposition_variable.get() == 'Greedy Recursive' or (len(obstacles) == 0 and decomposition_variable.get() == 'Combination'):
+            start_time = perf_counter()
             # Decompose the region without considering obstacles
             sub_polygons = generate_new_data(copy.deepcopy(region))
+
+            end_time = perf_counter()
+
             sub_polygons_list.append(sub_polygons)
             fig = plot_obstacles(sub_polygons, obstacles, False)
             plots.append(fig)
@@ -269,15 +278,18 @@ def decompose():
                 'type': 'decomposition_statistics',
                 'method': 'Greedy Recursive',
                 'number_of_polygons': len(sub_polygons),
-                'sum_of_widths': sum_of_widths(sub_polygons)
+                'sum_of_widths': sum_of_widths(sub_polygons),
+                'execution_time': end_time - start_time
             }
             stats.append(decomposition_stats)
         elif decomposition_variable.get() == 'Sweep Line':
+            start_time = perf_counter()
             # Decompose the region without considering obstacles
             rotated_region, rotated_obstacles, angle_deg = rotate_system(copy.deepcopy(region), copy.deepcopy(obstacles))
 
             sub_polygons = decompose_sweep_line(rotated_region, rotated_obstacles)
             rotate_system_back(sub_polygons, rotated_obstacles, angle_deg)
+            end_time = perf_counter()
 
             sub_polygons_list.append(sub_polygons)
             fig = plot_obstacles(sub_polygons, rotated_obstacles, False)
@@ -287,12 +299,15 @@ def decompose():
                 'type': 'decomposition_statistics',
                 'method': 'Sweep Line',
                 'number_of_polygons': len(sub_polygons),
-                'sum_of_widths': sum_of_widths(sub_polygons)
+                'sum_of_widths': sum_of_widths(sub_polygons),
+                'execution_time': end_time - start_time
             }
 
             stats.append(decomposition_stats)
         elif decomposition_variable.get() == 'Optimized Sweep Line':
+            start_time = perf_counter()
             sub_polygons = optimized_sweep_line(region, obstacles)
+            end_time = perf_counter()
 
             sub_polygons_list.append(sub_polygons)
             fig = plot_obstacles(sub_polygons, obstacles, False)
@@ -302,7 +317,8 @@ def decompose():
                 'type': 'decomposition_statistics',
                 'method': 'Optimized Sweep Line',
                 'number_of_polygons': len(sub_polygons),
-                'sum_of_widths': sum_of_widths(sub_polygons)
+                'sum_of_widths': sum_of_widths(sub_polygons),
+                'execution_time': end_time - start_time
             }
 
             stats.append(decomposition_stats)
@@ -458,6 +474,7 @@ def update_stats():
             f"Method: {stats_dict['method']}",
             f"Number of Polygons: {stats_dict['number_of_polygons']}",
             f"Sum of Widths: {round(stats_dict['sum_of_widths'], 2)}",
+            f"Execution Time: {round(stats_dict['execution_time'], 2)}"
         ]
         for i, text in enumerate(decomposition_data, start=1):
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
