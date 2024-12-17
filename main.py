@@ -9,6 +9,10 @@ import cpp_path_planning
 import cpp_path_data
 from obstacles import *
 from load_data import *
+from overlap_correlation_calculations import analyze_overlap
+
+overlap_data = analyze_overlap("overlap_data")
+
 
 # Loading the region and obstacles
 data_path = 'test_data/obstacle_multi_easy.json'
