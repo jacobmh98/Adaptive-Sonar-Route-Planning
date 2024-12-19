@@ -780,7 +780,7 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True, title=''):
                     plt.scatter(v.x, v.y, color='black')
                 count += 1
         c_x, c_y = get_center_of_polygon(p)
-        #ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
+        ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
 
     for o in obstacles:
         for e in o.edges:

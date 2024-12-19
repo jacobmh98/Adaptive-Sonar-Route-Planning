@@ -174,6 +174,7 @@ def decompose():
     global obstacles, current_plot_index
 
     if region and obstacles is not None:
+        #plot_obstacles([region], obstacles, True, 'test')
         if len(obstacles) > 0 and decomposition_variable.get() == 'Combination':
             start_time = perf_counter()
             rotated_region, rotated_obstacles, angle_deg = rotate_system(copy.deepcopy(region),
@@ -306,7 +307,7 @@ def decompose():
             stats.append(decomposition_stats)
         elif decomposition_variable.get() == 'Optimized Sweep Line':
             start_time = perf_counter()
-            sub_polygons = optimized_sweep_line(region, obstacles)
+            sub_polygons = optimized_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
             end_time = perf_counter()
 
             sub_polygons_list.append(sub_polygons)
@@ -322,7 +323,7 @@ def decompose():
             }
 
             stats.append(decomposition_stats)
-
+        
         current_plot_index = len(plots) - 1
         update_plot()
 

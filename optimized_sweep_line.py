@@ -13,7 +13,7 @@ def copy_region(P):
 
     new_P = Polygon(vertices)
 
-    for i, e in enumerate(P.edges):
+    for i, e in enumerate(new_P.edges):
         new_P.edges[i].is_hard_edge = e.is_hard_edge
         new_P.vertices[i].edge_from_v_is_hard = P.vertices[i].edge_from_v_is_hard
     return new_P
@@ -145,6 +145,9 @@ def optimized_sweep_line(region, obstacles):
             sub_polygons_valid.append(p)
 
         sow = sum_of_widths(sub_polygons_valid)
+
+        #plot_obstacles(sub_polygons_valid, [], False)
+        #plot_obstacles(sub_polygons_valid, [], False)
 
         # print(f'\tSum of widths = {sow}')
         # print(f'\tTheta deg = {theta_deg}')
