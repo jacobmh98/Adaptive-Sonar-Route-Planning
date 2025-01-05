@@ -1,4 +1,4 @@
-import time
+from time import perf_counter
 import cpp_connect_path
 import decomposition
 import plot_cpp

@@ -2,6 +2,9 @@ from enum import Enum
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sorting_tsp_centroid import compute_centroid
+
+
 class VertexType(Enum):
     FLOOR_CONVEX = 1
     CEIL_CONVEX = 2
@@ -84,6 +87,10 @@ class Polygon:
             for i in range(len(self.vertices))
         ]
 
+    def compute_centroid(self):
+        x_coords, y_coords = self.get_coords()
+
+        return np.sum(x_coords) / len(x_coords), np.sum(y_coords) / len(y_coords)
 
     def compute_bounding_box(self):
         vertices = self.vertices_matrix()
@@ -91,17 +98,32 @@ class Polygon:
         self.bbox = (np.min(vertices[0, :]), np.min(vertices[1, :]), np.max(vertices[0, :]), np.max(vertices[1, :]))
 
     def rotate(self, angle_deg):
-        """ Rotate the polygon object """
+        """ Rotate the polygon """
+        # Compute the centroid
+        #cx, cy = self.compute_centroid()
+
+        # Translate the polygon to have its center at origin
+        #for v in self.vertices:
+        #    v.x -= cx
+        #    v.y -= cy
+
+        # Define the rotation matrix
         rotation_matrix = np.array([
             [np.cos(np.radians(angle_deg)), -np.sin(np.radians(angle_deg))],
             [np.sin(np.radians(angle_deg)), np.cos(np.radians(angle_deg))]
         ])
 
+        # Apply the rotation matrix
         for v in self.vertices:
             x, y = np.dot(rotation_matrix, v.get_array()).flatten()
 
             v.x = x
             v.y = y
+
+        # Translate the polygon back to its original centroid
+        #for v in self.vertices:
+        #    v.x += cx
+        #    v.y += cy
 
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""

@@ -3,6 +3,7 @@ import os
 import pickle
 import sys
 import time
+from time import perf_counter
 import logging
 import traceback
 
@@ -12,6 +13,7 @@ from cpp_alternative_path_finders import compute_spiral_path
 from cpp_connect_path import connect_path, remove_duplicate_points_preserve_order
 from cpp_path_planning import multi_intersection_planning
 from decomposition import sum_of_widths, remove_collinear_vertices, optimize_polygons
+from optimized_sweep_line import optimized_sweep_line
 from plot_cpp import plot_multi_polys_path, plot_coverage_areas
 from sorting_dfs_adjacency_graph import solve_dfs
 from sorting_tsp_centroid import solve_centroid_tsp
@@ -175,7 +177,9 @@ def decompose():
     global obstacles, current_plot_index
 
     if region and obstacles is not None:
+        #plot_obstacles([region], obstacles, True, 'test')
         if len(obstacles) > 0 and decomposition_variable.get() == 'Combination':
+            start_time = perf_counter()
             rotated_region, rotated_obstacles, angle_deg = rotate_system(copy.deepcopy(region),
                                                                          copy.deepcopy(obstacles))
 
@@ -246,6 +250,8 @@ def decompose():
 
             rotate_system_back(combined_polygons, rotated_obstacles, angle_deg)
 
+            end_time = perf_counter()
+
             fig = plot_obstacles(combined_polygons, rotated_obstacles, False)
 
             sub_polygons_list.append(combined_polygons)
@@ -256,13 +262,18 @@ def decompose():
                 'type': 'decomposition_statistics',
                 'method': 'Combination',
                 'number_of_polygons': len(combined_polygons),
-                'sum_of_widths': sum_of_widths(combined_polygons)
+                'sum_of_widths': sum_of_widths(combined_polygons),
+                'execution_time': end_time - start_time
             }
 
             stats.append(decomposition_stats)
         elif decomposition_variable.get() == 'Greedy Recursive' or (len(obstacles) == 0 and decomposition_variable.get() == 'Combination'):
+            start_time = perf_counter()
             # Decompose the region without considering obstacles
             sub_polygons = generate_new_data(copy.deepcopy(region))
+
+            end_time = perf_counter()
+
             sub_polygons_list.append(sub_polygons)
             fig = plot_obstacles(sub_polygons, obstacles, False)
             plots.append(fig)
@@ -271,15 +282,18 @@ def decompose():
                 'type': 'decomposition_statistics',
                 'method': 'Greedy Recursive',
                 'number_of_polygons': len(sub_polygons),
-                'sum_of_widths': sum_of_widths(sub_polygons)
+                'sum_of_widths': sum_of_widths(sub_polygons),
+                'execution_time': end_time - start_time
             }
             stats.append(decomposition_stats)
         elif decomposition_variable.get() == 'Sweep Line':
+            start_time = perf_counter()
             # Decompose the region without considering obstacles
             rotated_region, rotated_obstacles, angle_deg = rotate_system(copy.deepcopy(region), copy.deepcopy(obstacles))
 
             sub_polygons = decompose_sweep_line(rotated_region, rotated_obstacles)
             rotate_system_back(sub_polygons, rotated_obstacles, angle_deg)
+            end_time = perf_counter()
 
             sub_polygons_list.append(sub_polygons)
             fig = plot_obstacles(sub_polygons, rotated_obstacles, False)
@@ -289,11 +303,30 @@ def decompose():
                 'type': 'decomposition_statistics',
                 'method': 'Sweep Line',
                 'number_of_polygons': len(sub_polygons),
-                'sum_of_widths': sum_of_widths(sub_polygons)
+                'sum_of_widths': sum_of_widths(sub_polygons),
+                'execution_time': end_time - start_time
             }
 
             stats.append(decomposition_stats)
+        elif decomposition_variable.get() == 'Optimized Sweep Line':
+            start_time = perf_counter()
+            sub_polygons = optimized_sweep_line(copy.deepcopy(region), copy.deepcopy(obstacles))
+            end_time = perf_counter()
 
+            sub_polygons_list.append(sub_polygons)
+            fig = plot_obstacles(sub_polygons, obstacles, False)
+            plots.append(fig)
+
+            decomposition_stats = {
+                'type': 'decomposition_statistics',
+                'method': 'Optimized Sweep Line',
+                'number_of_polygons': len(sub_polygons),
+                'sum_of_widths': sum_of_widths(sub_polygons),
+                'execution_time': end_time - start_time
+            }
+
+            stats.append(decomposition_stats)
+        
         current_plot_index = len(plots) - 1
         update_plot()
 
@@ -445,6 +478,7 @@ def update_stats():
             f"Method: {stats_dict['method']}",
             f"Number of Polygons: {stats_dict['number_of_polygons']}",
             f"Sum of Widths: {round(stats_dict['sum_of_widths'], 2)}",
+            f"Execution Time: {round(stats_dict['execution_time'], 2)}"
         ]
         for i, text in enumerate(decomposition_data, start=1):
             Label(scrollable_content, text=text, anchor="w").grid(row=i, column=0, sticky="w", padx=(0,5), pady=1)
@@ -608,14 +642,12 @@ def validate_integer_input(new_value):
     else:
         return False
 
-
 def validate_path_width_input(new_value):
     # Allow empty input (so user can delete characters) or integer
     if new_value == "" or is_float(new_value):
         return True
     else:
         return False
-
 
 def save_data():
     global file_path
@@ -739,10 +771,12 @@ def setup_option_pane():
 
     Label(options_pane, text='Decomposition Algorithm', font=('Arial, 14')).pack(anchor='w', pady=(15, 0))
 
-    decomposition_variable = StringVar(value='Combination')
+    decomposition_variable = StringVar(value='Optimized Sweep Line')
+    rb8 = Radiobutton(options_pane, text='Optimized Sweep Line', variable=decomposition_variable, value='Optimized Sweep Line',)
     rb1 = Radiobutton(options_pane, text='Greedy Recursive', variable=decomposition_variable, value='Greedy Recursive')
     rb2 = Radiobutton(options_pane, text='Sweep Line', variable=decomposition_variable, value='Sweep Line')
     rb3 = Radiobutton(options_pane, text='Combination', variable=decomposition_variable, value='Combination')
+    rb8.pack(anchor='w')
     rb1.pack(anchor='w')
     rb2.pack(anchor='w')
     rb3.pack(anchor='w')
