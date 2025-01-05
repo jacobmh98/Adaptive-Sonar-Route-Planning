@@ -42,7 +42,6 @@ def find_nearest_to_vertex(poly, first_intersection, last_intersection):
                 min_distance = dist
                 nearest_intersection_point = intersection_point
                 nearest_intersection = 0 if i < 2 else 1  # 0 for first intersection, 1 for last
-
     return nearest_intersection_point, nearest_intersection
 
 
@@ -163,7 +162,6 @@ def connect_last_path(path, intersections):
 
 
 def connect_solo_path(intersections):  # Any point can be used as first point for the optimal path in solo paths
-
     solo_path = [intersections[0][0],intersections[0][1]] # Manually adding first intersection
     for intersection in intersections[1:]:  # Iterate through remaining intersections and add to the first path
         solo_path = add_intersection_points_to_path(solo_path, intersection)

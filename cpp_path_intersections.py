@@ -286,7 +286,7 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
 
             # Create new vector with half current path width distance (which is delta init plus a small distance to avoid unnecessary overlap), to ensure complete coverage near the far edge
             # Offset in opposite direction to get back into poly area
-            v_half_offset = compute_offset_vector(prev_v_extended, sweep_direction, delta_init - init_overlap_distance)
+            v_half_offset = compute_offset_vector(prev_v_extended, sweep_direction, delta_init - init_overlap_distance + 0.1)
             v_half_extended = extend_vector_to_boundary(v_half_offset, boundary)
             check_near_edge_intersections = poly.find_intersections(v_half_extended)
 

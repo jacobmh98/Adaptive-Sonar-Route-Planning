@@ -17,7 +17,7 @@ def reroute_path_obstacles(start_point, end_point, obstacles, prev_polygon, inte
     # The path from start to end point crosses into an obstacle, and an intermediate path to reroute around it must be found
     # Finding the closest edge to start point that was intersected, using this to generate new start points
     closest_intersected_edge = find_closest_intersected_obstacle_edge(start_point, intersected_edges, prev_polygon)
-    print(f"Closest intersected edge: {closest_intersected_edge}")
+    #print(f"Closest intersected edge: {closest_intersected_edge}")
 
     start_point = tuple(map(float, start_point))  # Converts to a tuple with float values
 
@@ -29,7 +29,7 @@ def reroute_path_obstacles(start_point, end_point, obstacles, prev_polygon, inte
         print("No path found")
         return []
 
-    print("Clear path")
+    #print("Clear path")
     if not found_left_path:
         return right_temp_path
     elif not found_right_path:
@@ -76,9 +76,6 @@ def compute_intermediate_obstacle_path(temp_path, start_point, end_point, prev_i
         # Finding the closest intersected edge
         closest_edge = find_closest_intersected_obstacle_edge(new_start_point, filtered_edges, prev_polygon)
         #print(f"Closest intersecting edge: {closest_edge}")
-
-        # TODO: If new obstacle is intersected, then go left and right around this (recurse)
-        # TODO: Check for intersections with region hard edges before adding any new path point (Very rare case)
 
         if direction == "left":
             if is_shorter_obstacle_path(start_point, closest_edge[0], obstacles):

@@ -1,6 +1,9 @@
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 import numpy as np
 
+import plot_sorting
+
+
 # Function to compute centroid of a polygon
 def compute_centroid(polygon):
     x_coords = [v.x for v in polygon.vertices]
@@ -75,6 +78,6 @@ def solve_centroid_tsp(polygons, intersections):
     sorted_polys = [polygons[i] for i in tsp_route]
     sorted_non_removed_polys = [polygons[i] for i in tsp_route]
     sorted_inters = [intersections[i] for i in tsp_route]
+    plot_sorting.plot_tsp_centroid(polygons, tsp_route)
 
     return sorted_polys, sorted_non_removed_polys, sorted_inters
-

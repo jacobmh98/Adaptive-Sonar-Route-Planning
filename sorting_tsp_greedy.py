@@ -1,9 +1,9 @@
-import numpy as np
 import cpp_connect_path
+import plot_sorting
+
 
 def get_pairs(intersections):
-    """
-    Generate start-end pairs for a path based on intersections.
+    """ Generate start-end pairs for a path based on intersections.
 
     :param intersections: List of intersection points
     :return: List of start-end pairs
@@ -19,7 +19,6 @@ def get_pairs(intersections):
 
     return all_pairs
 
-
 import math
 
 
@@ -29,15 +28,11 @@ def euclidean_distance(p1, p2):
 
 
 def compute_distances(subpolygons):
-    """
-    Compute distances between end points of one subpolygon
-    and start points of the next subpolygon.
+    """ Compute distances between end points of one subpolygon
+        and start points of the next subpolygon.
 
-    Args:
-        subpolygons: List of subpolygons, each with 4 start/end pairs.
-
-    Returns:
-        distances: Nested dictionary of distances between pairs.
+    param subpolygons: List of subpolygons, each with 4 start/end pairs.
+    returns distances: Nested dictionary of distances between pairs.
     """
     distances = {}
 
@@ -57,20 +52,18 @@ def compute_distances(subpolygons):
 
 
 def solve_greedy_tsp_sorting(polygons, all_intersections):
-    """
-    Solve the TSP by testing all start pairs and iteratively finding the closest path.
+    """ Solve the TSP by testing all start pairs and iteratively finding the closest path.
+    :param polygons: List of polygons.
+    :param all_intersections: List of intersections for each polygon.
 
-    Args:
-        polygons: List of polygons.
-        all_intersections: List of intersections for each polygon.
-
-    Returns:
-        Best sorted polygons, intersections, and total distance.
+    :return: Best sorted polygons, intersections, and total distance.
     """
 
-    # Step 1: Generate start/end pairs for each polygon
+    # Generate start/end pairs for each polygon
     all_polygon_start_end_pairs = [get_pairs(intersections) for intersections in all_intersections]
-    print(f"all_polygon_start_end_pairs: {all_polygon_start_end_pairs}")
+    #print(f"all_polygon_start_end_pairs: {all_polygon_start_end_pairs}")
+
+    #plot_sorting.plot_subpolygons_with_distances(polygons, all_polygon_start_end_pairs)
 
     # Initialize variables to track the best path
     best_path = None
@@ -79,7 +72,7 @@ def solve_greedy_tsp_sorting(polygons, all_intersections):
     best_sorted_col_removed_polygons = None
     best_sorted_intersections = None
 
-    # Step 2: Test all 4 starting pairs for the first polygon
+    # Test all 4 starting pairs for the first polygon
     for start_pair_index in range(4):  # 4 pairs in the first polygon
         path = [(0, start_pair_index)]  # Start with the first polygon and this pair
         total_distance = 0
@@ -89,7 +82,7 @@ def solve_greedy_tsp_sorting(polygons, all_intersections):
         visited = set()  # Keep track of visited polygons
         visited.add(0)  # Mark the first polygon as visited
 
-        # Step 3: Iteratively find the closest pair for all other polygons
+        # Iteratively find the closest pair for all other polygons
         while len(visited) < len(all_polygon_start_end_pairs):
             # Find the next closest polygon and pair
             next_polygon_index = None
@@ -115,7 +108,7 @@ def solve_greedy_tsp_sorting(polygons, all_intersections):
             current_end_point = all_polygon_start_end_pairs[next_polygon_index][next_pair_index][1]  # Update end point
             visited.add(next_polygon_index)  # Mark as visited
 
-        # Step 4: Check if this path is the best
+        # Check if this path is the best
         if total_distance < best_total_distance:
             best_total_distance = total_distance
             best_path = path
@@ -125,7 +118,6 @@ def solve_greedy_tsp_sorting(polygons, all_intersections):
             best_sorted_col_removed_polygons = [polygons[p[0]] for p in path]
             best_sorted_intersections = [all_intersections[p[0]] for p in path]
 
-    print(f"Best path: {best_path}, Total Distance: {best_total_distance}")
+    #print(f"Best path: {best_path}, Total Distance: {best_total_distance}")
 
-    # Step 5: Return the best results
     return best_sorted_polygons, best_sorted_col_removed_polygons, best_sorted_intersections

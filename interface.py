@@ -5,6 +5,9 @@ import sys
 import time
 import logging
 import traceback
+
+import plot_cpp
+import plot_sorting
 from cpp_alternative_path_finders import compute_spiral_path
 from cpp_connect_path import connect_path, remove_duplicate_points_preserve_order
 from cpp_path_planning import multi_intersection_planning
@@ -509,9 +512,9 @@ def path_planner():
                         total_sorting_time = 0
 
                     # Computing path
+                    #plot_cpp.plot_single_polygon_with_intersections(sorted_sub_polygons, sorted_intersections)
                     path, transit_flags = connect_path(sorted_sub_polygons, sorted_intersections,
                                                                         region, obstacles)
-
                     # Removing duplicate points from the path OBS: Creates some errors with hard edges rerouting (same vertices used to navigate around obstacles/hard edges)
                     #path, transit_flags = remove_duplicate_points_preserve_order(path, transit_flags)
 
@@ -540,7 +543,6 @@ def path_planner():
                     fig_path = plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path, obstacles,
                                                               False, transit_flags,
                                                               hide_plot_legend_var.get(), hide_sub_polygon_indices_var.get())
-
                     # Computing data about path
                     stats_dict = compute_path_data(region, path, transit_flags, chosen_path_width,
                                                                  obstacles, total_execution_time)

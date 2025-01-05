@@ -7,6 +7,63 @@ from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon
 
 # Pop plot out of IDE
 #matplotlib.use('TkAgg')
+def plot_single_polygon_with_intersections(polygon_list, intersections_list):
+    """
+    Plot a single polygon with its intersection points, highlighting and labeling only the first and last pairs.
+
+    :param polygon_list: List containing one Polygon object.
+    :param intersections_list: List containing one list of intersection point pairs (tuples of NumPy arrays).
+    """
+    if not polygon_list or not intersections_list:
+        raise ValueError("Both polygon_list and intersections_list must contain one element each.")
+
+    # Extract the single polygon and its intersections
+    polygon = polygon_list[0]
+    intersections = intersections_list[0]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.set_aspect('equal')
+    #ax.set_title('Polygon with Intersection Points')
+
+    # Plot the polygon
+    x_coords, y_coords = polygon.get_coords()
+    ax.plot(x_coords + [x_coords[0]], y_coords + [y_coords[0]], 'k-', marker='o')
+
+    # Plot intersection points
+    if intersections:
+        for idx, (start, end) in enumerate(intersections):
+            start_x, start_y = float(start[0]), float(start[1])
+            end_x, end_y = float(end[0]), float(end[1])
+
+            # Plot intersection line segment (green)
+            ax.plot([start_x, end_x], [start_y, end_y], 'g-', linewidth=2)
+
+            if idx == 0:
+                # First intersection pair (A, B) - Bigger markers, labeled in blue
+                ax.plot(start_x, start_y, 'rx', markersize=14)  # Larger red cross
+                ax.plot(end_x, end_y, 'rx', markersize=14)
+                ax.text(start_x, start_y, 'D', fontsize=15, color='blue', ha='right', va='bottom')
+                ax.text(end_x, end_y, 'C', fontsize=15, color='blue', ha='right', va='bottom')
+
+            elif idx == len(intersections) - 1:
+                # Last intersection pair (C, D) - Bigger markers, labeled in blue
+                ax.plot(start_x, start_y, 'rx', markersize=14)  # Larger red cross
+                ax.plot(end_x, end_y, 'rx', markersize=14)
+                ax.text(start_x, start_y, 'B', fontsize=15, color='blue', ha='right', va='bottom')
+                ax.text(end_x, end_y, 'A', fontsize=15, color='blue', ha='right', va='bottom')
+
+            else:
+                # Middle intersection pairs - Smaller markers, no labels
+                ax.plot(start_x, start_y, 'rx', markersize=6)  # Smaller red cross
+                ax.plot(end_x, end_y, 'rx', markersize=6)
+    else:
+        print("No intersection points to plot.")
+
+    # Add labels (No grid, no legend, no vertex labels)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    plt.show()
+
 
 def plot_antipodal_points(polygon, antipodal_vertices):
     """ Plot the polygon and highlight the antipodal points.
@@ -92,7 +149,7 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
             if len(x_coords) > 1:
                 centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
                 centroid_y = np.mean(y_coords[:-1])
-                ax.text(centroid_x, centroid_y, str(i), fontsize=10, color='blue', ha='center', va='center')
+                ax.text(centroid_x, centroid_y, str(i), fontsize=14, color='blue', ha='center', va='center')
 
     # Plot obstacles with hard edges
     if obstacles:
@@ -352,7 +409,7 @@ def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, s
 
     # Show the legend if the flag is True
     if show_legend:
-        ax.legend(loc='best')
+        plt.legend(loc="upper right")  # Options: 'upper left', 'lower left', etc.
 
     #plt.show()  # Display the plot
 
@@ -429,7 +486,7 @@ def plot_path(poly, b, b_mate, a, path):
     handles.append(coverage_patch)
     labels.append('Covered Area')
 
-    ax.legend(handles=handles, labels=labels, loc='best')
+    ax.legend(handles=handles, labels=labels, loc='upper right')
 
     plt.grid(True)
     plt.xlabel('X')

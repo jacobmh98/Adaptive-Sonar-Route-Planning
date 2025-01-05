@@ -14,7 +14,6 @@ def hard_edges_rerouting(start_point, end_point, region, obstacles, i, polygons)
     """
     #print(f"Start point: {start_point}")
     #print(f"End point: {end_point}")
-
     intersected_obstacle_edges = (reroute_hard_obstacles.
                                   compute_obstacle_intersections(start_point, end_point, obstacles))
     #print(f"initial obstacle intersections: {intersected_obstacle_edges}")
@@ -46,6 +45,5 @@ def hard_edges_rerouting(start_point, end_point, region, obstacles, i, polygons)
         return reroute_hard_obstacles.reroute_path_obstacles(start_point, end_point, obstacles, polygons[i-1], filtered_obstacle_edges)
 
     else:
-        # TODO: IF OBSTACLE AND REGION EDGES Intersected
         print("No cases hit, clear path")
         return []

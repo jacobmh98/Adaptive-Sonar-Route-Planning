@@ -1,9 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from global_variables import *
 from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
 from shapely.ops import unary_union
-
+from rtree import index
 from plot_cpp import plot_shapely_polygon_simple, plot_buffered_lines
 
 
@@ -152,57 +151,64 @@ def compute_outlier_area(polygon, active_path_segments, current_path_width):
 
 
 def compute_overlap_area(polygon, obstacles, active_path_segments, current_path_width):
-    """ Computes the overlapping buffered line segments inside the polygon, excluding obstacles and transit lines.
-
-    :param polygon: Polygon
-    :param obstacles: List of Polygon instances representing obstacles
-    :param active_path_segments: List of points (as tuples or arrays) representing the path, removed transit points
-    :param current_path_width: Float of chosen path width
-    :return: A tuple (overlap_buffered_lines, overlap_union)
-        - overlap_buffered_lines: List of overlapping buffered LineString objects.
-        - overlap_union: Shapely Polygon representing the union of overlapping buffered segments.
     """
-    current_path_width = current_path_width - 0.1  # Small reduction of path width for edge case overlap scenarios
+    Computes overlapping buffered line segments inside the polygon, excluding obstacles.
+
+    :param polygon: Polygon with vertices attribute containing x, y points
+    :param obstacles: List of Polygons representing obstacles
+    :param active_path_segments: List of LineString objects representing path segments
+    :param current_path_width: Path width
+    :return: Tuple (overlap_buffered_lines, overlap_union)
+    """
+    # Slight width reduction to handle edge cases
+    adjusted_width = current_path_width - 0.05
 
     if not active_path_segments:
-        return [], ShapelyPolygon()  # No active segments, return empty list and polygon
+        return [], ShapelyPolygon()
 
-    # Buffer the active path segments
-    buffered_segments = [seg.buffer(current_path_width / 2.0) for seg in active_path_segments]
+    # Buffer all path segments
+    buffered_segments = [seg.buffer(adjusted_width / 2.0) for seg in active_path_segments]
 
-    # Convert the main polygon and obstacles to Shapely shapes
+    # Combine obstacles into a single geometry
+    obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obs.vertices]) for obs in obstacles])
+
+    # Compute the effective polygon area
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
     poly_shape = ShapelyPolygon(poly_coords)
-    obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
-
-    # Subtract obstacles from each buffered segment
-    effective_segments = [segment.difference(obstacles_shapes) for segment in buffered_segments]
-
-    # Restrict buffered segments to the polygon region without obstacles
     effective_region = poly_shape.difference(obstacles_shapes)
-    overlap_buffered_lines = []
 
+    # Subtract obstacles from buffered segments
+    effective_segments = [seg.difference(obstacles_shapes) for seg in buffered_segments]
+
+    # Build spatial index for fast lookup
+    idx = index.Index()
+    for pos, segment in enumerate(effective_segments):
+        idx.insert(pos, segment.bounds)
+
+    # Detect overlapping segments using spatial index
+    potential_overlaps = []
     for i, seg1 in enumerate(effective_segments):
-        for j, seg2 in enumerate(effective_segments):
-            if i >= j:  # Avoid duplicate and self-comparison
+        candidate_indices = list(idx.intersection(seg1.bounds))
+        for j in candidate_indices:
+            if i >= j:  # Avoid redundant comparisons
                 continue
-
-            # Check for intersection between segments
+            seg2 = effective_segments[j]
             overlap = seg1.intersection(seg2)
             if not overlap.is_empty and overlap.area > 0:
-                # Restrict overlap to the effective region
                 restricted_overlap = overlap.intersection(effective_region)
                 if not restricted_overlap.is_empty:
-                    overlap_buffered_lines.append(restricted_overlap)
+                    potential_overlaps.append(restricted_overlap)
 
-    # Combine all overlaps into a single polygon
-    overlap_union = unary_union(overlap_buffered_lines).buffer(0) if overlap_buffered_lines else ShapelyPolygon()
+    # Combine overlapping areas into a single polygon
+    overlap_union = unary_union(potential_overlaps).buffer(0) if potential_overlaps else ShapelyPolygon()
 
-    return overlap_union, overlap_buffered_lines
+    return overlap_union, potential_overlaps
 
 
 def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
+    print(f"path len: {len(path)}")
     total_distance, path_distance, transit_distance = compute_distance(path, transit_flags)
+
 
     # Create active path segments, excluding transit lines
     active_path_segments = []

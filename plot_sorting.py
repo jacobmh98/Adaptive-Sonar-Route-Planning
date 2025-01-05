@@ -9,30 +9,41 @@ def compute_centroid(polygon):
 
 
 def plot_tsp_centroid(polygons, tsp_route):
+    # Create a figure and axis
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
     # Plot polygons
-    plt.figure(figsize=(8, 8))
-
-    for i, polygon in enumerate(polygons):
+    for i, idx in enumerate(tsp_route):  # Use the TSP route to maintain order
+        polygon = polygons[idx]
         x_coords, y_coords = polygon.get_coords()
-        x_coords.append(x_coords[0])  # Close the polygon
-        y_coords.append(y_coords[0])
-        plt.plot(x_coords, y_coords, 'r-', lw=2, marker='o')
 
-        # Add a label to the centroid of the polygon
+        # Ensure the polygon is closed by repeating the first vertex at the end
+        if len(x_coords) > 0 and len(y_coords) > 0:
+            x_coords.append(x_coords[0])
+            y_coords.append(y_coords[0])
+
+        # Plot the polygon edges, highlighting hard edges in red (if applicable)
+        for e in polygon.edges:
+            if e.is_hard_edge:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-', linewidth=2)  # Hard edge in red
+            else:
+                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-', linewidth=1)  # Normal edge in black
+
+        # Calculate and plot the centroid with a label
         centroid = compute_centroid(polygon)
-        plt.text(centroid[0], centroid[1], f'{tsp_route[i]}', fontsize=12, ha='center', color='blue')
+        ax.text(centroid[0], centroid[1], f'{i}', fontsize=14, ha='center', va='center', color='blue')  # Label by index in TSP route
 
     # Plot TSP path
-    for i in range(len(tsp_route)):
+    for i in range(len(tsp_route)-1):
         start_polygon = polygons[tsp_route[i]]
-        end_polygon = polygons[tsp_route[(i + 1) % len(tsp_route)]]
+        end_polygon = polygons[tsp_route[(i + 1) % len(tsp_route)]]  # To connect last polygon to the first
 
         # Draw line between centroids
         centroid_start = compute_centroid(start_polygon)
         centroid_end = compute_centroid(end_polygon)
-        plt.plot([centroid_start[0], centroid_end[0]], [centroid_start[1], centroid_end[1]], 'b--', lw=2)
+        ax.plot([centroid_start[0], centroid_end[0]], [centroid_start[1], centroid_end[1]], 'b--', linewidth=2)
 
-    plt.title("TSP Optimal Path Visiting Polygons")
+    ax.set_aspect('equal', adjustable='box')  # Ensure equal scaling
     plt.show()
 
 
