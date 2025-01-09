@@ -23,6 +23,7 @@ import path_data_v1
 
 with open("test_data/complex_polygon.pkl", "rb") as file:
     region = pickle.load(file)
+
 print(region)
 
 if dfs_sort:
@@ -40,7 +41,6 @@ total_path, transit_flags = multi_poly_planning.multi_path_planning(polygons, pa
 end_time = time.time()
 elapsed_time = end_time - start_time
 
-#def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
-
-#data = path_data_v1.compute_path_data()
+data = path_data_v1.compute_path_data(region, total_path, transit_flags, path_width, None, elapsed_time)
+print(data)
 plot_cpp_v1.plot_multi_polys_path(path_width, region, total_path, None, False, transit_flags)
