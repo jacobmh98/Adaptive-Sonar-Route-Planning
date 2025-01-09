@@ -51,26 +51,26 @@ else:
 """
 
 
-with open("comparison_files/concave_region.pkl", "rb") as file:
+with open("comparison_test_files/v2_antwerp_real_region.pkl", "rb") as file:
     region = pickle.load(file)
-with open("comparison_files/concave_polys.pkl", "rb") as file:
+with open("comparison_test_files/v2_antwerp_real_polys.pkl", "rb") as file:
     sorted_polygons = pickle.load(file)
 
 total_start_time = time.time()
+path_width = 50
 
 intersections = multi_poly_planning.multi_intersection_planning(sorted_polygons, path_width)
 path, transit_flags = connecting_path.connect_path(sorted_polygons, intersections, region)
-distance = path_comparison_functions.compute_total_distance(path)
+#distance = path_comparison_functions.compute_total_distance(path)
 #def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
-plot_cpp_v2.plot_multi_polys_path(path_width, sorted_polygons, path, None, False, transit_flags)
 #coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, path)
 
 # Ending timer and computing total execution time
 total_end_time = time.time()
 total_execution_time = total_end_time - total_start_time
 
-if get_path_data:
-    path_comparison_functions.compute_path_data(region, path, total_execution_time)
+path_comparison_functions.compute_path_data(region, path, transit_flags, path_width, total_execution_time)
+plot_cpp_v2.plot_multi_polys_path(path_width, sorted_polygons, path, None, False, transit_flags)
 
 
 

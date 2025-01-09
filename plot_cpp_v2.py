@@ -67,7 +67,7 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     Sub-polygon indices are shown at their centroids.
     """
     labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False, "Hard Edge": False}
-
+    hide_sub_polygon_indices = True
     # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
 
