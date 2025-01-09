@@ -9,14 +9,13 @@ from obstacles import *
 from load_data import *
 import plot_cpp_v2
 
-data_path = 'complex_polygon'
-region, obstacles = get_region(data_path)
-sub_polygons = generate_new_data(region)
-optimized_sub_polygons = compute_optimized_data(sub_polygons)
+#data_path = 'complex_polygon'
+#region, obstacles = get_region(data_path)
+#sub_polygons = generate_new_data(region)
+#optimized_sub_polygons = compute_optimized_data(sub_polygons)
 
 # Starting timer for all cpp functions
-total_start_time = time.time()
-print()
+"""
 # Choosing sorting method
 if tsp_sorting:
     print("TSP sorting:")
@@ -49,9 +48,21 @@ else:
     intersections = multi_poly_planning.multi_intersection_planning(optimized_sub_polygons, path_width)
     path, transit_flags = connecting_path.connect_path(optimized_sub_polygons, intersections, region)
     distance = path_comparison_functions.compute_total_distance(path)
+"""
 
+
+with open("comparison_files/concave_region.pkl", "rb") as file:
+    region = pickle.load(file)
+with open("comparison_files/concave_polys.pkl", "rb") as file:
+    sorted_polygons = pickle.load(file)
+
+total_start_time = time.time()
+
+intersections = multi_poly_planning.multi_intersection_planning(sorted_polygons, path_width)
+path, transit_flags = connecting_path.connect_path(sorted_polygons, intersections, region)
+distance = path_comparison_functions.compute_total_distance(path)
 #def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
-plot_cpp_v2.plot_multi_polys_path(path_width, optimized_sub_polygons, path, None, False, transit_flags)
+plot_cpp_v2.plot_multi_polys_path(path_width, sorted_polygons, path, None, False, transit_flags)
 #coverage_plots.multi_poly_plot(region, path_width, optimized_sub_polygons, path)
 
 # Ending timer and computing total execution time

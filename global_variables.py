@@ -26,7 +26,7 @@ get_path_data = False
 store_data = False
 
 # Choose sub-polygon sorting method
-tsp_sorting = True
+tsp_sorting = False
 dfs_sorting = False
 
 # Finding optimal path width, with tolerances

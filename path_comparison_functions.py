@@ -140,12 +140,11 @@ def compute_path_data(poly, path, time):
     overlap_area = compute_overlap_area(poly, path)
 
     print(f'Execution time: {time}s')
-    print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
-    print(f'Covered area: {covered_area.area}m\u00B2')
-    print(f'Outlier area: {outlier_area.area}m\u00B2')
-    print(f'Overlap area: {overlap_area.area}m\u00B2')
-    coverage_plots.visualize_coverage_wasted_and_overlap(poly, path, covered_area, outlier_area, overlap_area)
-    print()
+    #print(f'Covered area: {covered_area.area}m\u00B2')
+    #print(f'Outlier area: {outlier_area.area}m\u00B2')
+    #print(f'Overlap area: {overlap_area.area}m\u00B2')
+    #coverage_plots.visualize_coverage_wasted_and_overlap(poly, path, covered_area, outlier_area, overlap_area)
+    #print()
 
     # Computing turns in the path
     distance = compute_total_distance(path)
