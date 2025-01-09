@@ -12,6 +12,12 @@ def hard_edges_rerouting(start_point, end_point, region, obstacles, i, polygons)
     :param polygons: The list of sub polygons
     :return: List of intermediate points for the rerouted path, or an empty list if the path is clear.
     """
+
+    ignore_hard_edges = False
+
+    if ignore_hard_edges:
+        return []
+
     #print(f"Start point: {start_point}")
     #print(f"End point: {end_point}")
     intersected_obstacle_edges = (reroute_hard_obstacles.

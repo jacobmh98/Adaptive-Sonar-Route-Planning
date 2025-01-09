@@ -4,6 +4,7 @@ import matplotlib.patheffects as pe
 from matplotlib.patches import Patch
 from Polygon import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon
+import matplotlib.patches as patches
 
 # Pop plot out of IDE
 #matplotlib.use('TkAgg')
@@ -116,10 +117,10 @@ def plot_simple_poly_path(polygon, path):
     plt.ylabel('Y')
 
 
-def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
+def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False, label_vertices=False):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
-    Highlight hard edges specified for each polygon, and label each vertex with its index.
+    Highlight hard edges specified for each polygon, and label each vertex with its index or a letter (A, B, C, ...).
     Obstacles are plotted with red edges. Transit edges are highlighted differently.
     Sub-polygon indices are shown at their centroids.
     """
@@ -128,7 +129,7 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
 
-    # Plot sub-polygons and display their indices at centroids
+    # Plot sub-polygons and display their indices or vertex names
     for i, poly in enumerate(polygons):
         x_coords, y_coords = poly.get_coords()
 
@@ -144,12 +145,18 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
             else:
                 ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-')  # Normal edge in black
 
-        # Calculate and plot the centroid
+        # Calculate and plot the centroid and/or vertex labels
         if not hide_sub_polygon_indices:
             if len(x_coords) > 1:
                 centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
                 centroid_y = np.mean(y_coords[:-1])
                 ax.text(centroid_x, centroid_y, str(i), fontsize=14, color='blue', ha='center', va='center')
+
+        # Label vertices with A, B, C, etc. if label_vertices is True
+        if label_vertices:
+            for idx, (x, y) in enumerate(zip(x_coords[:-1], y_coords[:-1])):  # Exclude the last duplicate point
+                label = chr(65 + idx)  # ASCII value of 'A' is 65, so we label as A, B, C, etc.
+                ax.text(x, y, label, fontsize=18, color='blue', ha='center', va='center')
 
     # Plot obstacles with hard edges
     if obstacles:
@@ -215,6 +222,7 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     ax.set_aspect('equal')
     #plt.show()
     return fig
+
 
 
 def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_buffered_lines, path=None, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
@@ -347,22 +355,22 @@ def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, s
     """
     fig, ax = plt.subplots()  # Create the figure and axis
     ax.set_aspect('equal')
-    ax.set_title("Polygon and Vectors with Intersection Points")
-
-    # Plot the boundary box (zorder=1 to draw below the vectors and points)
-    min_x, max_x, min_y, max_y = boundary
-    ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box', zorder=1)
+    #ax.set_title("Polygon and Vectors with Intersection Points")
 
     # Plot the points b, b_mate, and a (zorder=3 to draw above the polygon)
     ax.plot([b[0], b_mate[0], a[0]], [b[1], b_mate[1], a[1]], 'ro', markersize=10, label='Points (b, b_mate, a)', zorder=3)
-    ax.text(b[0], b[1], 'b', fontsize=12, color='darkblue', zorder=4)
-    ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=12, color='darkblue', zorder=4)
-    ax.text(a[0], a[1], 'a', fontsize=12, color='darkblue', zorder=4)
+    ax.text(b[0], b[1], 'b', fontsize=18, color='darkblue', zorder=4)
+    ax.text(b_mate[0], b_mate[1], 'b_mate', fontsize=16, color='darkblue', zorder=4)
+    ax.text(a[0], a[1], 'a', fontsize=18, color='darkblue', zorder=4)
 
     # Plot the convex polygon (zorder=2 to draw below the vectors)
     x_coords, y_coords = poly.get_coords()
     ax.plot(x_coords, y_coords, 'k-', marker='o', label='Polygon', zorder=2)
     ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-', zorder=2)
+
+    # Draw the boundary box (zorder=1 to draw below the vectors and points)
+    min_x, max_x, min_y, max_y = boundary
+    ax.plot([min_x, max_x, max_x, min_x, min_x], [min_y, min_y, max_y, max_y, min_y], 'k--', label='Boundary Box', zorder=1)
 
     # Adjust arrow length by subtracting the arrow head size from the total length
     def adjust_arrow(start, end, head_length=0.1):
@@ -375,43 +383,39 @@ def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, s
             adjusted_end = end  # If the vector is very short, don't adjust
         return adjusted_end
 
-    # Plot the vector from b to b_mate as an arrow (adjusted)
-    adjusted_b_mate = adjust_arrow(b, b_mate)
-    ax.arrow(b[0], b[1], adjusted_b_mate[0] - b[0], adjusted_b_mate[1] - b[1],
-             head_width=0.05, head_length=0.1, fc='green', ec='green', linewidth=2, label='Vector (b to b_mate)', zorder=4)
-
-    # Plot the extended vector (L_flight_ext) as another arrow (adjusted)
-    ext_start, ext_end = v_extended
-    adjusted_ext_end = adjust_arrow(ext_start, ext_end)
-    ax.arrow(ext_start[0], ext_start[1], adjusted_ext_end[0] - ext_start[0], adjusted_ext_end[1] - ext_start[1],
-             head_width=0.05, head_length=0.1, fc='blue', ec='blue', linewidth=2, label='First Extended Offset Vector', zorder=4)
-
-    # Reverse the start and end of the additional vector v_extended2
-    vector_2_start, vector_2_end = v_extended2
-
-    # Plot the reversed additional vector (L_flight_2) as another arrow (adjusted)
-    adjusted_vector_2_end = adjust_arrow(vector_2_start, vector_2_end)
-    ax.arrow(vector_2_start[0], vector_2_start[1],
-             adjusted_vector_2_end[0] - vector_2_start[0], adjusted_vector_2_end[1] - vector_2_start[1],
-             head_width=0.05, head_length=0.1, fc='purple', ec='purple', linewidth=2, label='Second Extended Offset Vector', zorder=4)
-
     # Find intersection points for the first and second vectors
-    i1_1, i1_2 = Polygon.find_intersections(poly, v_extended)  # First vector intersections
-    i2_1, i2_2 = Polygon.find_intersections(poly, v_extended2)    # Second vector intersections
+    i1_2, i1_1 = Polygon.find_intersections(poly, v_extended)  # First vector intersections
+    i2_2, i2_1 = Polygon.find_intersections(poly, v_extended2)    # Second vector intersections
 
     # Plot intersection points for the first vector
-    ax.plot([i1_1[0], i1_2[0]], [i1_1[1], i1_2[1]], 'rx', markersize=8, zorder=5)
+    ax.plot([i1_1[0], i1_2[0]], [i1_1[1], i1_2[1]], 'rx', markersize=10, zorder=5)
     # Plot intersection points for the second vector
-    ax.plot([i2_1[0], i2_2[0]], [i2_1[1], i2_2[1]], 'rx', markersize=8, label='Intersections', zorder=5)
+    ax.plot([i2_1[0], i2_2[0]], [i2_1[1], i2_2[1]], 'rx', markersize=10, label='Intersections', zorder=5)
+
+    # Plot the vector from b to b_mate as an arrow (adjusted) starting from b
+    adjusted_b_mate = adjust_arrow(b, b_mate)  # Adjust vector start to the intersection point
+    arrow_b = patches.FancyArrowPatch(b, adjusted_b_mate, mutation_scale=30, color='green', label='Initial Vector', linewidth=1, zorder=4)  # Thinner line and large head
+    ax.add_patch(arrow_b)
+
+    # Plot the vector from the start to the end point of the first extended vector (v_extended)
+    start_1, end_1 = v_extended
+    arrow1 = patches.FancyArrowPatch(start_1, end_1, mutation_scale=30, color='blue', label='1. Extended Offset Vector', linewidth=1, zorder=4)
+    ax.add_patch(arrow1)
+
+    # Plot the vector from the start to the end point of the second extended vector (v_extended2)
+    start_2, end_2 = v_extended2
+    arrow2 = patches.FancyArrowPatch(start_2, end_2, mutation_scale=30, color='purple', label='2. Extended Offset Vector', linewidth=1, zorder=4)
+    ax.add_patch(arrow2)
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
 
     # Show the legend if the flag is True
     if show_legend:
-        plt.legend(loc="upper right")  # Options: 'upper left', 'lower left', etc.
+        plt.legend(loc="center", bbox_to_anchor=(0.5, 0.6))  # Legend in the middle
 
-    #plt.show()  # Display the plot
+    plt.show()  # Display the plot
+
 
 def plot_path(poly, b, b_mate, a, path):
     """ Plot the original vector from b to b_mate, the offset vector, the boundary box, the polygon,

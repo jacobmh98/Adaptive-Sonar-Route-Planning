@@ -269,6 +269,17 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
     v_extended = extend_vector_to_boundary(v_offset, boundary)
     prev_v_extended = v_extended
 
+    """
+    # def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, show_legend=True):
+    b_test = poly.vertices[b_index].v.flatten()
+    b_mate_test = poly.vertices[b_mate_index].v.flatten()
+    a_test = poly.vertices[a_index].v.flatten()
+    v_initial_test = np.array([b_test, b_mate_test])
+    v1 = extend_vector_to_boundary(compute_offset_vector(v_initial_test, sweep_direction, delta_init), boundary)
+    v2 = extend_vector_to_boundary(compute_offset_vector(v1, sweep_direction, 2*delta_init),boundary)
+    plot_vectors_simple(poly, b_test, b_mate_test, a_test, v1, v2, boundary, show_legend=True)
+    """
+
     # Fail-safe parameters for the while loop
     max_iterations = 10000
     counter = 0
