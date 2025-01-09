@@ -77,7 +77,7 @@ def compute_turns(path):
     return total_turns, hard_turns, medium_turns, soft_turns
 
 
-def compute_covered_area(region, obstacles, active_path_segments, current_path_width):
+def compute_covered_area(region, active_path_segments, current_path_width):
     """Compute the coverage of the path inside the region, accounting for obstacles and transit lines.
 
     :param region: Main region polygon as an instance of the Polygon class
@@ -91,10 +91,10 @@ def compute_covered_area(region, obstacles, active_path_segments, current_path_w
     region_shape = ShapelyPolygon(region_coords)
 
     # Combine obstacles into a single Shapely Geometry
-    obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
+    #obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
 
     # Subtract obstacles from the region to create the effective region
-    effective_region = region_shape.difference(obstacles_shapes)
+    effective_region = region_shape #.difference(obstacles_shapes)
 
     if not active_path_segments:
         # No active segments, return empty polygon and zero coverage
@@ -106,8 +106,8 @@ def compute_covered_area(region, obstacles, active_path_segments, current_path_w
     )
 
     # Restrict the buffered path to the effective region
-    covered_area_with_obstacles = buffered_path.intersection(region_shape)
-    covered_area = covered_area_with_obstacles.difference(obstacles_shapes)
+    covered_area = buffered_path.intersection(region_shape)
+    #covered_area = covered_area_with_obstacles.difference(obstacles_shapes)
 
     # Calculate the coverage percentage, excluding obstacle areas
     effective_region_area = effective_region.area
@@ -151,7 +151,7 @@ def compute_outlier_area(polygon, active_path_segments, current_path_width):
     return outlying_area, outlier_buffered_lines
 
 
-def compute_overlap_area(polygon, obstacles, active_path_segments, current_path_width):
+def compute_overlap_area(polygon, active_path_segments, current_path_width):
     """ Computes the overlapping buffered line segments inside the polygon, excluding obstacles and transit lines.
 
     :param polygon: Polygon
@@ -173,13 +173,13 @@ def compute_overlap_area(polygon, obstacles, active_path_segments, current_path_
     # Convert the main polygon and obstacles to Shapely shapes
     poly_coords = [(v.x, v.y) for v in polygon.vertices]
     poly_shape = ShapelyPolygon(poly_coords)
-    obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
+    #obstacles_shapes = unary_union([ShapelyPolygon([(v.x, v.y) for v in obstacle.vertices]) for obstacle in obstacles])
 
     # Subtract obstacles from each buffered segment
-    effective_segments = [segment.difference(obstacles_shapes) for segment in buffered_segments]
+    effective_segments = buffered_segments #[segment.difference(obstacles_shapes) for segment in buffered_segments]
 
     # Restrict buffered segments to the polygon region without obstacles
-    effective_region = poly_shape.difference(obstacles_shapes)
+    effective_region = poly_shape #.difference(obstacles_shapes)
     overlap_buffered_lines = []
 
     for i, seg1 in enumerate(effective_segments):
@@ -201,7 +201,7 @@ def compute_overlap_area(polygon, obstacles, active_path_segments, current_path_
     return overlap_union, overlap_buffered_lines
 
 
-def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, time):
+def compute_path_data(poly, path, transit_flags, current_path_width, time):
     total_distance, path_distance, transit_distance = compute_distance(path, transit_flags)
 
     # Create active path segments, excluding transit lines
@@ -212,9 +212,9 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
             active_path_segments.append(LineString([path[i], path[i + 1]]))
 
     # Computing areas from path
-    covered_area, coverage_percentage = compute_covered_area(poly, obstacles, active_path_segments, current_path_width)
+    covered_area, coverage_percentage = compute_covered_area(poly, active_path_segments, current_path_width)
     outlier_area, outlier_buffered_lines = compute_outlier_area(poly, active_path_segments, current_path_width)
-    overlap_area, overlap_buffered_lines = compute_overlap_area(poly, obstacles, active_path_segments, current_path_width)
+    overlap_area, overlap_buffered_lines = compute_overlap_area(poly, active_path_segments, current_path_width)
 
     #plot_shapely_polygon_simple(covered_area, title="Covered Area")
     #plot_buffered_lines(outlier_buffered_lines, polygon=None, obstacles=None)
@@ -223,16 +223,16 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
     # Computing turns in the path
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
 
-    print_data = False
+    print_data = True
     if print_data:
         print(f'Execution time: {time}')
         print(f'Total Distance: {total_distance}')
         print(f'Path Distance: {path_distance}')
         print(f'Transit Distance: {transit_distance}')
         print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
-        print(f'Covered area: {covered_area.area}')
-        print(f'Outlier area: {outlier_area.area}')
-        print(f'Overlap area: {overlap_area.area}')
+        #print(f'Covered area: {covered_area.area}')
+        #print(f'Outlier area: {outlier_area.area}')
+        #print(f'Overlap area: {overlap_area.area}')
         print(f'Total turns: {total_turns}')
         print(f'Hard turns (<45 or >180): {hard_turns}')
         print(f'Medium turns (45-90): {medium_turns}')
