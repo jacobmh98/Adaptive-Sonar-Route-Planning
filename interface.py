@@ -549,8 +549,8 @@ def path_planner():
                     data_dir = "C:/Users/andre/Documents/Adaptive-Sonar-Route-Planning/comparison_test_files"
                     os.makedirs(data_dir, exist_ok=True)
 
-                    file_path_region = os.path.join(data_dir, "antwerp_triangle_region.pkl")
-                    file_path_polys = os.path.join(data_dir, "antwerp_triangle_polys.pkl")
+                    file_path_region = os.path.join(data_dir, "test.pkl")
+                    file_path_polys = os.path.join(data_dir, "test.pkl")
 
                     # Save the 'region' object
                     with open(file_path_region, 'wb') as f:
