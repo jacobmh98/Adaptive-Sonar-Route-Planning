@@ -199,7 +199,8 @@ def extract_hard_edges(polygons):
 
 def connect_path(polygons, total_intersections, region, obstacles):
     path = np.empty((0, 2))  # Main path
-    transit_flags = []  # List to store flags for each point in the main path
+    transit_flags = []  # List to store flags for each point in the transit path
+    transit_path = np.empty((0,2))
     hard_region_edges = extract_hard_edges(polygons)
     hard_obstacles = [obstacle for obstacle in obstacles if obstacle.is_hard_obstacle]
     added_extra_points = 0
@@ -222,7 +223,8 @@ def connect_path(polygons, total_intersections, region, obstacles):
             current_path = connect_last_path(path, total_intersections[i])
 
         # Handle intermediate points between polygons
-        if i > 0 and (hard_obstacles or hard_region_edges):  # Not needed if no hard obstacles or region edges present
+        reroute = True
+        if i > 0 and (hard_obstacles or hard_region_edges) and reroute:  # Not needed if no hard obstacles or region edges present
             print(f"\nGoing from {i - 1} to {i}")
             last_path_point = path[-1]  # Last point of the current path
             current_first_point = current_path[0]  # First point of the next path
@@ -242,10 +244,10 @@ def connect_path(polygons, total_intersections, region, obstacles):
             # Add a new point between the two existing points for paths with just 2 points
             if len(current_path) == 2:
                 # Compute the midpoint between the two points
-                midpoint = (current_path[0] + current_path[1]) / 2.0
+                #midpoint = (current_path[0] + current_path[1]) / 2.0
 
                 # Insert the midpoint into the array at position 1
-                current_path = np.insert(current_path, 1, midpoint, axis=0)
+                current_path = np.insert(current_path, 1, current_path[0], axis=0)
                 added_extra_points += 1
 
             # Add flags for the current path

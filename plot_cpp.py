@@ -117,46 +117,62 @@ def plot_simple_poly_path(polygon, path):
     plt.ylabel('Y')
 
 
-def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False, label_vertices=False):
+def plot_multi_polys_path(region, current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False, label_vertices=False):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index or a letter (A, B, C, ...).
     Obstacles are plotted with red edges. Transit edges are highlighted differently.
     Sub-polygon indices are shown at their centroids.
+    New options:
+    - hide_sub_polygons: Set to True to only plot the region polygon (ignores sub-polygons).
+    - show_waypoints: Set to True to plot a waypoint for each path point.
     """
     labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False, "Hard Edge": False}
+
+    hide_sub_polygons = False
+    show_waypoints = True
 
     # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
 
-    # Plot sub-polygons and display their indices or vertex names
-    for i, poly in enumerate(polygons):
-        x_coords, y_coords = poly.get_coords()
+    # Plot the region polygon if hide_sub_polygons is set to True
+    if hide_sub_polygons:
+        region_x, region_y = region.get_coords()
+        # Ensure the region polygon is closed by repeating the first vertex at the end
+        if len(region_x) > 0 and len(region_y) > 0:
+            region_x.append(region_x[0])
+            region_y.append(region_y[0])
+        ax.plot(region_x, region_y, 'k-', label="Region Polygon")  # Plot region polygon
 
-        # Ensure the polygon is closed by repeating the first vertex at the end
-        if len(x_coords) > 0 and len(y_coords) > 0:
-            x_coords.append(x_coords[0])
-            y_coords.append(y_coords[0])
+    else:
+        # Plot sub-polygons and display their indices or vertex names
+        for i, poly in enumerate(polygons):
+            x_coords, y_coords = poly.get_coords()
 
-        # Plot the polygon edges, highlighting hard edges in red
-        for e in poly.edges:
-            if e.is_hard_edge:
-                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-')  # Hard edge in red
-            else:
-                ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-')  # Normal edge in black
+            # Ensure the polygon is closed by repeating the first vertex at the end
+            if len(x_coords) > 0 and len(y_coords) > 0:
+                x_coords.append(x_coords[0])
+                y_coords.append(y_coords[0])
 
-        # Calculate and plot the centroid and/or vertex labels
-        if not hide_sub_polygon_indices:
-            if len(x_coords) > 1:
-                centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
-                centroid_y = np.mean(y_coords[:-1])
-                ax.text(centroid_x, centroid_y, str(i), fontsize=14, color='blue', ha='center', va='center')
+            # Plot the polygon edges, highlighting hard edges in red
+            for e in poly.edges:
+                if e.is_hard_edge:
+                    ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'r-')  # Hard edge in red
+                else:
+                    ax.plot([e.v_from.x, e.v_to.x], [e.v_from.y, e.v_to.y], 'k-')  # Normal edge in black
 
-        # Label vertices with A, B, C, etc. if label_vertices is True
-        if label_vertices:
-            for idx, (x, y) in enumerate(zip(x_coords[:-1], y_coords[:-1])):  # Exclude the last duplicate point
-                label = chr(65 + idx)  # ASCII value of 'A' is 65, so we label as A, B, C, etc.
-                ax.text(x, y, label, fontsize=18, color='blue', ha='center', va='center')
+            # Calculate and plot the centroid and/or vertex labels
+            if not hide_sub_polygon_indices:
+                if len(x_coords) > 1:
+                    centroid_x = np.mean(x_coords[:-1])  # Ignore duplicate last point for centroid
+                    centroid_y = np.mean(y_coords[:-1])
+                    ax.text(centroid_x, centroid_y, str(i), fontsize=14, color='blue', ha='center', va='center')
+
+            # Label vertices with A, B, C, etc. if label_vertices is True
+            if label_vertices:
+                for idx, (x, y) in enumerate(zip(x_coords[:-1], y_coords[:-1])):  # Exclude the last duplicate point
+                    label = chr(65 + idx)  # ASCII value of 'A' is 65, so we label as A, B, C, etc.
+                    ax.text(x, y, label, fontsize=18, color='blue', ha='center', va='center')
 
     # Plot obstacles with hard edges
     if obstacles:
@@ -213,6 +229,10 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
                         [corner1[1], corner2[1], corner3[1], corner4[1]],
                         'orange', alpha=0.3)
 
+        # Plot waypoints for each path point if enabled
+        if show_waypoints:
+            ax.scatter(path_x, path_y, color='blue', s=15, zorder=5)  # Add blue points for waypoints
+
     else:
         print("Empty path")
 
@@ -222,7 +242,6 @@ def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, sh
     ax.set_aspect('equal')
     #plt.show()
     return fig
-
 
 
 def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier_buffered_lines, path=None, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):

@@ -590,7 +590,7 @@ def path_planner():
                         transit_flags = [None] * len(path)
 
                     # Computing plot for path
-                    fig_path = plot_multi_polys_path(chosen_path_width, sorted_sub_polygons, path, obstacles,
+                    fig_path = plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles,
                                                               False, transit_flags,
                                                               hide_plot_legend_var.get(), hide_sub_polygon_indices_var.get())
                     # Computing data about path
