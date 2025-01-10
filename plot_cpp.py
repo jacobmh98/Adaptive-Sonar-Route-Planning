@@ -231,7 +231,7 @@ def plot_multi_polys_path(region, current_path_width, polygons, path, obstacles=
 
         # Plot waypoints for each path point if enabled
         if show_waypoints:
-            ax.scatter(path_x, path_y, color='blue', s=15, zorder=5)  # Add blue points for waypoints
+            ax.scatter(path_x, path_y, color='k', s=10, zorder=5)  # Add blue points for waypoints
 
     else:
         print("Empty path")
