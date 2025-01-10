@@ -563,7 +563,7 @@ def path_planner():
 
                     # Computing path
                     #plot_cpp.plot_single_polygon_with_intersections(sorted_sub_polygons, sorted_intersections)
-                    path, transit_flags = connect_path(sorted_sub_polygons, sorted_intersections,
+                    path, transit_flags, extra_points = connect_path(sorted_sub_polygons, sorted_intersections,
                                                                         region, obstacles)
                     # Removing duplicate points from the path OBS: Creates some errors with hard edges rerouting (same vertices used to navigate around obstacles/hard edges)
                     #path, transit_flags = remove_duplicate_points_preserve_order(path, transit_flags)
@@ -595,7 +595,7 @@ def path_planner():
                                                               hide_plot_legend_var.get(), hide_sub_polygon_indices_var.get())
                     # Computing data about path
                     stats_dict = compute_path_data(region, path, transit_flags, chosen_path_width,
-                                                                 obstacles, total_execution_time)
+                                                                 obstacles, total_execution_time, extra_points)
 
                     stats_dict['total_execution_time'] = total_execution_time
                     stats_dict['sorting_variable'] = sorting_variable.get()

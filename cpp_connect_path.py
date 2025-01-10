@@ -202,6 +202,7 @@ def connect_path(polygons, total_intersections, region, obstacles):
     transit_flags = []  # List to store flags for each point in the main path
     hard_region_edges = extract_hard_edges(polygons)
     hard_obstacles = [obstacle for obstacle in obstacles if obstacle.is_hard_obstacle]
+    added_extra_points = 0
 
     for i, poly in enumerate(polygons):
         current_path = []
@@ -245,6 +246,7 @@ def connect_path(polygons, total_intersections, region, obstacles):
 
                 # Insert the midpoint into the array at position 1
                 current_path = np.insert(current_path, 1, midpoint, axis=0)
+                added_extra_points += 1
 
             # Add flags for the current path
             for idx, point in enumerate(current_path):
@@ -255,7 +257,7 @@ def connect_path(polygons, total_intersections, region, obstacles):
 
             path = np.vstack([path, current_path])
 
-    return path, transit_flags
+    return path, transit_flags, added_extra_points
 
 
 def remove_duplicate_points_preserve_order(path, flags):
