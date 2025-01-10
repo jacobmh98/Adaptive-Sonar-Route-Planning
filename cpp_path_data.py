@@ -229,16 +229,16 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
     # Computing turns in the path
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
 
-    print_data = False
+    print_data = True
     if print_data:
         print(f'Execution time: {time}')
         print(f'Total Distance: {total_distance}')
         print(f'Path Distance: {path_distance}')
         print(f'Transit Distance: {transit_distance}')
         print(f'Coverage percentage: {round(coverage_percentage, 2)}%')
-        print(f'Covered area: {covered_area.area}')
-        print(f'Outlier area: {outlier_area.area}')
-        print(f'Overlap area: {overlap_area.area}')
+        #print(f'Covered area: {covered_area.area}')
+        #print(f'Outlier area: {outlier_area.area}')
+        #print(f'Overlap area: {overlap_area.area}')
         print(f'Total turns: {total_turns}')
         print(f'Hard turns (<45 or >180): {hard_turns}')
         print(f'Medium turns (45-90): {medium_turns}')
