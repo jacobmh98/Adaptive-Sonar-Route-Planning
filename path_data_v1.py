@@ -221,7 +221,7 @@ def compute_path_data(poly, path, transit_flags, current_path_width, time, extra
     #plot_buffered_lines(overlap_buffered_lines, polygon=None, obstacles=None)
 
     # Computing turns in the path
-    total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path, extra_turns)
+    total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path, extra_points)
 
     print_data = True
     if print_data:

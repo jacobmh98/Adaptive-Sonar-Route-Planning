@@ -21,9 +21,9 @@ import path_data_v1
 #        region = pickle.load(file)
 
 
-with open("comparison_files/antwerp_real_region.pkl", "rb") as file:
+with open("comparison_files/concave_region.pkl", "rb") as file:
     region = pickle.load(file)
-with open("comparison_files/antwerp_real_polys.pkl", "rb") as file:
+with open("comparison_files/concave_polys.pkl", "rb") as file:
     sorted_polygons = pickle.load(file)
 
 dfs_sort = False

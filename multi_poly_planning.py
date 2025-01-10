@@ -139,12 +139,13 @@ def multi_path_planning(polygons, dx, include_external_start_end):
     total_transit_flags = []  # List to store transit flags
     added_extra_points = 0
 
-    if include_external_start_end:
+    #if include_external_start_end:
         # Appending external start point to path and marking as transit
-        total_path = np.append(total_path, [ext_p_start], axis=0)
-        total_transit_flags.append("transit")
+       # total_path = np.append(total_path, [ext_p_start], axis=0)
+       # transit_flags.append("transit")
 
     for i, current_poly in enumerate(polygons):
+        transit_flags = []
         b_index = 0  # Always start at first vertex in the current polygon
 
         # Computing current polygon's antipodal points
@@ -162,12 +163,6 @@ def multi_path_planning(polygons, dx, include_external_start_end):
         if shortest_path.size == 0:  # Probably not necessary
             shortest_path = np.empty((0, 2))  # Resetting shortest_path for total_path
 
-        # Creating a transit flag list for the current polygon's shortest path
-        transit_flags = [None] * len(shortest_path)
-        if len(shortest_path) > 0:
-            transit_flags[0] = "transit"  # Marking first point as transit
-            transit_flags[-1] = "transit"  # Marking last point as transit
-
         # Appending current path and transit flags to the totals
         if len(shortest_path) == 2:
             # Compute the midpoint between the two points
@@ -177,13 +172,21 @@ def multi_path_planning(polygons, dx, include_external_start_end):
             shortest_path = np.insert(shortest_path, 1, midpoint, axis=0)
             added_extra_points += 1
 
+        # Add flags for the current path
+        if len(shortest_path) > 0:
+            for idx, point in enumerate(shortest_path):
+                    if idx == 0 or idx == len(shortest_path) - 1:  # First and last path points are marked as transit points
+                        transit_flags.append("transit")
+                    else:
+                        transit_flags.append(None)
+
         total_path = np.vstack([total_path, shortest_path])
         total_transit_flags.extend(transit_flags)
 
     # Appending the external end point as the last point in path and marking as transit
-    if include_external_start_end:
-        total_path = np.append(total_path, [ext_p_end], axis=0)
-        total_transit_flags.append("transit")
+    #if include_external_start_end:
+    #    total_path = np.append(total_path, [ext_p_end], axis=0)
+    #    total_transit_flags.append("transit")
 
     return total_path, total_transit_flags, added_extra_points
 
