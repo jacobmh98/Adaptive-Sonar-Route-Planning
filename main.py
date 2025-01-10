@@ -21,9 +21,9 @@ import path_data_v1
 #        region = pickle.load(file)
 
 
-with open("comparison_files/concave_region.pkl", "rb") as file:
+with open("comparison_files/antwerp_real_region.pkl", "rb") as file:
     region = pickle.load(file)
-with open("comparison_files/concave_polys.pkl", "rb") as file:
+with open("comparison_files/antwerp_real_polys.pkl", "rb") as file:
     sorted_polygons = pickle.load(file)
 
 dfs_sort = False
@@ -39,9 +39,9 @@ else:
 
 path_width = 15
 start_time = time.time()
-total_path, transit_flags = multi_poly_planning.multi_path_planning(polygons, path_width, extern_start_end)
+total_path, transit_flags, extra_points = multi_poly_planning.multi_path_planning(polygons, path_width, extern_start_end)
 end_time = time.time()
 elapsed_time = end_time - start_time
 
-data = path_data_v1.compute_path_data(region, total_path, transit_flags, path_width, elapsed_time)
+data = path_data_v1.compute_path_data(region, total_path, transit_flags, path_width, elapsed_time, extra_points)
 plot_cpp_v1.plot_multi_polys_path(path_width, polygons, total_path, None, False, transit_flags)

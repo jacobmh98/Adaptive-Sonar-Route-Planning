@@ -137,6 +137,7 @@ def multi_path_planning(polygons, dx, include_external_start_end):
     # Creating the np array to store the total path
     total_path = np.empty((0, 2))
     total_transit_flags = []  # List to store transit flags
+    added_extra_points = 0
 
     if include_external_start_end:
         # Appending external start point to path and marking as transit
@@ -168,6 +169,14 @@ def multi_path_planning(polygons, dx, include_external_start_end):
             transit_flags[-1] = "transit"  # Marking last point as transit
 
         # Appending current path and transit flags to the totals
+        if len(shortest_path) == 2:
+            # Compute the midpoint between the two points
+            midpoint = (shortest_path[0] + shortest_path[1]) / 2.0
+
+            # Insert the midpoint into the array at position 1
+            shortest_path = np.insert(shortest_path, 1, midpoint, axis=0)
+            added_extra_points += 1
+
         total_path = np.vstack([total_path, shortest_path])
         total_transit_flags.extend(transit_flags)
 
@@ -176,7 +185,7 @@ def multi_path_planning(polygons, dx, include_external_start_end):
         total_path = np.append(total_path, [ext_p_end], axis=0)
         total_transit_flags.append("transit")
 
-    return total_path, total_transit_flags
+    return total_path, total_transit_flags, added_extra_points
 
 
 def multi_poly_plot(polygon, polygons, dx, include_external_start_end, ps, pe, path):
