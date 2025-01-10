@@ -48,7 +48,7 @@ def compute_turns(path, extra_points):
     medium_turns = 0
     soft_turns = 0
 
-    for i in range(1, len(path) - 1):
+    for i in range(1, len(path) - 1):  # Not counting the very first and last point as a turn
         # Compute vectors for consecutive points
         vector1 = path[i] - path[i - 1]
         vector2 = path[i + 1] - path[i]
@@ -71,7 +71,7 @@ def compute_turns(path, extra_points):
         else:
             soft_turns += 1
 
-    soft_turns = soft_turns - extra_points
+    soft_turns = soft_turns - extra_points  # Added points for transit lines correction with single line paths, removed here
     total_turns = hard_turns + medium_turns + soft_turns
 
     return total_turns, hard_turns, medium_turns, soft_turns
