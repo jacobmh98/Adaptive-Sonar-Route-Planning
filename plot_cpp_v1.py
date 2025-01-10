@@ -59,7 +59,7 @@ def plot_simple_poly_path(polygon, path):
     plt.ylabel('Y')
 
 
-def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=False, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
+def plot_multi_polys_path(current_path_width, polygons, path, obstacles=None, show_coverage=True, transit_flags=None, hide_plot_legend=False, hide_sub_polygon_indices=False):
     """
     Plot multiple polygons, the path between the polygons, and the start/end points of the mission.
     Highlight hard edges specified for each polygon, and label each vertex with its index.
