@@ -34,7 +34,7 @@ def compute_distance(path, transit_flags):
     return total_distance, path_distance, transit_distance
 
 
-def compute_turns(path):
+def compute_turns(path, extra_points):
     """ Function to compute the number of turns in the path, and classify them as three different turn types
 
     :param path: List of points
@@ -70,6 +70,7 @@ def compute_turns(path):
         else:
             soft_turns += 1
 
+    soft_turns = soft_turns - extra_points
     total_turns = hard_turns + medium_turns + soft_turns
 
     return total_turns, hard_turns, medium_turns, soft_turns
@@ -199,7 +200,7 @@ def compute_overlap_area(polygon, active_path_segments, current_path_width):
     return overlap_union, overlap_buffered_lines
 
 
-def compute_path_data(poly, path, transit_flags, current_path_width, time):
+def compute_path_data(poly, path, transit_flags, current_path_width, time, extra_points):
     total_distance, path_distance, transit_distance = compute_distance(path, transit_flags)
 
     # Create active path segments, excluding transit lines
@@ -219,7 +220,7 @@ def compute_path_data(poly, path, transit_flags, current_path_width, time):
     #plot_buffered_lines(overlap_buffered_lines, polygon=None, obstacles=None)
 
     # Computing turns in the path
-    total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path)
+    total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path, extra_points)
 
     print_data = True
     if print_data:
