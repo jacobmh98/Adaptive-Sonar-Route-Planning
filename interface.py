@@ -532,8 +532,8 @@ def path_planner():
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
 
-                    elif sorting_var == 'TSP Intra Regional':
-                        print("Intra Regional")
+                    elif sorting_var == 'TSP GNN':
+                        print("GNN")
                         sorting_start_time = time.time()
                         sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = solve_greedy_tsp_sorting(removed_col_sub_polygons, intersections)
                         sorting_end_time = time.time()
@@ -817,7 +817,7 @@ def setup_option_pane():
     rb4 = Radiobutton(options_pane, text='Unordered', variable=sorting_variable, value='Unordered')
     rb5 = Radiobutton(options_pane, text='DFS', variable=sorting_variable, value='DFS')
     rb6 = Radiobutton(options_pane, text='TSP Centroid', variable=sorting_variable, value='TSP Centroid')
-    rb7 = Radiobutton(options_pane, text='TSP Intra Regional', variable=sorting_variable, value='TSP Intra Regional')
+    rb7 = Radiobutton(options_pane, text='TSP GNN', variable=sorting_variable, value='TSP GNN')
     rb4.pack(anchor='w')
     rb5.pack(anchor='w')
     rb6.pack(anchor='w')
