@@ -129,8 +129,8 @@ def plot_multi_polys_path(region, current_path_width, polygons, path, obstacles=
     """
     labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False, "Hard Edge": False}
 
-    hide_sub_polygons = False
-    show_waypoints = True
+    hide_sub_polygons = True
+    show_waypoints = False
 
     # Create a figure and axis
     fig, ax = plt.subplots(1, 1)
