@@ -129,7 +129,7 @@ def plot_multi_polys_path(region, current_path_width, polygons, path, obstacles=
     """
     labels_used = {"Path line": False, "Transit Line": False, "Start point": False, "End point": False, "Hard Edge": False}
 
-    hide_sub_polygons = True
+    hide_sub_polygons = False
     show_waypoints = False
 
     # Create a figure and axis
@@ -300,12 +300,12 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
                     [path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]],
                     'y--', linewidth=1.5,
                     path_effects=[pe.Stroke(linewidth=3, foreground='black'), pe.Normal()],
-                    label="Transit Line" if i == 0 else None, zorder=2
+                    label="Transit Line" if i == 0 else None, zorder=4
                 )
             else:
                 ax.plot(
                     [path_x[i], path_x[i + 1]], [path_y[i], path_y[i + 1]],
-                    'g-', linewidth=1.5, label="Path Line" if i == 0 else None, zorder=2
+                    'g-', linewidth=1.5, label="Path Line" if i == 0 else None, zorder=4
                 )
 
         # Mark start and end points

@@ -535,7 +535,7 @@ def path_planner():
                     elif sorting_var == 'TSP GNN':
                         print("GNN")
                         sorting_start_time = time.time()
-                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = solve_greedy_tsp_sorting(removed_col_sub_polygons, intersections)
+                        sorted_sub_polygons, sorted_col_removed_sub_polygons, sorted_intersections = solve_greedy_tsp_sorting(removed_col_sub_polygons, intersections, region)
                         sorting_end_time = time.time()
                         total_sorting_time = sorting_end_time - sorting_start_time
                     else:
@@ -579,15 +579,6 @@ def path_planner():
                     # No transit lines for a single polygon - Might be unnecessary since none should be added
                     if len(sorted_col_removed_sub_polygons) == 1:
                         transit_flags = [None] * len(transit_flags)
-
-                    # Set to true to check spiral path, only works for rectangles.
-                    spiral_path = False
-
-                    if spiral_path:
-                        boundary_box = sorted_sub_polygons[0].compute_boundary()
-                        path = compute_spiral_path(sorted_sub_polygons[0], chosen_path_width, boundary_box)
-                        path = remove_duplicate_points_preserve_order(path)
-                        transit_flags = [None] * len(path)
 
                     # Computing plot for path
                     fig_path = plot_multi_polys_path(region, chosen_path_width, sorted_sub_polygons, path, obstacles,

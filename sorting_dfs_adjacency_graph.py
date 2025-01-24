@@ -1,5 +1,7 @@
 import networkx as nx
 import numpy as np
+from matplotlib import pyplot as plt
+
 import decomposition
 
 def create_adjacency(polygons):
@@ -26,8 +28,8 @@ def create_adjacency(polygons):
                 A[i, j] = np.inf
                 #print(f'{i} and {j} are adjacent')
 
-    #nx.draw(G, with_labels=True, node_color='lightblue', edge_color='gray', node_size=2000, font_size=15)
-    #plt.show()
+    nx.draw(G, with_labels=True, node_color='lightblue', edge_color='gray', node_size=100, font_size=10)
+    plt.show()
 
     return A,G
 

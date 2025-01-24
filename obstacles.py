@@ -759,7 +759,7 @@ def decompose_around_obstacle(filtered_sub_polygons, obstacle):
     """ Computes the convex decomposition around the obstacle """
     merge_filtered_sub_polygons(filtered_sub_polygons)
 
-def plot_obstacles(sub_polygons, obstacles, include_points=True, title=''):
+def plot_obstacles(sub_polygons, obstacles, include_points=False, title=''):
 
     fig, ax = plt.subplots(1, 1)
     ax.set_title(title)
@@ -779,8 +779,8 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True, title=''):
                 else:
                     plt.scatter(v.x, v.y, color='black')
                 count += 1
-        c_x, c_y = get_center_of_polygon(p)
-        ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
+        #c_x, c_y = get_center_of_polygon(p)
+        #ax.text(c_x - 0.1, c_y, f'P{i}', color='r', fontsize=7)
 
     for o in obstacles:
         for e in o.edges:
@@ -795,14 +795,14 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True, title=''):
         #ax.plot(x_coords, y_coords, f'k-', marker='o' if include_points else None)
         #ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'k-')
 
-        if include_points:
-            for v in o.vertices:
-                plt.text(v.x, v.y, f'{count + v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
+        #if include_points:
+        #    for v in o.vertices:
+        #        plt.text(v.x, v.y, f'{count + v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
-                if v.edge_from_v_is_hard:
-                    plt.scatter(v.x, v.y, color='red')
-                else:
-                    plt.scatter(v.x, v.y, color='black')
+       #         if v.edge_from_v_is_hard:
+        #            plt.scatter(v.x, v.y, color='red')
+        #        else:
+        #            plt.scatter(v.x, v.y, color='black')
 
     ax.set_aspect('equal', adjustable='box')
     #fig.tight_layout()

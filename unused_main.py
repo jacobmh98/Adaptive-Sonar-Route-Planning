@@ -1,21 +1,23 @@
-from time import perf_counter
 import cpp_connect_path
 import decomposition
 import plot_cpp
 import sorting_dfs_adjacency_graph
 import sorting_tsp_centroid
-import sorting_tsp_intra_regional
 import cpp_path_planning
 import cpp_path_data
+import sorting_tsp_greedy
 from obstacles import *
 from load_data import *
 from overlap_correlation_calculations import analyze_overlap
 
-overlap_data = analyze_overlap("overlap_data")
+#overlap_data = analyze_overlap("overlap_data")
+
+print("Starting CPP")
+print(f"Path width: {global_path_width}")
 
 
 # Loading the region and obstacles
-data_path = 'test_data/obstacle_multi_easy.json'
+data_path = 'test_data/complex_polygon.json'
 region, obstacles = get_region(data_path)
 
 # Decompose the region using the sweep line algorithm
@@ -85,7 +87,7 @@ combined_polygons = extracted_sub_polygons + decomposed_polygons
 #optimized_sub_polygons = compute_optimized_data(combined_polygons)
 
 # Starting timer for all cpp functions
-total_start_time = time.time()
+#total_start_time = time.time()
 
 removed_col_sub_polygons = []
 for poly in combined_polygons:
@@ -104,9 +106,9 @@ elif tsp_centroid_sorting:
     sorted_combined_polygons, sorted_sub_poly, sorted_intersections = sorting_tsp_centroid.solve_centroid_tsp(combined_polygons, intersections)
 
 elif tsp_intra_regional_sorting:
-    print("TSP Intra Regional Sorting")
+    print("TSP GNN")
     # Using intersections start/end pairs to find optimal sorting order using tsp
-    sorted_combined_polygons, sorted_sub_poly, sorted_intersections = sorting_tsp_intra_regional.solve_intra_regional_tsp(combined_polygons, intersections, trials = 2)
+    sorted_combined_polygons, sorted_sub_poly, sorted_intersections = sorting_tsp_greedy.solve_greedy_tsp_sorting(combined_polygons, intersections, region)
 
 else:
     print('Baseline path:')
@@ -119,10 +121,10 @@ path, transit_flags = cpp_connect_path.connect_path(sorted_combined_polygons, so
 print(f'Number of polygons (main)= {len(sorted_combined_polygons)}')
 
 # Ending timer and computing total execution time
-total_end_time = time.time()
-total_execution_time = total_end_time - total_start_time
+#total_end_time = time.time()
+#total_execution_time = total_end_time - total_start_time
 
-if get_path_data:
-    cpp_path_data.compute_path_data(region, path, transit_flags, global_path_width, obstacles, total_execution_time)
+#if get_path_data:
+#    cpp_path_data.compute_path_data(region, path, transit_flags, global_path_width, obstacles, total_execution_time)
 
 plot_cpp.plot_multi_polys_path(global_path_width, sorted_combined_polygons, path, obstacles)

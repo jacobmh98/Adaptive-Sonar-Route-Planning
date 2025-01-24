@@ -257,6 +257,7 @@ class Polygon:
         # Edge case where vector just intersects 1 point, add the same point as intersection point
         if len(intersections) == 1:
             intersections.append(intersections[0])
+            #print("Duplicate")
 
         # Edge case where multiple intersections found (Duplicates around vertices)
         elif len(intersections) > 2:
