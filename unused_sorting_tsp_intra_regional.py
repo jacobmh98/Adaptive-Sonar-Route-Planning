@@ -203,5 +203,4 @@ def visualize_distance_matrix(distance_matrix, title="Distance Matrix", cmap="vi
     plt.xticks(range(len(distance_matrix)), range(len(distance_matrix)))
     plt.yticks(range(len(distance_matrix)), range(len(distance_matrix)))
     plt.grid(False)
-    plt.show()
 

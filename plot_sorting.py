@@ -44,7 +44,6 @@ def plot_tsp_centroid(polygons, tsp_route):
         ax.plot([centroid_start[0], centroid_end[0]], [centroid_start[1], centroid_end[1]], 'b--', linewidth=2)
 
     ax.set_aspect('equal', adjustable='box')  # Ensure equal scaling
-    plt.show()
 
 
 def plot_subpolygons_with_distances(polygons, pairs):
@@ -87,7 +86,6 @@ def plot_subpolygons_with_distances(polygons, pairs):
     # Set plot title and aspect ratio
     ax.set_title("Sub polygons with Start-End Connections and Distances")
     ax.set_aspect('equal')
-    plt.show()
 
 def plot_distance_matrix(matrix, labels=None):
     """
@@ -118,7 +116,6 @@ def plot_distance_matrix(matrix, labels=None):
     plt.title("Distance Matrix Visualization with Values")
     plt.xlabel("Start Point of Pairs")
     plt.ylabel("End Point of Pairs")
-    plt.show()
 
 def plot_polygon_with_start_end_pairs(polygon, start_end_pairs):
     """ Plot a single sub polygon with its start-end pairs labeled.
@@ -142,4 +139,3 @@ def plot_polygon_with_start_end_pairs(polygon, start_end_pairs):
         ax.set_aspect('equal')
 
     fig.suptitle('Start-End Pairs on Sub polygon')
-    plt.show()

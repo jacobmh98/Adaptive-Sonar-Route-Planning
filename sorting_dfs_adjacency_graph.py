@@ -29,8 +29,6 @@ def create_adjacency(polygons):
                 #print(f'{i} and {j} are adjacent')
 
     nx.draw(G, with_labels=True, node_color='lightblue', edge_color='gray', node_size=100, font_size=10)
-    plt.show()
-
     return A,G
 
 def solve_dfs(polygons, intersections):

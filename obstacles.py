@@ -806,7 +806,6 @@ def plot_obstacles(sub_polygons, obstacles, include_points=False, title=''):
 
     ax.set_aspect('equal', adjustable='box')
     #fig.tight_layout()
-    plt.show()
     return fig
 
 def find_cell(v, cells, active_cells, direction_up, v2=None):
@@ -851,7 +850,7 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
                 if v.prev in cell[1]:
 
                     return i, cell
-            # TODO test if this breaks anything
+
             if v.prev in cell[1]:
                 return i, cell
 

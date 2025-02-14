@@ -35,7 +35,6 @@ def plot_results(split_polygons, depth, cv, Di):
             r += 1
             c = 0
     fig.tight_layout()
-    plt.show()
 
 def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     fig, ax = plt.subplots(1, 4)
@@ -89,8 +88,6 @@ def plot_results2(P, P1, P2, depth, cv, edge, Dij):
     #mng = plt.get_current_fig_manager()
     #mng.full_screen_toggle()
 
-    plt.show()
-
 def plot_results3(sub_polygons, include_points = False):
     fig, ax = plt.subplots(1,1)
 
@@ -116,7 +113,6 @@ def plot_results3(sub_polygons, include_points = False):
         #ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], 'k-o')
         ax.set_aspect('equal')
         #ax.set_title('Antwerpen Decomposition')
-    plt.show()
 
 def plot_graph(sub_polygons):
     fig, ax = plt.subplots(1)
@@ -139,7 +135,6 @@ def plot_graph(sub_polygons):
     pos = nx.spring_layout(G)  # Layout for node positions
     nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
     #ax.set_title('Undirected Graph')
-    plt.show()
 
 def plot_polygons(P, sub_polygons, G):
     fig, ax = plt.subplots(1, 3)
@@ -171,7 +166,6 @@ def plot_polygons(P, sub_polygons, G):
         ax[i].text(c_x, c_y, f'{i}')
         ax[i].set_title(f'P{i}')
         ax[i].set_aspect('equal')"""
-    plt.show()
 
 def plot_polygons2(P, sub_polygons, optimized_sub_polygons):
     fig, ax = plt.subplots(1, 3)
@@ -208,7 +202,6 @@ def plot_polygons2(P, sub_polygons, optimized_sub_polygons):
         ax[i].text(c_x, c_y, f'{i}')
         ax[i].set_title(f'P{i}')
         ax[i].set_aspect('equal')"""
-    plt.show()
 
 def save_polygon(P, P1, P2, depth, n, D_ij, color='k', name='fig'):
     fig, ax = plt.subplots(1, 3)

@@ -597,7 +597,6 @@ def path_planner():
                     sub_polygons_list.append(None)
                     plots.append(fig_path)
 
-                    #TODO set canvas here
                     canvas = FigureCanvasTkAgg(fig_path, master=canvas_frame)
                     toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
                     canvas_list.append(canvas)
@@ -621,7 +620,6 @@ def path_planner():
                         sub_polygons_list.append(None)
                         plots.append(fig_coverage)
 
-                        # TODO set canvas here
                         canvas = FigureCanvasTkAgg(fig_coverage, master=canvas_frame)
                         toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
                         canvas_list.append(canvas)
@@ -629,7 +627,6 @@ def path_planner():
 
                     current_plot_index = len(plots) - 1
                     update_plot()
-
 
                 except Exception as e:  # Catch all exceptions
                     print(str(e))  # Print the exception message

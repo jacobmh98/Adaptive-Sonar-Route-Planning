@@ -63,7 +63,6 @@ def plot_single_polygon_with_intersections(polygon_list, intersections_list):
     # Add labels (No grid, no legend, no vertex labels)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
-    plt.show()
 
 
 def plot_antipodal_points(polygon, antipodal_vertices):
@@ -88,8 +87,6 @@ def plot_antipodal_points(polygon, antipodal_vertices):
         yk = [polygon.vertices[i].y, polygon.vertices[j].y]
         plt.plot(xk, yk, linestyle='--', marker='o', color=[0.7, 0.7, 0.7])
 
-    # Display the plot
-    #plt.show()
 
 def plot_simple_poly_path(polygon, path):
     # Create a figure and axis
@@ -240,7 +237,6 @@ def plot_multi_polys_path(region, current_path_width, polygons, path, obstacles=
     if not hide_plot_legend:
         ax.legend()
     ax.set_aspect('equal')
-    #plt.show()
     return fig
 
 
@@ -322,7 +318,6 @@ def plot_coverage_areas(polygons, coverage_area, overlap_buffered_lines, outlier
         ax.legend(handles=legend_patches, loc="upper right")
 
     ax.set_aspect('equal')
-    #plt.show()
     return fig
 
 
@@ -433,9 +428,6 @@ def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, s
     if show_legend:
         plt.legend(loc="center", bbox_to_anchor=(0.5, 0.6))  # Legend in the middle
 
-    plt.show()  # Display the plot
-
-
 def plot_path(poly, b, b_mate, a, path):
     """ Plot the original vector from b to b_mate, the offset vector, the boundary box, the polygon,
     including the intersection points between the offset vector and the polygon, and the path points.
@@ -514,7 +506,6 @@ def plot_path(poly, b, b_mate, a, path):
     plt.grid(True)
     plt.xlabel('X')
     plt.ylabel('Y')
-    plt.show()
 
 def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, best_path_output, score1,score2):
     """
@@ -547,7 +538,6 @@ def plot_paths_comparison(poly, b1, b_mate1, a1, path1, b2, b_mate2, a2, path2, 
     plot_single_path(ax3, poly, b_best, b_mate_best, a_best, dx, optimal_path, title=f"Best Path")
 
     plt.tight_layout()
-    plt.show()
 
 def plot_single_path(ax, poly, b, b_mate, a, dx, path, title):
     """
@@ -632,11 +622,6 @@ def plot_lines(v_initial, last_intersection,title):
     # Set equal scaling for both axes
     plt.gca().set_aspect('equal', adjustable='box')
 
-    # Show grid
-    plt.grid(True)
-
-    # Show the plot
-    plt.show()
 
 def plot_shapely_polygon_simple(polygon, title="Shapely Polygon"):
     """
@@ -677,8 +662,6 @@ def plot_shapely_polygon_simple(polygon, title="Shapely Polygon"):
         return
 
     ax.set_aspect('equal')  # Ensure equal scaling
-    plt.grid(True)
-    plt.show()
 
 
 def plot_buffered_lines(buffered_lines, polygon=None, obstacles=None):
@@ -718,4 +701,3 @@ def plot_buffered_lines(buffered_lines, polygon=None, obstacles=None):
     ax.set_ylabel("Y Coordinate")
     ax.legend()
     ax.set_aspect('equal', adjustable='box')
-    plt.show()

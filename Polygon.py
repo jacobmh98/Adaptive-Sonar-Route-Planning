@@ -162,7 +162,6 @@ class Polygon:
         ax.plot([x_coords[-1], x_coords[0]], [y_coords[-1], y_coords[0]], f'{color}-')
         ax.set_title(f'{title}')
         ax.set_aspect('equal')
-        plt.show()
 
     def get_mate(self, b):
         """ Find b's neighbour b_mate (counterclockwise neighbour)

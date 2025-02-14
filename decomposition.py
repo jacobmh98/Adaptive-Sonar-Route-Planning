@@ -819,7 +819,6 @@ def plot_obstacles(sub_polygons, obstacles, include_points=True):
                 plt.text(v.x, v.y, f'{count + v.index}', fontsize=12, ha='right', color='red')  # Draw the index near the vertex
 
     ax.set_aspect('equal')
-    plt.show()
 
 def sum_of_widths(sub_polygons):
     sum = 0
