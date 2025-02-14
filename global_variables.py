@@ -1,19 +1,8 @@
 from Polygon import VertexType as VT
 
-scale = 1
-
 epsilon = 1e-6
-epsilon_medium = 1e-3
-epsilon_large = 1e-2
 epsilon_xl = 0.2
-
-optimize_epsilon = 0.
-
 intersection_epsilon = 1e-9
-
-load_existing_data = False
-load_existing_optimized_polygons = False
-save_data = False
 
 # Start parameters
 global_path_width = 10.0 # Path width (Must be >0) (1 is 1 meter)

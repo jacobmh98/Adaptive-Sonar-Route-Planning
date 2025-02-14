@@ -17,7 +17,6 @@ def reroute_path_obstacles(start_point, end_point, obstacles, prev_polygon, inte
     # The path from start to end point crosses into an obstacle, and an intermediate path to reroute around it must be found
     # Finding the closest edge to start point that was intersected, using this to generate new start points
     closest_intersected_edge = find_closest_intersected_obstacle_edge(start_point, intersected_edges, prev_polygon)
-    #print(f"Closest intersected edge: {closest_intersected_edge}")
 
     start_point = tuple(map(float, start_point))  # Converts to a tuple with float values
 
@@ -50,44 +49,35 @@ def compute_intermediate_obstacle_path(temp_path, start_point, end_point, prev_i
     :param direction: String indicating the direction to follow ('left' or 'right').
     :return: List of points representing the updated path.
     """
-    #print(f"Direction: {direction}")
     closest_edge = prev_intersecting_edge
     counter = 0
 
     while True:
         # Current start point for this iteration
         new_start_point = temp_path[-1]
-        #print(f"new start point: {new_start_point}")
 
         # Checking for new intersections from new start point to the original end point
         intersected_edges = compute_obstacle_intersections(new_start_point, end_point, obstacles)
-        #print(f"next intersected edges: {intersected_edges}")
 
         # Filter edges to remove those that are using the new start point as vertex in them
         filtered_edges = filter_intersected_obstacle_edges(closest_edge, intersected_edges, obstacles)
-        #print(f"Next filtered edges: {filtered_edges}")
 
         # If 1 intersection, it is an obstacle vertex, and is clear, same for 0
         if len(filtered_edges) < 2:
-            #print(f"Clear path found going {direction}")
-            #print(f"Path: {temp_path}")
             return temp_path, True
 
         # Finding the closest intersected edge
         closest_edge = find_closest_intersected_obstacle_edge(new_start_point, filtered_edges, prev_polygon)
-        #print(f"Closest intersecting edge: {closest_edge}")
 
         if direction == "left":
             if is_shorter_obstacle_path(start_point, closest_edge[0], obstacles):
                 temp_path = [temp_path[0], closest_edge[0]]
-                #print(f"Shorter left")
             else:
                 temp_path.append(closest_edge[0])
 
         else:
             if is_shorter_obstacle_path(start_point, closest_edge[1], obstacles):
                 temp_path = [temp_path[0], closest_edge[1]]
-                #print(f"Shorter right")
             else:
                 temp_path.append(closest_edge[1])
 
@@ -116,16 +106,12 @@ def compute_obstacle_intersections(start_point, end_point, obstacles):
             # Check if the edge intersects the line
             if line_intersection(start_point, end_point, v1, v2):
                 intersected_edges.append(edge)
-                #print(f"Line intersected: {edge}")
             else:
                 # Check if start_point or end_point lies on the edge
                 start_on_edge, end_on_edge = is_start_end_on_edge(start_point, end_point, v1, v2)
 
                 if start_on_edge or end_on_edge:
                     intersected_edges.append(edge)
-                    #print(f"Start on edge: {start_on_edge}")
-                    #print(f"End on edge: {end_on_edge}")
-                    #print(f"The edge: {edge}")
 
     return intersected_edges
 
@@ -160,11 +146,9 @@ def filter_intersected_obstacle_edges(prev_intersecting_edge, intersected_edges,
 
     return final_filtered_edges
 
-# Small discrepancies in the initial intersections than the one found later
 def filter_initial_obstacle_intersections(start_point, end_point, intersected_edges, obstacles):
     """ Filters the initial intersected edges based on whether they belong to the same obstacle
         and additional criteria for clear paths and single-edge obstacles.
-
 
     :param start_point: Tuple representing the starting point of the line.
     :param end_point: Tuple representing the ending point of the line.
@@ -182,19 +166,15 @@ def filter_initial_obstacle_intersections(start_point, end_point, intersected_ed
 
         # Checking if the two intersected edges are from the same obstacle
         if is_from_same_obstacle:
-            #print("From same obstacle")
 
             # Checking if start and end point are on the intersected edges
             if is_point_on_edges(start_point, intersected_edges) and is_point_on_edges(end_point, intersected_edges):
-                #print("Start and End on intersected edges")
 
                 # Checking if a line from start to end is moving into or outside the obstacle
                 if not is_line_moving_into_obstacle(start_point, end_point, same_obstacle):
-                    #print("Not going into the obstacle")
                     # If just 2 intersections, and not going into obstacle, it is a clear path from start to end
                     return []  # Clear path
         else:
-            #print("Not from same obstacle")
             return []  # Clear path
 
     return intersected_edges

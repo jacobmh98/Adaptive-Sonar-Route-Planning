@@ -99,14 +99,6 @@ class Polygon:
 
     def rotate(self, angle_deg):
         """ Rotate the polygon """
-        # Compute the centroid
-        #cx, cy = self.compute_centroid()
-
-        # Translate the polygon to have its center at origin
-        #for v in self.vertices:
-        #    v.x -= cx
-        #    v.y -= cy
-
         # Define the rotation matrix
         rotation_matrix = np.array([
             [np.cos(np.radians(angle_deg)), -np.sin(np.radians(angle_deg))],
@@ -119,11 +111,6 @@ class Polygon:
 
             v.x = x
             v.y = y
-
-        # Translate the polygon back to its original centroid
-        #for v in self.vertices:
-        #    v.x += cx
-        #    v.y += cy
 
     def get_coords(self):
         """ Get the vertices as a list of x-coordinates and y-coordinates"""
@@ -256,7 +243,6 @@ class Polygon:
         # Edge case where vector just intersects 1 point, add the same point as intersection point
         if len(intersections) == 1:
             intersections.append(intersections[0])
-            #print("Duplicate")
 
         # Edge case where multiple intersections found (Duplicates around vertices)
         elif len(intersections) > 2:

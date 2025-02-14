@@ -15,12 +15,9 @@ def reroute_path_region(start_point, end_point, intersected_region_edges, region
     """
 
     closest_intersected_region_edge = find_closest_intersected_region_edge(start_point, intersected_region_edges, None, polygons)
-    #print(f"Closest region edge: {closest_intersected_region_edge}")
 
     left_temp_path, found_left_path = compute_intermediate_region_path([start_point, closest_intersected_region_edge[1]], end_point, closest_intersected_region_edge, region, i, polygons, 'left')
     right_temp_path, found_right_path = compute_intermediate_region_path([start_point, closest_intersected_region_edge[0]], end_point, closest_intersected_region_edge, region, i, polygons, 'right')
-    #print(f"Found left: {found_left_path}")
-    #print(f"Found right: {found_right_path}")
 
     if not found_left_path and not found_right_path:
         print("No path found")
@@ -46,49 +43,35 @@ def compute_intermediate_region_path(temp_path, end_point, closest_intersected_r
     :param direction: String indicating the direction to avoid edges ('left' or 'right').
     :return: List of points forming the updated path.
     """
-    #print(f"Direction region: {direction}")
-    #print(f"Start closest edge: {closest_intersected_region_edge}")
+
     prev_intersected_edges = [closest_intersected_region_edge]
     prev_intersected_edge = closest_intersected_region_edge
     counter = 0
 
     while True:
         new_start_point = temp_path[-1]
-        #print(f"New start point: {new_start_point}")
 
         intersected_edges = compute_hard_region_edge_intersections(new_start_point, end_point, region)
-        #print(f"New intersected edges: {intersected_edges}")
 
         filtered_edges = filter_intersected_region_edges(new_start_point, end_point, intersected_edges, region)
-        #print(f"New filtered edges: {filtered_edges}")
 
         # A clear path
         if len(filtered_edges) == 0:
-            #print("Clear path")
             return temp_path, True
 
-        #print(f"previous intersected: {prev_intersected_edges}")
-
         closest_edge = find_closest_intersected_region_edge(new_start_point, filtered_edges, prev_intersected_edge, polygons, prev_intersected_edges)
-        #print(f"Closest edge1: {closest_edge}")
 
         if not closest_edge:
-            #print("No clear path, all intersections tried")
             return [], False
 
         if closest_edge in prev_intersected_edges:
-            #print(f"prev intersected edges: {prev_intersected_edges}")
-            #print(f"Edge already tried: {closest_edge}")
-
             left_adjacent, right_adjacent = find_adjacent_edges(region, closest_edge)
-            #print(f"left adjacent, right adjacent: {left_adjacent}, {right_adjacent}")
 
             if direction == 'left':
                 closest_edge = left_adjacent
             else:
                 closest_edge = right_adjacent
 
-        #print(f"closest edge: {closest_edge}")
         prev_intersected_edge = closest_edge
 
         # Keeping track of already checked edges
@@ -98,7 +81,6 @@ def compute_intermediate_region_path(temp_path, end_point, closest_intersected_r
             is_shorter, shorter_points = is_shorter_region_path(closest_edge[1], temp_path, region)
             if is_shorter:
                 temp_path = shorter_points + [closest_edge[1]]
-                #print(f"Shorter path left: {temp_path}")
             else:
                 temp_path.append(closest_edge[1])
 
@@ -106,7 +88,6 @@ def compute_intermediate_region_path(temp_path, end_point, closest_intersected_r
             is_shorter, shorter_points = is_shorter_region_path(closest_edge[0], temp_path, region)
             if is_shorter:
                 temp_path = shorter_points + [closest_edge[0]]
-                #print(f"Shorter path right: {temp_path}")
             else:
                 temp_path.append(closest_edge[0])
 
@@ -127,8 +108,6 @@ def compute_hard_region_edge_intersections(start_point, end_point, region, epsil
     :return: List of intersected hard edges as tuples ((x1, y1), (x2, y2)).
     """
     intersected_hard_edges = []
-    #print(f"start point: {start_point}")
-    #print(f"end point: {end_point}")
 
     # Check all edges in the region
     for edge in region.edges:

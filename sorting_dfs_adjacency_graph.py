@@ -26,7 +26,6 @@ def create_adjacency(polygons):
                 G.add_edge(f'P{i}', f'P{j}')
             else:
                 A[i, j] = np.inf
-                #print(f'{i} and {j} are adjacent')
 
     nx.draw(G, with_labels=True, node_color='lightblue', edge_color='gray', node_size=100, font_size=10)
     return A,G

@@ -1,10 +1,8 @@
 import numpy as np
 from global_variables import *
-from shapely.geometry import Polygon as ShapelyPolygon, MultiPolygon, LineString
+from shapely.geometry import Polygon as ShapelyPolygon, LineString
 from shapely.ops import unary_union
 from rtree import index
-from plot_cpp import plot_shapely_polygon_simple, plot_buffered_lines
-
 
 def compute_distance(path, transit_flags):
     """ Function to compute the length of the path
@@ -228,7 +226,7 @@ def compute_path_data(poly, path, transit_flags, current_path_width, obstacles, 
     # Computing turns in the path
     total_turns, hard_turns, medium_turns, soft_turns = compute_turns(path, extra_points)
 
-    print_data = True
+    print_data = False
     if print_data:
         print(f'Execution time: {time}')
         print(f'Total Distance: {total_distance}')

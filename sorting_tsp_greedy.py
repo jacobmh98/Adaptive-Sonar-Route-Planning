@@ -1,5 +1,4 @@
 import cpp_connect_path
-import plot_sorting
 import math
 
 
@@ -107,18 +106,13 @@ def solve_greedy_tsp_sorting(polygons, all_intersections, region, intersection_w
 
     # Initialize variables to track the best path
     best_path = None
-    best_total_distance = float('inf')
     best_total_score = float('inf')
-    best_sorted_polygons = None
-    best_sorted_col_removed_polygons = None
-    best_sorted_intersections = None
 
     # Test all 4 starting pairs for the first polygon
     for start_pair_index in range(4):  # 4 pairs in the first polygon
         path = [(0, start_pair_index)]  # Start with the first polygon and this pair
         total_distance = 0
         total_score = 0
-        current_pair_index = start_pair_index
         current_end_point = all_polygon_start_end_pairs[0][start_pair_index][1]  # End point of the current pair
 
         visited = set()  # Keep track of visited polygons
@@ -139,13 +133,12 @@ def solve_greedy_tsp_sorting(polygons, all_intersections, region, intersection_w
                     start_point = all_polygon_start_end_pairs[n][j][0]  # Start point of the pair
                     distance = euclidean_distance(current_end_point, start_point)
                     intersections = count_intersections_with_region(current_end_point, start_point, region)
-                    #print(intersections)
                     if distance > long_path_distance:
                         current_score = distance + (intersection_weight * intersections) + long_path_penalty
                     else:
                         current_score = distance + (intersection_weight * intersections)
-                    # Prioritize the path with the shortest distance, and in case of ties, minimize the number of intersections
 
+                    # Prioritize the path with the shortest distance, and in case of ties, minimize the number of intersections
                     if current_score < min_score:
                         min_distance = distance
                         min_score = current_score
@@ -162,7 +155,6 @@ def solve_greedy_tsp_sorting(polygons, all_intersections, region, intersection_w
         # Check if this path is the best
         #if total_distance < best_total_distance:
         if total_score < best_total_score:
-            best_total_distance = total_distance
             best_total_score = total_score
             best_path = path
 

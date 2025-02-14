@@ -64,7 +64,7 @@ def extend_vector_to_boundary(vector, boundary):
     # Extract the boundary box values
     min_x, max_x, min_y, max_y = boundary
 
-    # Extending the vector slighty to handle edge cases
+    # Extending the vector slightly to handle edge cases
     boundary_buffer = 1e-6
     min_x -= boundary_buffer
     max_x += boundary_buffer
@@ -269,17 +269,6 @@ def get_path_intersections(poly, current_path_width, current_overlap_distance, b
     v_extended = extend_vector_to_boundary(v_offset, boundary)
     prev_v_extended = v_extended
 
-    """
-    # def plot_vectors_simple(poly, b, b_mate, a, v_extended, v_extended2, boundary, show_legend=True):
-    b_test = poly.vertices[b_index].v.flatten()
-    b_mate_test = poly.vertices[b_mate_index].v.flatten()
-    a_test = poly.vertices[a_index].v.flatten()
-    v_initial_test = np.array([b_test, b_mate_test])
-    v1 = extend_vector_to_boundary(compute_offset_vector(v_initial_test, sweep_direction, delta_init), boundary)
-    v2 = extend_vector_to_boundary(compute_offset_vector(v1, sweep_direction, 2*delta_init),boundary)
-    plot_vectors_simple(poly, b_test, b_mate_test, a_test, v1, v2, boundary, show_legend=True)
-    """
-
     # Fail-safe parameters for the while loop
     max_iterations = 10000
     counter = 0
@@ -391,13 +380,11 @@ def best_intersection(poly, current_path_width, current_overlap_distance, i, j, 
 
         # Checking if new points are neighbours, if so these are not needed
         if are_neighbors(len(poly.vertices), b2_index, a2_index):
-            #print(f"Are neighbours: {b2_index}, {a2_index}")
             intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
             return intersections
 
         # In cases of either b2 or a2 is negative, the standard is returned (Should never hit)
         elif b2_index < 0 or a2_index < 0:
-            #print(f"Are negative: {b2_index}, {a2_index}")
             intersections = get_path_intersections(poly, current_path_width, current_overlap_distance, b_index, poly.get_mate(b_index), a_index, boundary)
             return intersections
 

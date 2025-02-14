@@ -1,6 +1,5 @@
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 import numpy as np
-
 import plot_sorting
 
 

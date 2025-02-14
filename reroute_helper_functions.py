@@ -111,13 +111,10 @@ def find_best_path(left_temp_path, right_temp_path):
     left_cost = compute_path_cost(left_temp_path)
     right_cost = compute_path_cost(right_temp_path)
 
-    #print(f"Left path cost: {left_cost}, Right path cost: {right_cost}")
 
     if left_cost <= right_cost:
-        #print("left has smaller cost")
         return left_temp_path
     else:
-        #print("right has smaller cost")
         return right_temp_path
 
 

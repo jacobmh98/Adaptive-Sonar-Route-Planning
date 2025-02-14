@@ -8,7 +8,6 @@ from global_variables import *
 from rtree import index
 from load_data import generate_new_data
 
-
 def compute_intersection(ray_start, ray_dir, seg_A, seg_B):
     # Vector from A to B (the direction of the segment)
     seg_dir = seg_B - seg_A
@@ -88,13 +87,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
         combined_vertices += o.vertices
         combined_edges += o.edges
 
-    """    if obstacle is None:
-        combined_vertices = sub_polygon.vertices
-        combined_edges = sub_polygon.edges
-    else:
-        combined_vertices = sub_polygon.vertices + obstacle.vertices
-        combined_edges = sub_polygon.edges + obstacle.edges"""
-
     # Insertion Sort for the events based on x-coordinate in ascending order
     combined_vertices_sorted = []
 
@@ -151,9 +143,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
     cells = []
     active_cells = []
     break_here = False
-
-    #for v in combined_vertices_sorted:
-#        print(f'{v} {v.type}')
 
     for v in combined_vertices_sorted:
         if break_here:
@@ -246,7 +235,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             combined_edges.append(Edge(edge_down.v_from, v_down))
             combined_edges.append(Edge(v_down, edge_down.v_to))
 
-            #TODO cell = find_cell()
             i2, cell = find_cell(v, cells, active_cells, False, edge_down.v_from)
             cell[1].append(v_down)
 
@@ -302,8 +290,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             cells.append(new_cell)
             active_cells.append(True)
 
-            #print(f'{cell=}')
-            #print(f'ray from {v} intersects {edge}')
             combined_edges.remove(intersection_edge)
             intersection_edge.v_from.next = v_down
             intersection_edge.v_to.prev = v_down
@@ -311,10 +297,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             v_down.next = intersection_edge.v_to
             combined_edges.append(Edge(intersection_edge.v_from, v_down))
             combined_edges.append(Edge(v_down, intersection_edge.v_to))
-
-            # TODO consider also adding v here"""
-            # i, cell = find_cell(edge.v_from, cells)
-            # cell[1].append(v_down)
         elif v.type == FLOOR_CONCAVE:
             #print(f'FLOOR_CONCAVE at {v}')
             # Shooting ray upwards from v
@@ -353,14 +335,12 @@ def decompose_sweep_line(sub_polygon, obstacles):
             cells.append(new_cell)
             active_cells.append(True)
 
-            # print(f'{cell=}')
-
             combined_edges.remove(intersection_edge)
             intersection_edge.v_from.next = v_up
             intersection_edge.v_to.prev = v_up
             v_up.next = intersection_edge.v_to
             v_up.prev = intersection_edge.v_from
-            #TODO MISSING v_up prev and next
+
             combined_edges.append(Edge(intersection_edge.v_from, v_up))
             combined_edges.append(Edge(v_up, intersection_edge.v_to))
         elif v.type == MERGE:
@@ -390,9 +370,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
                 intersection_down = compute_intersection(ray_start, -ray_dir, seg_B, seg_A)
 
                 if intersection_up is not None:
-                    """v_up = Vertex(-1, intersection_up[0], intersection_up[1])
-                    v_up.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
-                    edge_up = edge"""
                     #print(f"intersects upwards with {edge} at {v_up}")
 
                     intersections_up.append(intersection_up)
@@ -401,9 +378,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
                     intersections_up_dist.append(dist)
 
                 if intersection_down is not None:
-                    """v_down = Vertex(-1, intersection_down[0], intersection_down[1])
-                    v_down.edge_from_v_is_hard = edge.v_from.edge_from_v_is_hard
-                    edge_down = edge"""
 
                     intersections_down.append(intersection_down)
                     dist = np.linalg.norm(intersection_down - v.get_array().flatten())
@@ -427,8 +401,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             v_down.edge_from_v_is_hard = intersection_down_edge.v_from.edge_from_v_is_hard
             edge_down = intersection_down_edge
 
-            #print(f'{edge_up=}')
-            #print(f'{edge_down=}')
             # Handling upwards intersection
             combined_edges.remove(edge_up)
             edge_up.v_from.next = v_up
@@ -437,10 +409,8 @@ def decompose_sweep_line(sub_polygon, obstacles):
             v_up.next = edge_up.v_to
             combined_edges.append(Edge(edge_up.v_from, v_up))
             combined_edges.append(Edge(v_up, edge_up.v_to))
-            # TODO HERE
 
             i, cell = find_cell(v, cells, active_cells, True, edge_up.v_to)
-            #print(f'{v_up=} belongs to {cell=}')
             cell[0].append(v_up)
             cell[1].append(v)
             active_cells[i] = False
@@ -474,10 +444,6 @@ def decompose_sweep_line(sub_polygon, obstacles):
             #print(f'COLLINEAR_FLOOR at {v}')
             i, cell = find_cell(v, cells, active_cells, False)
             cell[1].append(v)
-
-        #print(f'\t {active_cells}')
-        #for c in cells:
-            #print(f'\t {c}')
 
     sub_polygons = []
 
@@ -557,79 +523,6 @@ def find_bounding_polygons(sub_polygons, obstacle):
                     break
 
     return sub_polygons_filtered_indices, sub_polygons_filtered
-
-def compute_obstacle_region(sub_polygons_filtered, obstacle):
-    """ Compute the minimum region based on x-coordinate that contains the obstacle """
-    split_index = np.argmin(obstacle.vertices_matrix()[0, :])
-    split_vertex = obstacle.vertices[split_index]
-
-    # Determine which sub-polygon contains the SPLIT vertex
-    for i, p in enumerate(sub_polygons_filtered):
-        cross_products = np.empty(len(p.edges))
-
-        for j, e in enumerate(p.edges):
-            vec1 = e.v_to.get_array() - e.v_from.get_array()
-            vec2 = split_vertex.get_array() - e.v_from.get_array()
-
-            cross_products[j] = cross(vec1, vec2)
-
-        if np.all(cross_products > 0) or np.all(cross_products < 0):
-            open_polygon = p
-            break
-
-    # Shoot rays upwards and downwards from the SPLIT vertex
-    ray_start = split_vertex.get_array().flatten()  # Ray starting point P0
-    ray_dir = np.array([[0], [1]]).flatten()  # Ray direction vector
-
-    for edge in open_polygon.edges:
-        # Compute the intersection in both directions between the rays and edges if the polygon
-        seg_A = edge.v_from.get_array().flatten() # Segment point A
-        seg_B = edge.v_to.get_array().flatten() # Segment point B
-
-        intersection_up = compute_intersection(ray_start, ray_dir, seg_A, seg_B)
-        intersection_down = compute_intersection(ray_start, -ray_dir, seg_B, seg_A)
-
-        if intersection_up is not None:
-            v_up = Vertex(-1, intersection_up[0], intersection_up[1])
-
-        if intersection_down is not None:
-            v_down = Vertex(-1, intersection_down[0], intersection_down[1])
-
-    # Find the OPEN vertex in the OPEN polygon
-    open_index = np.argmin(open_polygon.vertices_matrix()[0, :])
-    open_vertex = open_polygon.vertices[open_index]
-
-    # Start a new cell
-    left_cell = ([], [open_vertex])
-
-    # Appending vertices to the floor list where the x-coordinate is less than the SPLIT vertex
-    v_next = open_vertex.next
-    while v_next.x < split_vertex.x:
-        left_cell[1].append(v_next)
-        v_next = v_next.next
-    left_cell[1].append(v_down)
-
-    # Appending vertices to the ceiling and ceiling list where the x-coordinate is less than the SPLIT vertex
-    v_prev = open_vertex.prev
-    while v_prev.x < split_vertex.x:
-        left_cell[0].append(v_prev)
-        v_prev = v_prev.prev
-    left_cell[0].append(v_up)
-
-    sub_polygons = []
-    for cell in cells:
-        vertices = []
-
-        # Appending the floor vertices of the cell
-        for i in range(0, len(cell[1])):
-            vertices.append(Vertex(len(vertices), cell[1][i].x, cell[1][i].y))
-
-        # Appending the ceiling vertices of the cell
-        for i in range(len(cell[0]) - 1, -1, -1):
-            vertices.append(Vertex(len(vertices), cell[0][i].x, cell[0][i].y))
-        P = Polygon(vertices)
-        sub_polygons.append(P)
-    #print(left_cell)
 
 def find_shared_edge_all(P1, P2):
     """ Determine if two polygons share an edge either by complete or partial adjacency"""
@@ -724,10 +617,6 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
 
                     #print(f"\t MERGIN P{i} and P{j}")
                     P = Polygon(combined_polygon_vertices)
-                    #plot_obstacles([P], [], False)
-
-                    #if not is_well_formed(P):
-                    #    break
 
                     sub_polygons_filtered[i] = P
                     sub_polygons_filtered.pop(j)
@@ -737,14 +626,7 @@ def merge_filtered_sub_polygons(sub_polygons_filtered, sub_polygons, mask):
                     break
 
     # Remove collinear vertices for the sub-polygon
-    #p = sub_polygons_filtered[0]
     p = remove_equal_points(sub_polygons_filtered[0])
-    #p = remove_collinear_vertices(p)
-    #p.compute_bounding_box()
-    #sub_polygons_filtered[i] = p
-
-    #for i, v in enumerate(p.vertices):
-    #    v.index = i
 
     sub_polygons_extract = []
 
@@ -760,7 +642,6 @@ def decompose_around_obstacle(filtered_sub_polygons, obstacle):
     merge_filtered_sub_polygons(filtered_sub_polygons)
 
 def plot_obstacles(sub_polygons, obstacles, include_points=False, title=''):
-
     fig, ax = plt.subplots(1, 1)
     ax.set_title(title)
     count = 0
@@ -805,11 +686,9 @@ def plot_obstacles(sub_polygons, obstacles, include_points=False, title=''):
         #            plt.scatter(v.x, v.y, color='black')
 
     ax.set_aspect('equal', adjustable='box')
-    #fig.tight_layout()
     return fig
 
 def find_cell(v, cells, active_cells, direction_up, v2=None):
-
     for i, cell in enumerate(cells):
         if not active_cells[i]:
             continue
@@ -846,11 +725,8 @@ def find_cell(v, cells, active_cells, direction_up, v2=None):
                 if v.prev in cell[1] and v.next in cell[1]:
                     return i, cell
             if v.prev.type == SPLIT:
-
                 if v.prev in cell[1]:
-
                     return i, cell
-
             if v.prev in cell[1]:
                 return i, cell
 
@@ -866,8 +742,6 @@ def combined_algorithms(region, obstacles):
     for o in obstacles:
         filtered_mask, filtered = find_bounding_polygons(sub_polygons, o)
         common_found = False
-
-        # plot_obstacles(filtered, obstacles, False)
 
         for index, mask in enumerate(sub_polygons_filtered_masks):
             for i in mask:
@@ -911,14 +785,10 @@ def combined_algorithms(region, obstacles):
         merged_sub_polygon_decomposed = decompose_sweep_line(merged_sub_polygon, obstacles_affected[i])
         decomposed_polygons += merged_sub_polygon_decomposed
 
-        # plot_obstacles(merged_sub_polygon_decomposed, obstacles, False)
-
         for p in sub_polygons_extract:
             if p not in extracted_sub_polygons_mask and p not in dont_include_mask:
                 extracted_sub_polygons_mask.append(p)
                 extracted_sub_polygons.append(sub_polygons[p])
-
-        #plot_obstacles(extracted_sub_polygons + [merged_sub_polygon], obstacles, False)
 
 def angle(v):
     """ Compute interior or exterior (outward-facing angles)  """

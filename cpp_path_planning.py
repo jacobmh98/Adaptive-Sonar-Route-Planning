@@ -102,7 +102,7 @@ def rotating_calipers_path_planner(polygon, current_path_width, current_overlap_
 
         current_intersections = cpp_path_intersections.get_path_intersections(polygon, current_path_width, current_overlap_distance, i, j, boundary_box)
 
-        # TODO: Create a better cost function finding an optimal mix between distance and turn heuristics
+        # Simple cost function, can be improved
         current_cost = len(current_intersections)
 
         # Update the optimal path if the current path has a lower cost

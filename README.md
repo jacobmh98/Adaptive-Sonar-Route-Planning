@@ -23,7 +23,7 @@ ortools
 ## Steps:
 
 ### 1. Run the Application
-Launch the Python script by running the "interface" Python class or the provided executable file.
+Launch the user interface by running the "interface.py" script or the provided executable file.
 
 ### 2. Select a File
 - Click the "Select File" button.  
@@ -38,7 +38,7 @@ Launch the Python script by running the "interface" Python class or the provided
   - Proceed to Step 4.  
 - If a JSON file is selected:  
   - Choose a decomposition algorithm and click the "Decompose" button.  
-      * Note: The "Greedy Recursive" algorithm can take more than 30 minutes for large regions (Antwerp, Great Belt bridge).
+      * Note: The "Greedy Recursive" algorithm can take more than 30 minutes for large regions and cannot handle obstacles (Antwerp, Great Belt bridge).
 
 ### 4. Optimize the Sub-Polygons
 - If you selected "Greedy Recursive" or "Combination" as the decomposition algorithm, redundant sub-polygons may be created.  
@@ -56,23 +56,24 @@ Launch the Python script by running the "interface" Python class or the provided
 
 ### 7. Include Coverage Plot (Optional)
 - Check the box to include a coverage plot.  
-  - This plot shows the covered area, overlap, and outlying regions for the generated path.
+- This plot shows the covered area, overlap, and outlying areas for the generated path.
 
 ### 8. Inspect the Results
 - View the generated plots and path data.  
-- Use the plot toolbar to zoom, move, or save the plot.
+- Use the plot matplotlib toolbar to zoom, move, or save the plot.
 
 ### 9. Save Data (Optional)
 - Click the "Save Data" button to save the generated plot as a Pickle file.
 - Only the region and the decomposed sub-polygons of the plot that is currently being shown is saved.
 - Enter a filename for the saved object. You can reload this file later.
 
-### 10. Redo Options
-#### Redo Decomposition
+### 10. New path generation
+#### Redo Decomposition (Optional)
 - Select a decomposition algorithm and repeat from Step 3.
 
-#### Redo Path Generation
+#### New Path Generation
 - Navigate to the plot showing the decomposed sub-polygons and repeat from Step 5.
 
-#### Redo Region Selection
-- Select a new file and repeat from Step 2.
+#### New Region Selection
+- If another region is wanted to generate paths for.
+- Select a new JSON file and repeat from Step 2.

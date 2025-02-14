@@ -7,10 +7,7 @@ from time import perf_counter
 import logging
 import traceback
 
-import plot_cpp
-import plot_sorting
-from cpp_alternative_path_finders import compute_spiral_path
-from cpp_connect_path import connect_path, remove_duplicate_points_preserve_order
+from cpp_connect_path import connect_path
 from cpp_path_planning import multi_intersection_planning
 from decomposition import sum_of_widths, remove_collinear_vertices, optimize_polygons
 from optimized_sweep_line import optimized_sweep_line
@@ -194,8 +191,6 @@ def decompose():
                 filtered_mask, filtered = find_bounding_polygons(sub_polygons, o)
                 common_found = False
 
-                # plot_obstacles(filtered, obstacles, False)
-
                 for index, mask in enumerate(sub_polygons_filtered_masks):
                     for i in mask:
                         for j in filtered_mask:
@@ -333,11 +328,6 @@ def decompose():
 def update_plot():
     global current_plot_index, canvas, toolbar, canvas_frame
 
-    #fig.get_axes()[0].set_xlim(initial_xlim)
-    #fig.get_axes()[0].set_ylim(initial_ylim)
-    #fig.tight_layout()
-    #fig.get_axes()[0].set_aspect('equal')
-
     if current_plot_index >= len(canvas_list):
         fig = plots[current_plot_index]
 
@@ -353,38 +343,6 @@ def update_plot():
         else:
             canvas.get_tk_widget().pack_forget()
             toolbar.pack_forget()
-
-    #canvas = canvas_list[current_plot_index]
-    #canvas.draw()
-    #canvas.get_tk_widget().pack(side='top', fill='both', expand=True)
-
-    # Add a matplotlib navigation toolbar
-    ##toolbar = toolbar_list[current_plot_index]
-    #toolbar.update()
-    #toolbar.pack(side='bottom', fill='x')
-
-
-    """        # Update the canvas with the new figure
-        canvas.figure = fig
-        canvas.draw()  # Redraw the canvas efficiently
-
-    # Update the toolbar to reflect the new figure
-    toolbar.destroy()  # Destroy the old toolbar
-    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
-    toolbar.update()
-    toolbar.pack(side='bottom', fill='x')"""
-
-    # Remove the old canvas widget
-    """canvas.get_tk_widget().pack_forget()
-
-    canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
-    canvas.draw()
-    canvas.get_tk_widget().pack()
-
-    # Reinitialize the toolbar with the new canvas
-    toolbar.destroy()  # Remove the old toolbar
-    toolbar = NavigationToolbar2Tk(canvas, canvas_frame)
-    toolbar.pack(side=TOP, fill=X)"""
 
     update_stats()
 
@@ -545,24 +503,8 @@ def path_planner():
                         sorted_intersections = intersections
                         total_sorting_time = 0
 
-                    # Storing data as pkl objects.
-                    #data_dir = "C:/Users/andre/Documents/Adaptive-Sonar-Route-Planning/comparison_test_files"
-                    #os.makedirs(data_dir, exist_ok=True)
-
-                    #file_path_region = os.path.join(data_dir, "test.pkl")
-                    #file_path_polys = os.path.join(data_dir, "test.pkl")
-
-                    # Save the 'region' object
-                    #with open(file_path_region, 'wb') as f:
-                    #    pickle.dump(region, f)
-
-                    # Save the 'sorted_sub_polygons' object
-                    #with open(file_path_polys, 'wb') as f:
-                    #    pickle.dump(sorted_sub_polygons, f)
-
 
                     # Computing path
-                    #plot_cpp.plot_single_polygon_with_intersections(sorted_sub_polygons, sorted_intersections)
                     path, transit_flags, extra_points = connect_path(sorted_sub_polygons, sorted_intersections,
                                                                         region, obstacles)
                     # Removing duplicate points from the path OBS: Creates some errors with hard edges rerouting (same vertices used to navigate around obstacles/hard edges)
@@ -669,8 +611,6 @@ def save_data():
 
             if save_file_path is not None and save_file_path != '':
                 data = sub_polygons_list[current_plot_index] + [region] + [obstacles] + [stats[current_plot_index]]
-
-                #print(f'{file_name=}')
 
                 with open(f'{save_file_path}', 'wb') as file:
                     pickle.dump(data, file)
@@ -853,10 +793,6 @@ setup_plot_pane()
 # Set up the option pane
 setup_option_pane()
 
-# Initialize the plot list and the index
-#plots = create_plots()
-#current_plot_index = 0
-
 def on_closing():
     """Handle the application closing."""
     root.quit()  # Stops the Tkinter mainloop
@@ -881,26 +817,6 @@ if log_data:
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
 
-"""# Redirect stdout and stderr to logging
-class StreamToLogger:
-    def __init__(self, logger, level):
-        self.logger = logger
-        self.level = level
-
-
-        def write(self, message):
-            if message.strip():  # Avoid blank lines
-                self.logger.log(self.level, message.strip())
-
-        def flush(self):
-            pass  # Required for compatibility with file-like objects
-
-
-    sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
-    sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)
-
-sys.stdout = StreamToLogger(logging.getLogger("stdout"), logging.INFO)
-sys.stderr = StreamToLogger(logging.getLogger("stderr"), logging.ERROR)"""
 
 if __name__ == "__main__":
     root.mainloop()

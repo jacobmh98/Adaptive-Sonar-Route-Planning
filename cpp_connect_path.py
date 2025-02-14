@@ -200,7 +200,6 @@ def extract_hard_edges(polygons):
 def connect_path(polygons, total_intersections, region, obstacles):
     path = np.empty((0, 2))  # Main path
     transit_flags = []  # List to store flags for each point in the transit path
-    transit_path = np.empty((0,2))
     hard_region_edges = extract_hard_edges(polygons)
     hard_obstacles = [obstacle for obstacle in obstacles if obstacle.is_hard_obstacle]
     added_extra_points = 0
@@ -246,7 +245,7 @@ def connect_path(polygons, total_intersections, region, obstacles):
                 # Compute the midpoint between the two points
                 #midpoint = (current_path[0] + current_path[1]) / 2.0
 
-                # Insert the midpoint into the array at position 1
+                # Insert the midpoint into the array at position 1 // Changed midpoint to first point for correct plotting when showing waypoints
                 current_path = np.insert(current_path, 1, current_path[0], axis=0)
                 added_extra_points += 1
 
